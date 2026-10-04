@@ -1,6 +1,6 @@
 import { error, json } from '@sveltejs/kit';
 import { homedir } from 'node:os';
-import { DEFAULT_SAVE_FOLDER } from '#lib/saving.svelte.ts';
+import { DEFAULT_SAVE_FOLDER } from '#lib/preferences.ts';
 import { createFolder, FileError, isLocalAddress, listFolders } from '#lib/server/files.ts';
 import type { RequestHandler } from './$types';
 

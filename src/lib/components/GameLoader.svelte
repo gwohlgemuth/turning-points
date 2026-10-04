@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { untrack } from 'svelte';
 	import { slide } from 'svelte/transition';
 	import { ms } from '#lib/motion.ts';
 	import type { Side } from '#lib/analysis.ts';
@@ -12,42 +12,30 @@
 		type GameSummary
 	} from '#lib/games.ts';
 	import { savePgn } from '#lib/saving.svelte.ts';
+	import { updatePreferences, type Preferences } from '#lib/preferences.ts';
 
 	type Props = {
 		onselect: (game: GameSummary, side: Side | null) => void;
 		games?: GameSummary[];
+		preferences: Preferences;
 	};
 
-	let { onselect, games = $bindable([]) }: Props = $props();
+	let { onselect, games = $bindable([]), preferences }: Props = $props();
 
-	const STORAGE_KEY = 'turning-points:account';
-
-	let source = $state<GameSource>('lichess');
-	let username = $state('');
-	let max = $state(20);
+	const initial = untrack(() => preferences);
+	let source = $state<GameSource>(initial.source);
+	let username = $state(initial.username);
+	let max = $state(initial.max);
 	let loading = $state(false);
 	let message = $state('');
 	let selectedId = $state('');
-
-	onMount(() => {
-		try {
-			const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null');
-			if (saved) ({ source, username, max = 20 } = saved);
-		} catch {
-			// storage unavailable
-		}
-	});
 
 	async function load(event: SubmitEvent) {
 		event.preventDefault();
 		loading = true;
 		message = '';
 		games = [];
-		try {
-			localStorage.setItem(STORAGE_KEY, JSON.stringify({ source, username, max }));
-		} catch {
-			// storage unavailable
-		}
+		updatePreferences({ source, username: username.trim(), max });
 		try {
 			const params = new URLSearchParams({ source, user: username.trim(), max: String(max) });
 			const response = await fetch(`/api/games?${params}`);

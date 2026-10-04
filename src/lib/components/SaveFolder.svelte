@@ -1,13 +1,13 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { untrack } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
 	import { ms } from '#lib/motion.ts';
-	import {
-		DEFAULT_SAVE_FOLDER,
-		loadSaveFolder,
-		saving,
-		setSaveFolder
-	} from '#lib/saving.svelte.ts';
+	import { DEFAULT_SAVE_FOLDER } from '#lib/preferences.ts';
+	import { saving, setSaveFolder } from '#lib/saving.svelte.ts';
+
+	let { folder }: { folder: string } = $props();
+
+	saving.folder = untrack(() => folder);
 
 	let open = $state(false);
 	let path = $state('');
@@ -15,8 +15,6 @@
 	let exists = $state(true);
 	let newName = $state('');
 	let message = $state('');
-
-	onMount(loadSaveFolder);
 
 	async function request(url: string, init?: RequestInit) {
 		const response = await fetch(url, init);

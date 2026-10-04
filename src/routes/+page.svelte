@@ -27,6 +27,9 @@
 	} from '#lib/analysis.ts';
 	import { pgnFilename, splitPgn, summaryFromPgn, type GameSummary } from '#lib/games.ts';
 	import { savePgn } from '#lib/saving.svelte.ts';
+	import type { PageProps } from './$types';
+
+	let { data }: PageProps = $props();
 
 	let pgn = $state('');
 	let count = $state(3);
@@ -227,7 +230,7 @@
 	<div class="top">
 		<section class="card load">
 			<h2 class="card-title">Load a game</h2>
-			<GameLoader onselect={loadGame} bind:games={loadedGames} />
+			<GameLoader onselect={loadGame} bind:games={loadedGames} preferences={data.preferences} />
 			<textarea bind:value={pgn} rows="6" placeholder="…or paste a PGN here"></textarea>
 			<div class="file-row">
 				<input
@@ -240,7 +243,7 @@
 					Save PGN
 				</button>
 			</div>
-			<SaveFolder />
+			<SaveFolder folder={data.preferences.folder} />
 		</section>
 
 		<section class="card settings">
