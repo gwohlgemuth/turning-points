@@ -47,3 +47,7 @@ pnpm check     # type checking
 pnpm test      # unit tests
 pnpm lint      # prettier + eslint
 ```
+
+## Credits
+
+Chess pieces: "cburnett" set by [Colin M.L. Burnett](https://en.wikipedia.org/wiki/User:Cburnett), licensed under GPLv2+/BSD/GFDL, taken from [lichess](https://github.com/lichess-org/lila/tree/master/public/piece/cburnett).

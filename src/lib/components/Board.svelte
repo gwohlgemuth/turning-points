@@ -1,10 +1,9 @@
 <script lang="ts">
 	type Props = { fen: string; highlight?: string[]; flipped?: boolean };
-	type Square = { name: string; piece: string | null; whitePiece: boolean; dark: boolean };
+	type Square = { name: string; piece: string | null; dark: boolean };
 
 	let { fen, highlight = [], flipped = false }: Props = $props();
 
-	const glyphs: Record<string, string> = { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' };
 	const files = 'abcdefgh';
 
 	let squares = $derived.by(() => {
@@ -18,10 +17,10 @@
 					const empty = Number(ch);
 					const count = empty || 1;
 					for (let i = 0; i < count; i++, f++) {
+						const color = ch === ch.toUpperCase() ? 'w' : 'b';
 						result.push({
 							name: `${files[f]}${8 - r}`,
-							piece: empty ? null : glyphs[ch.toLowerCase()] + '︎',
-							whitePiece: ch === ch.toUpperCase(),
+							piece: empty ? null : color + ch.toUpperCase(),
 							dark: (r + f) % 2 === 1
 						});
 					}
@@ -32,15 +31,16 @@
 </script>
 
 <div class="board" aria-label="Chess board">
-	{#each squares as square (square.name)}
-		<div
-			class="square"
-			class:dark={square.dark}
-			class:highlight={highlight.includes(square.name)}
-			title={square.name}
-		>
+	{#each squares as square, i (square.name)}
+		<div class="square" class:dark={square.dark} class:highlight={highlight.includes(square.name)}>
+			{#if i % 8 === 0}
+				<span class="coord rank">{square.name[1]}</span>
+			{/if}
+			{#if i >= 56}
+				<span class="coord file">{square.name[0]}</span>
+			{/if}
 			{#if square.piece}
-				<span class="piece" class:white={square.whitePiece}>{square.piece}</span>
+				<img class="piece" src="/pieces/{square.piece}.svg" alt={square.piece} draggable="false" />
 			{/if}
 		</div>
 	{/each}
@@ -58,13 +58,14 @@
 	}
 
 	.square {
-		display: grid;
-		place-items: center;
+		position: relative;
 		background: var(--square-light);
+		color: var(--square-dark);
 	}
 
 	.square.dark {
 		background: var(--square-dark);
+		color: var(--square-light);
 	}
 
 	.square.highlight {
@@ -72,17 +73,29 @@
 	}
 
 	.piece {
-		font-size: 10cqi;
-		line-height: 1;
-		color: #111;
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
 		user-select: none;
 	}
 
-	.piece.white {
-		color: #fff;
-		text-shadow:
-			0 0 1px #000,
-			0 0 1px #000,
-			0 0 2px #000;
+	.coord {
+		position: absolute;
+		font-size: max(9px, 2.6cqi);
+		font-weight: 700;
+		line-height: 1;
+		user-select: none;
+		pointer-events: none;
+	}
+
+	.rank {
+		top: 3%;
+		left: 4%;
+	}
+
+	.file {
+		bottom: 3%;
+		right: 5%;
 	}
 </style>
