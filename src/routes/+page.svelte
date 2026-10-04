@@ -2,6 +2,7 @@
 	import Board from '#lib/components/Board.svelte';
 	import EvalBar from '#lib/components/EvalBar.svelte';
 	import EvalGraph from '#lib/components/EvalGraph.svelte';
+	import GameLoader from '#lib/components/GameLoader.svelte';
 	import Variations from '#lib/components/Variations.svelte';
 	import {
 		findTurningPoints,
@@ -13,6 +14,7 @@
 		type PositionEval,
 		type Side
 	} from '#lib/analysis.ts';
+	import type { GameSummary } from '#lib/games.ts';
 
 	let pgn = $state('');
 	let count = $state(3);
@@ -113,6 +115,15 @@
 		if (event.key === 'ArrowRight') select(selected + 1);
 	}
 
+	function loadGame(game: GameSummary, player: Side | null) {
+		pgn = game.pgn;
+		if (player) {
+			side = player;
+			flipped = player === 'b';
+		}
+		analyze();
+	}
+
 	async function loadFile(event: Event) {
 		const file = (event.currentTarget as HTMLInputElement).files?.[0];
 		if (file) pgn = await file.text();
@@ -131,7 +142,8 @@
 	</header>
 
 	<section class="input">
-		<textarea bind:value={pgn} rows="8" placeholder="Paste a PGN here…"></textarea>
+		<GameLoader onselect={loadGame} />
+		<textarea bind:value={pgn} rows="8" placeholder="…or paste a PGN here"></textarea>
 		<div class="controls">
 			<label>
 				PGN file
