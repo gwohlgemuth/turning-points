@@ -1,9 +1,14 @@
 <script lang="ts">
 	import { formatLine, formatScore, type Variation } from '#lib/analysis.ts';
 
-	type Props = { fen: string; depth: number; lines: number };
+	type Props = {
+		fen: string;
+		depth: number;
+		lines: number;
+		onresult?: (variations: Variation[] | null) => void;
+	};
 
-	let { fen, depth, lines }: Props = $props();
+	let { fen, depth, lines, onresult }: Props = $props();
 
 	let variations = $state<Variation[] | null>(null);
 	let message = $state('');
@@ -12,6 +17,7 @@
 		const controller = new AbortController();
 		variations = null;
 		message = '';
+		onresult?.(null);
 		fetch('/api/lines', {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
@@ -22,6 +28,7 @@
 				const body = await response.json();
 				if (!response.ok) throw new Error(body.message ?? `Request failed (${response.status})`);
 				variations = body.variations;
+				onresult?.(body.variations);
 			})
 			.catch((err: Error) => {
 				if (err.name !== 'AbortError') message = err.message;

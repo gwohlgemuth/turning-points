@@ -1,10 +1,24 @@
+<script lang="ts" module>
+	export type BoardMove = { from: string; to: string; promotion?: string };
+</script>
+
 <script lang="ts">
-	type Props = { fen: string; highlight?: string[]; flipped?: boolean };
+	import { Chess, type Square as ChessSquare } from 'chess.js';
+
+	type Props = {
+		fen: string;
+		highlight?: string[];
+		flipped?: boolean;
+		onmove?: (move: BoardMove) => void;
+	};
 	type Square = { name: string; piece: string | null; dark: boolean };
 
-	let { fen, highlight = [], flipped = false }: Props = $props();
+	let { fen, highlight = [], flipped = false, onmove }: Props = $props();
 
 	const files = 'abcdefgh';
+
+	let selectedSquare = $state<string | null>(null);
+	let promotion = $state<{ from: string; to: string } | null>(null);
 
 	let squares = $derived.by(() => {
 		const result: Square[] = [];
@@ -28,11 +42,72 @@
 			});
 		return flipped ? result.reverse() : result;
 	});
+
+	let legalMoves = $derived(onmove ? new Chess(fen).moves({ verbose: true }) : []);
+	let targets = $derived(
+		selectedSquare ? legalMoves.filter((m) => m.from === selectedSquare).map((m) => m.to) : []
+	);
+	let sideToMove = $derived(fen.split(' ')[1] === 'b' ? 'b' : 'w');
+
+	$effect(() => {
+		void fen;
+		selectedSquare = null;
+		promotion = null;
+	});
+
+	const canMoveFrom = (square: string) => legalMoves.some((m) => m.from === square);
+
+	function tryMove(from: string, to: string) {
+		const candidates = legalMoves.filter((m) => m.from === from && m.to === to);
+		selectedSquare = null;
+		if (!candidates.length) return;
+		if (candidates.some((m) => m.promotion)) {
+			promotion = { from, to };
+			return;
+		}
+		onmove?.({ from, to });
+	}
+
+	function handleClick(square: string) {
+		if (!onmove) return;
+		if (selectedSquare && targets.includes(square as ChessSquare)) {
+			tryMove(selectedSquare, square);
+		} else {
+			selectedSquare = canMoveFrom(square) && selectedSquare !== square ? square : null;
+		}
+	}
+
+	function handleDragStart(event: DragEvent, square: string) {
+		selectedSquare = square;
+		event.dataTransfer?.setData('text/plain', square);
+	}
+
+	function handleDrop(event: DragEvent, square: string) {
+		event.preventDefault();
+		const from = event.dataTransfer?.getData('text/plain');
+		if (from && from !== square) tryMove(from, square);
+	}
+
+	function promote(piece: string) {
+		if (promotion) onmove?.({ ...promotion, promotion: piece });
+		promotion = null;
+	}
 </script>
 
-<div class="board" aria-label="Chess board">
+<div class="board" class:interactive={!!onmove} aria-label="Chess board">
 	{#each squares as square, i (square.name)}
-		<div class="square" class:dark={square.dark} class:highlight={highlight.includes(square.name)}>
+		<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+		<div
+			class="square"
+			class:dark={square.dark}
+			class:highlight={highlight.includes(square.name)}
+			class:selected={selectedSquare === square.name}
+			class:target={targets.includes(square.name as ChessSquare)}
+			class:occupied={!!square.piece}
+			onclick={() => handleClick(square.name)}
+			ondragover={(event) => event.preventDefault()}
+			ondrop={(event) => handleDrop(event, square.name)}
+		>
 			{#if i % 8 === 0}
 				<span class="coord rank">{square.name[1]}</span>
 			{/if}
@@ -40,14 +115,32 @@
 				<span class="coord file">{square.name[0]}</span>
 			{/if}
 			{#if square.piece}
-				<img class="piece" src="/pieces/{square.piece}.svg" alt={square.piece} draggable="false" />
+				<img
+					class="piece"
+					src="/pieces/{square.piece}.svg"
+					alt={square.piece}
+					draggable={canMoveFrom(square.name)}
+					ondragstart={(event) => handleDragStart(event, square.name)}
+				/>
 			{/if}
 		</div>
 	{/each}
+
+	{#if promotion}
+		<div class="promotion" role="dialog" aria-label="Choose promotion piece">
+			{#each ['q', 'r', 'b', 'n'] as piece (piece)}
+				<button onclick={() => promote(piece)}>
+					<img src="/pieces/{sideToMove}{piece.toUpperCase()}.svg" alt={piece} />
+				</button>
+			{/each}
+			<button class="cancel" onclick={() => (promotion = null)} aria-label="Cancel">✕</button>
+		</div>
+	{/if}
 </div>
 
 <style>
 	.board {
+		position: relative;
 		display: grid;
 		grid-template-columns: repeat(8, 1fr);
 		width: 100%;
@@ -70,6 +163,29 @@
 
 	.square.highlight {
 		box-shadow: inset 0 0 0 100vmax rgb(255 214 0 / 0.45);
+	}
+
+	.square.selected {
+		box-shadow: inset 0 0 0 100vmax rgb(20 85 30 / 0.5);
+	}
+
+	.square.target::after {
+		content: '';
+		position: absolute;
+		inset: 36%;
+		border-radius: 50%;
+		background: rgb(20 85 30 / 0.45);
+		pointer-events: none;
+	}
+
+	.square.target.occupied::after {
+		inset: 3%;
+		background: none;
+		border: 4px solid rgb(20 85 30 / 0.45);
+	}
+
+	.interactive .square {
+		cursor: pointer;
 	}
 
 	.piece {
@@ -97,5 +213,32 @@
 	.file {
 		bottom: 3%;
 		right: 5%;
+	}
+
+	.promotion {
+		position: absolute;
+		inset: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+		background: rgb(0 0 0 / 0.45);
+	}
+
+	.promotion button {
+		width: 14%;
+		aspect-ratio: 1;
+		padding: 4px;
+		background: var(--square-light);
+	}
+
+	.promotion img {
+		width: 100%;
+		height: 100%;
+	}
+
+	.promotion .cancel {
+		width: auto;
+		aspect-ratio: auto;
 	}
 </style>

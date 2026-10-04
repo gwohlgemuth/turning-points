@@ -1,5 +1,6 @@
 <script lang="ts">
-	import Board from '#lib/components/Board.svelte';
+	import { Chess } from 'chess.js';
+	import Board, { type BoardMove } from '#lib/components/Board.svelte';
 	import EvalBar from '#lib/components/EvalBar.svelte';
 	import EvalGraph from '#lib/components/EvalGraph.svelte';
 	import GameLoader from '#lib/components/GameLoader.svelte';
@@ -9,13 +10,17 @@
 	import Variations from '#lib/components/Variations.svelte';
 	import {
 		findTurningPoints,
+		formatLine,
 		formatScore,
 		judgeMove,
 		moveLabel,
 		type AnalyzeEvent,
 		type Move,
 		type PositionEval,
-		type Side
+		type Score,
+		type Side,
+		type Variation,
+		winPercent
 	} from '#lib/analysis.ts';
 	import { pgnFilename, splitPgn, summaryFromPgn, type GameSummary } from '#lib/games.ts';
 	import { savePgn } from '#lib/saving.svelte.ts';
@@ -36,6 +41,14 @@
 	let flipped = $state(false);
 	let opened = $state<Record<number, boolean>>({});
 	let loadedGames = $state<GameSummary[]>([]);
+	let exploration = $state<{
+		base: number;
+		moves: BoardMove[];
+		sans: string[];
+		fens: string[];
+	} | null>(null);
+	let explorationEval = $state<{ score: Score; winPercent: number } | null>(null);
+	let explorationPending = $state(false);
 	let controller: AbortController | null = null;
 
 	let positions = $derived(moves.length + 1);
@@ -50,8 +63,53 @@
 	let turningPoints = $derived(findTurningPoints(winPercents, count, side));
 	let hasTimes = $derived(moves.some((m) => m.time));
 	let turningPlies = $derived(new Set(turningPoints.map((tp) => tp.ply)));
-	let fen = $derived(selected === 0 ? startFen : (moves[selected - 1]?.fenAfter ?? startFen));
+	let fen = $derived(positionFen(selected));
 	let lastMove = $derived(selected > 0 ? moves[selected - 1] : null);
+	let boardFen = $derived(exploration?.fens.at(-1) ?? fen);
+	let boardHighlight = $derived.by(() => {
+		const move = exploration?.moves.at(-1) ?? lastMove;
+		return move ? [move.from, move.to] : [];
+	});
+	let barEval = $derived(exploration ? explorationEval : (evals[selected] ?? null));
+
+	function positionFen(index: number): string {
+		return index === 0 ? startFen : (moves[index - 1]?.fenAfter ?? startFen);
+	}
+
+	function handleBoardMove(boardMove: BoardMove) {
+		const chess = new Chess(boardFen);
+		const move = chess.move(boardMove);
+		if (!exploration) {
+			const next = moves[selected];
+			if (next?.san === move.san) {
+				select(selected + 1);
+				return;
+			}
+			exploration = { base: selected, moves: [], sans: [], fens: [] };
+			explorationEval = null;
+		}
+		exploration.moves.push(boardMove);
+		exploration.sans.push(move.san);
+		exploration.fens.push(chess.fen());
+	}
+
+	function undoExploration() {
+		if (!exploration) return;
+		exploration.moves.pop();
+		exploration.sans.pop();
+		exploration.fens.pop();
+		if (!exploration.moves.length) exploration = null;
+	}
+
+	function handleExplorationResult(variations: Variation[] | null) {
+		explorationPending = !variations;
+		const best = variations?.[0];
+		if (!best) return;
+		explorationEval = {
+			score: best.score,
+			winPercent: winPercent(best.score, boardFen.split(' ')[1] === 'w')
+		};
+	}
 	let progress = $derived(positions > 0 ? Math.round((winPercents.length / positions) * 100) : 0);
 
 	function handleEvent(event: AnalyzeEvent) {
@@ -61,6 +119,7 @@
 			headers = event.headers;
 			evals = [];
 			opened = {};
+			exploration = null;
 			selected = 0;
 		} else if (event.type === 'eval') {
 			evals[event.eval.index] = event.eval;
@@ -112,11 +171,16 @@
 	}
 
 	function select(index: number) {
+		exploration = null;
 		selected = Math.min(positions - 1, Math.max(0, index));
 	}
 
 	function handleKey(event: KeyboardEvent) {
 		if (!moves.length || (event.target as HTMLElement).tagName === 'TEXTAREA') return;
+		if (exploration) {
+			if (event.key === 'ArrowLeft') undoExploration();
+			return;
+		}
 		if (event.key === 'ArrowLeft') select(selected - 1);
 		if (event.key === 'ArrowRight') select(selected + 1);
 	}
@@ -214,11 +278,11 @@
 			<section class="board-panel">
 				<div class="board-row">
 					<EvalBar
-						score={evals[selected]?.score ?? null}
-						winPercent={evals[selected]?.winPercent ?? 50}
+						score={barEval?.score ?? null}
+						winPercent={barEval?.winPercent ?? 50}
 						{flipped}
 					/>
-					<Board {fen} {flipped} highlight={lastMove ? [lastMove.from, lastMove.to] : []} />
+					<Board fen={boardFen} {flipped} highlight={boardHighlight} onmove={handleBoardMove} />
 				</div>
 				<div class="nav">
 					<button onclick={() => select(0)} aria-label="Start">⏮</button>
@@ -227,10 +291,36 @@
 					<button onclick={() => select(positions - 1)} aria-label="End">⏭</button>
 					<button onclick={() => (flipped = !flipped)}>Flip</button>
 				</div>
-				<p class="muted">
-					{lastMove ? moveLabel(lastMove.ply, lastMove.san) : 'Start position'}
-					{#if evals[selected]}· {formatScore(evals[selected].score)}{/if}
-				</p>
+				{#if exploration}
+					<div class="exploration">
+						<div>
+							<strong>Your line:</strong>
+							{formatLine(positionFen(exploration.base), exploration.sans)}
+						</div>
+						<div>
+							<strong>Evaluation:</strong>
+							{#if explorationPending || !explorationEval}
+								<span class="muted">Calculating…</span>
+							{:else}
+								{formatScore(explorationEval.score)}
+							{/if}
+						</div>
+						<div class="nav">
+							<button onclick={undoExploration}>Undo move</button>
+							<button onclick={() => select(exploration!.base)}>Back to game</button>
+						</div>
+						<details>
+							<summary>Engine lines</summary>
+							<Variations fen={boardFen} {depth} {lines} onresult={handleExplorationResult} />
+						</details>
+					</div>
+				{:else}
+					<p class="muted">
+						{lastMove ? moveLabel(lastMove.ply, lastMove.san) : 'Start position'}
+						{#if evals[selected]}· {formatScore(evals[selected].score)}{/if}
+						· Move a piece to try your own line
+					</p>
+				{/if}
 			</section>
 
 			<section class="points">
@@ -433,6 +523,20 @@
 		display: flex;
 		gap: 6px;
 		margin: 8px 0;
+	}
+
+	.exploration {
+		display: grid;
+		gap: 6px;
+		margin-top: 10px;
+		padding: 10px 12px;
+		border: 1px solid var(--accent);
+		border-radius: 8px;
+		background: var(--surface);
+	}
+
+	.exploration .nav {
+		margin-top: 0;
 	}
 
 	.board-row {
