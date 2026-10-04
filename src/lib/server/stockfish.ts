@@ -31,6 +31,7 @@ export class Stockfish {
 	#listener: ((line: string) => void) | null = null;
 	#exited: Promise<never>;
 	#multiPv = 1;
+	#quit = false;
 
 	constructor(path: string) {
 		this.#proc = spawn(path, [], { stdio: 'pipe' });
@@ -41,6 +42,7 @@ export class Stockfish {
 			this.#proc.on('exit', (code) => reject(new Error(`Stockfish exited (code ${code})`)));
 		});
 		this.#exited.catch(() => {});
+		this.#proc.stdin.on('error', () => {});
 		createInterface({ input: this.#proc.stdout }).on('line', (line) => this.#listener?.(line));
 	}
 
@@ -67,13 +69,14 @@ export class Stockfish {
 	}
 
 	quit(): void {
-		if (this.#proc.exitCode !== null) return;
+		if (this.#quit) return;
+		this.#quit = true;
 		this.#send('quit');
 		setTimeout(() => this.#proc.kill(), 500).unref();
 	}
 
 	#send(command: string): void {
-		this.#proc.stdin.write(command + '\n');
+		if (this.#proc.stdin.writable) this.#proc.stdin.write(command + '\n');
 	}
 
 	#request(command: string, isDone: (line: string) => boolean): Promise<string> {
