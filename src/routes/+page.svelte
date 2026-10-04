@@ -6,6 +6,7 @@
 	import {
 		findTurningPoints,
 		formatScore,
+		judgeMove,
 		moveLabel,
 		type AnalyzeEvent,
 		type Move,
@@ -213,17 +214,21 @@
 						{@const move = moves[tp.ply - 1]}
 						{@const before = evals[tp.ply - 1]}
 						{@const after = evals[tp.ply]}
+						{@const judgement = judgeMove(tp.delta)}
 						<li class:active={selected === tp.ply - 1 || selected === tp.ply}>
 							<div class="tp-head">
 								<button class="link" onclick={() => select(tp.ply - 1)}>
-									{moveLabel(tp.ply, move.san)}
+									{moveLabel(tp.ply, move.san)}{#if judgement}<span
+											class="judgement {judgement.name}"
+											title={judgement.name}>{judgement.symbol}</span
+										>{/if}
 								</button>
-								<span class="delta" class:good={tp.delta > 0}>
-									{tp.delta > 0 ? '+' : ''}{tp.delta.toFixed(1)}%
+								<span
+									class="evals"
+									title="Winning chances {tp.delta > 0 ? '+' : ''}{tp.delta.toFixed(1)}%"
+								>
+									{formatScore(before.score)} → {formatScore(after.score)}
 								</span>
-							</div>
-							<div class="muted">
-								{formatScore(before.score)} → {formatScore(after.score)}
 							</div>
 							<div class="tp-actions">
 								<button onclick={() => select(tp.ply - 1)}>Position before</button>
@@ -368,13 +373,21 @@
 		align-items: baseline;
 	}
 
-	.delta {
-		font-weight: 700;
-		color: var(--danger);
+	.evals {
+		color: var(--muted);
+		font-variant-numeric: tabular-nums;
 	}
 
-	.delta.good {
-		color: var(--good);
+	.judgement.inaccuracy {
+		color: #56b4e9;
+	}
+
+	.judgement.mistake {
+		color: #e69f00;
+	}
+
+	.judgement.blunder {
+		color: #df5353;
 	}
 
 	.tp-actions {

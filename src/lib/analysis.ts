@@ -71,6 +71,15 @@ export function findTurningPoints(winPercents: number[], n: number, side: Side):
 		.sort((a, b) => a.ply - b.ply);
 }
 
+export type Judgement = { symbol: '?!' | '?' | '??'; name: 'inaccuracy' | 'mistake' | 'blunder' };
+
+export function judgeMove(delta: number): Judgement | null {
+	if (delta <= -15) return { symbol: '??', name: 'blunder' };
+	if (delta <= -10) return { symbol: '?', name: 'mistake' };
+	if (delta <= -5) return { symbol: '?!', name: 'inaccuracy' };
+	return null;
+}
+
 export function moveLabel(ply: number, san: string): string {
 	const moveNumber = Math.ceil(ply / 2);
 	return ply % 2 === 1 ? `${moveNumber}. ${san}` : `${moveNumber}… ${san}`;

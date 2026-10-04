@@ -4,6 +4,7 @@ import {
 	findTurningPoints,
 	formatLine,
 	formatScore,
+	judgeMove,
 	moveLabel,
 	toWhitePerspective,
 	winPercent
@@ -80,6 +81,19 @@ describe('findTurningPoints', () => {
 	it('returns nothing for n = 0 or an empty game', () => {
 		expect(findTurningPoints(series, 0, 'w')).toEqual([]);
 		expect(findTurningPoints([50], 3, 'w')).toEqual([]);
+	});
+});
+
+describe('judgeMove', () => {
+	it('uses the Lichess thresholds for lost winning chances', () => {
+		expect(judgeMove(-4.9)).toBeNull();
+		expect(judgeMove(-5)?.symbol).toBe('?!');
+		expect(judgeMove(-12)?.symbol).toBe('?');
+		expect(judgeMove(-30)?.symbol).toBe('??');
+	});
+
+	it('does not judge moves that gained winning chances', () => {
+		expect(judgeMove(20)).toBeNull();
 	});
 });
 
