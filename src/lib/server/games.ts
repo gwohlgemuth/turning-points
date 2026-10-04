@@ -82,7 +82,7 @@ export async function fetchLichessGames(username: string, max: number): Promise<
 	const params = new URLSearchParams({
 		max: String(max),
 		pgnInJson: 'true',
-		clocks: 'false',
+		clocks: 'true',
 		evals: 'false',
 		perfType: 'ultraBullet,bullet,blitz,rapid,classical,correspondence'
 	});
