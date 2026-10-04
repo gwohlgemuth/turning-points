@@ -2,11 +2,9 @@ import { error } from '@sveltejs/kit';
 import { STOCKFISH_PATH, STOCKFISH_THREADS } from '$app/env/private';
 import { Chess } from 'chess.js';
 import { toWhitePerspective, winPercent, type AnalyzeEvent, type Move } from '#lib/analysis.ts';
-import { Stockfish } from '#lib/server/stockfish.ts';
+import { clampDepth, Stockfish } from '#lib/server/stockfish.ts';
+import { isWhiteToMove } from '#lib/server/variations.ts';
 import type { RequestHandler } from './$types';
-
-const MIN_DEPTH = 6;
-const MAX_DEPTH = 30;
 
 function parseGame(pgn: string) {
 	const chess = new Chess();
@@ -28,24 +26,9 @@ function parseGame(pgn: string) {
 	return { startFen: history[0].before, moves, headers: chess.getHeaders() };
 }
 
-function uciToSan(fen: string, uci: string[]): string[] {
-	const chess = new Chess(fen);
-	const san: string[] = [];
-	for (const move of uci) {
-		try {
-			san.push(
-				chess.move({ from: move.slice(0, 2), to: move.slice(2, 4), promotion: move[4] }).san
-			);
-		} catch {
-			break;
-		}
-	}
-	return san;
-}
-
 export const POST: RequestHandler = async ({ request }) => {
 	const body = await request.json().catch(() => error(400, 'Expected a JSON body'));
-	const depth = Math.min(MAX_DEPTH, Math.max(MIN_DEPTH, Number(body.depth) || 16));
+	const depth = clampDepth(body.depth);
 	const game = parseGame(String(body.pgn ?? ''));
 	const fens = [game.startFen, ...game.moves.map((m) => m.fenAfter)];
 
@@ -62,19 +45,12 @@ export const POST: RequestHandler = async ({ request }) => {
 				await engine.init(STOCKFISH_THREADS);
 				for (const [index, fen] of fens.entries()) {
 					if (cancelled) return;
-					const result = await engine.analyse(fen, depth);
-					const whiteToMove = fen.split(' ')[1] === 'w';
-					const score = toWhitePerspective(result.score, whiteToMove);
-					const pv = uciToSan(fen, result.pv.length ? result.pv : [result.bestMove ?? '']);
+					const [line] = await engine.analyse(fen, depth);
+					const whiteToMove = isWhiteToMove(fen);
+					const score = toWhitePerspective(line.score, whiteToMove);
 					emit({
 						type: 'eval',
-						eval: {
-							index,
-							score,
-							winPercent: winPercent(score, whiteToMove),
-							bestMove: pv[0] ?? null,
-							pv: pv.slice(0, 8)
-						}
+						eval: { index, score, winPercent: winPercent(score, whiteToMove) }
 					});
 				}
 				emit({ type: 'done' });

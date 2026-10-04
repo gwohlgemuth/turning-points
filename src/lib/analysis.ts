@@ -4,9 +4,9 @@ export type PositionEval = {
 	index: number;
 	score: Score;
 	winPercent: number;
-	bestMove: string | null;
-	pv: string[];
 };
+
+export type Variation = { score: Score; moves: string[] };
 
 export type Move = {
 	ply: number;
@@ -71,4 +71,18 @@ export function findTurningPoints(winPercents: number[], n: number): TurningPoin
 export function moveLabel(ply: number, san: string): string {
 	const moveNumber = Math.ceil(ply / 2);
 	return ply % 2 === 1 ? `${moveNumber}. ${san}` : `${moveNumber}… ${san}`;
+}
+
+export function formatLine(fen: string, moves: string[]): string {
+	const [, turn, , , , fullmove] = fen.split(' ');
+	let number = Number(fullmove) || 1;
+	let whiteToMove = turn === 'w';
+	return moves
+		.map((san, i) => {
+			const text = whiteToMove ? `${number}. ${san}` : i === 0 ? `${number}… ${san}` : san;
+			if (!whiteToMove) number++;
+			whiteToMove = !whiteToMove;
+			return text;
+		})
+		.join(' ');
 }

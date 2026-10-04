@@ -1,6 +1,8 @@
 <script lang="ts">
 	import Board from '#lib/components/Board.svelte';
+	import EvalBar from '#lib/components/EvalBar.svelte';
 	import EvalGraph from '#lib/components/EvalGraph.svelte';
+	import Variations from '#lib/components/Variations.svelte';
 	import {
 		findTurningPoints,
 		formatScore,
@@ -13,6 +15,7 @@
 	let pgn = $state('');
 	let count = $state(3);
 	let depth = $state(16);
+	let lines = $state(3);
 
 	let status = $state<'idle' | 'running' | 'done' | 'error'>('idle');
 	let message = $state('');
@@ -22,6 +25,7 @@
 	let evals = $state<PositionEval[]>([]);
 	let selected = $state(0);
 	let flipped = $state(false);
+	let opened = $state<Record<number, boolean>>({});
 	let controller: AbortController | null = null;
 
 	let positions = $derived(moves.length + 1);
@@ -45,6 +49,7 @@
 			moves = event.moves;
 			headers = event.headers;
 			evals = [];
+			opened = {};
 			selected = 0;
 		} else if (event.type === 'eval') {
 			evals[event.eval.index] = event.eval;
@@ -137,6 +142,10 @@
 				Depth
 				<input type="number" min="6" max="30" bind:value={depth} />
 			</label>
+			<label>
+				Engine lines
+				<input type="number" min="1" max="5" bind:value={lines} />
+			</label>
 			{#if status === 'running'}
 				<button onclick={stop}>Stop</button>
 			{:else}
@@ -164,7 +173,14 @@
 
 		<div class="layout">
 			<section class="board-panel">
-				<Board {fen} {flipped} highlight={lastMove ? [lastMove.from, lastMove.to] : []} />
+				<div class="board-row">
+					<EvalBar
+						score={evals[selected]?.score ?? null}
+						winPercent={evals[selected]?.winPercent ?? 50}
+						{flipped}
+					/>
+					<Board {fen} {flipped} highlight={lastMove ? [lastMove.from, lastMove.to] : []} />
+				</div>
 				<div class="nav">
 					<button onclick={() => select(0)} aria-label="Start">⏮</button>
 					<button onclick={() => select(selected - 1)} aria-label="Previous">◀</button>
@@ -204,13 +220,10 @@
 								<button onclick={() => select(tp.ply - 1)}>Position before</button>
 								<button onclick={() => select(tp.ply)}>After</button>
 							</div>
-							<details>
+							<details bind:open={opened[tp.ply]}>
 								<summary>Engine suggestion</summary>
-								{#if before.bestMove}
-									<p>
-										Best: <strong>{before.bestMove}</strong>
-										<span class="muted">{before.pv.join(' ')}</span>
-									</p>
+								{#if opened[tp.ply]}
+									<Variations fen={move.fenBefore} {depth} {lines} />
 								{/if}
 							</details>
 						</li>
@@ -305,7 +318,7 @@
 
 	.layout {
 		display: grid;
-		grid-template-columns: minmax(0, 480px) minmax(0, 1fr);
+		grid-template-columns: minmax(0, 510px) minmax(0, 1fr);
 		gap: 24px;
 	}
 
@@ -361,8 +374,10 @@
 		margin: 8px 0;
 	}
 
-	details p {
-		margin: 6px 0 0;
+	.board-row {
+		display: flex;
+		gap: 6px;
+		max-width: 510px;
 	}
 
 	.link {

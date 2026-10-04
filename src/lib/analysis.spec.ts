@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	cpToWinPercent,
 	findTurningPoints,
+	formatLine,
 	formatScore,
 	moveLabel,
 	toWhitePerspective,
@@ -79,5 +80,17 @@ describe('moveLabel', () => {
 	it('numbers white and black moves', () => {
 		expect(moveLabel(1, 'e4')).toBe('1. e4');
 		expect(moveLabel(4, 'Nf6')).toBe('2… Nf6');
+	});
+});
+
+describe('formatLine', () => {
+	it('numbers a line starting with White', () => {
+		const fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+		expect(formatLine(fen, ['e4', 'e5', 'Nf3'])).toBe('1. e4 e5 2. Nf3');
+	});
+
+	it('numbers a line starting with Black', () => {
+		const fen = 'r1bqkbnr/pppp1ppp/2n5/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 3 3';
+		expect(formatLine(fen, ['g6', 'Qf3', 'Nf6'])).toBe('3… g6 4. Qf3 Nf6');
 	});
 });
