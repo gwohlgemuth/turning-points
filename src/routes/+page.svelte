@@ -52,6 +52,7 @@
 	} | null>(null);
 	let explorationEval = $state<{ score: Score; winPercent: number } | null>(null);
 	let explorationPending = $state(false);
+	let showEngine = $state(false);
 	let controller: AbortController | null = null;
 
 	let positions = $derived(moves.length + 1);
@@ -332,7 +333,7 @@
 								<button onclick={undoExploration}>Undo move</button>
 								<button onclick={() => select(exploration!.base)}>Back to game</button>
 							</div>
-							<details>
+							<details bind:open={showEngine}>
 								<summary>Engine lines</summary>
 								<Variations fen={boardFen} {depth} {lines} onresult={handleExplorationResult} />
 							</details>
@@ -344,6 +345,12 @@
 								>{/if}
 							<span class="muted small">Move a piece to try your own line</span>
 						</p>
+						<details class="engine" bind:open={showEngine}>
+							<summary>Engine lines</summary>
+							{#if showEngine}
+								<Variations {fen} {depth} {lines} />
+							{/if}
+						</details>
 					{/if}
 				</section>
 
@@ -669,6 +676,10 @@
 		align-items: center;
 		gap: 8px 10px;
 		margin: 12px 0 0;
+	}
+
+	.engine {
+		margin-top: 10px;
 	}
 
 	.pill {
