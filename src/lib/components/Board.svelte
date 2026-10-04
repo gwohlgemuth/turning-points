@@ -4,6 +4,8 @@
 
 <script lang="ts">
 	import { Chess, type Square as ChessSquare } from 'chess.js';
+	import { prefersReducedMotion } from 'svelte/motion';
+	import { findSlides, squareOffset, type PieceMap } from '#lib/board-motion.ts';
 
 	type Props = {
 		fen: string;
@@ -19,6 +21,9 @@
 
 	let selectedSquare = $state<string | null>(null);
 	let promotion = $state<{ from: string; to: string } | null>(null);
+	let boardElement: HTMLDivElement;
+	let previousPieces: PieceMap | null = null;
+	let skipAnimation = false;
 
 	let squares = $derived.by(() => {
 		const result: Square[] = [];
@@ -43,11 +48,37 @@
 		return flipped ? result.reverse() : result;
 	});
 
-	let legalMoves = $derived(onmove ? new Chess(fen).moves({ verbose: true }) : []);
+	let game = $derived(new Chess(fen));
+	let legalMoves = $derived(onmove ? game.moves({ verbose: true }) : []);
 	let targets = $derived(
 		selectedSquare ? legalMoves.filter((m) => m.from === selectedSquare).map((m) => m.to) : []
 	);
 	let sideToMove = $derived(fen.split(' ')[1] === 'b' ? 'b' : 'w');
+	let checkSquare = $derived(
+		game.inCheck() ? squares.find((s) => s.piece === `${sideToMove}K`)?.name : undefined
+	);
+	let pieces = $derived(
+		Object.fromEntries(squares.filter((s) => s.piece).map((s) => [s.name, s.piece as string]))
+	);
+
+	$effect(() => {
+		const next = pieces;
+		const previous = previousPieces;
+		previousPieces = next;
+		const skip = skipAnimation;
+		skipAnimation = false;
+		if (!previous || skip || prefersReducedMotion.current) return;
+		for (const { from, to } of findSlides(previous, next)) {
+			const piece = boardElement.querySelector<HTMLElement>(`[data-square="${to}"] .piece`);
+			if (!piece) continue;
+			const [dx, dy] = squareOffset(from, to, flipped);
+			piece.style.zIndex = '2';
+			piece.animate(
+				[{ transform: `translate(${dx * 100}%, ${dy * 100}%)` }, { transform: 'none' }],
+				{ duration: 220, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }
+			).onfinish = () => piece.style.removeProperty('z-index');
+		}
+	});
 
 	$effect(() => {
 		void fen;
@@ -57,10 +88,11 @@
 
 	const canMoveFrom = (square: string) => legalMoves.some((m) => m.from === square);
 
-	function tryMove(from: string, to: string) {
+	function tryMove(from: string, to: string, dragged = false) {
 		const candidates = legalMoves.filter((m) => m.from === from && m.to === to);
 		selectedSquare = null;
 		if (!candidates.length) return;
+		skipAnimation = dragged;
 		if (candidates.some((m) => m.promotion)) {
 			promotion = { from, to };
 			return;
@@ -85,7 +117,7 @@
 	function handleDrop(event: DragEvent, square: string) {
 		event.preventDefault();
 		const from = event.dataTransfer?.getData('text/plain');
-		if (from && from !== square) tryMove(from, square);
+		if (from && from !== square) tryMove(from, square, true);
 	}
 
 	function promote(piece: string) {
@@ -94,12 +126,14 @@
 	}
 </script>
 
-<div class="board" class:interactive={!!onmove} aria-label="Chess board">
+<div class="board" class:interactive={!!onmove} aria-label="Chess board" bind:this={boardElement}>
 	{#each squares as square, i (square.name)}
 		<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 		<div
 			class="square"
+			data-square={square.name}
 			class:dark={square.dark}
+			class:check={checkSquare === square.name}
 			class:highlight={highlight.includes(square.name)}
 			class:selected={selectedSquare === square.name}
 			class:target={targets.includes(square.name as ChessSquare)}
@@ -146,30 +180,45 @@
 		width: 100%;
 		max-width: 480px;
 		aspect-ratio: 1;
-		border: 2px solid var(--board-border);
+		border-radius: 8px;
+		overflow: hidden;
+		box-shadow:
+			0 0 0 1px rgb(0 0 0 / 0.4),
+			0 16px 40px rgb(0 0 0 / 0.45);
 		container-type: inline-size;
 	}
 
 	.square {
 		position: relative;
-		background: var(--square-light);
-		color: var(--square-dark);
+		background: var(--square-light, #f0d9b5);
+		color: var(--square-dark, #b58863);
+		transition: box-shadow 0.15s ease;
 	}
 
 	.square.dark {
-		background: var(--square-dark);
-		color: var(--square-light);
+		background: var(--square-dark, #b58863);
+		color: var(--square-light, #f0d9b5);
 	}
 
 	.square.highlight {
-		box-shadow: inset 0 0 0 100vmax rgb(255 214 0 / 0.45);
+		box-shadow: inset 0 0 0 100vmax rgb(155 199 0 / 0.42);
 	}
 
 	.square.selected {
 		box-shadow: inset 0 0 0 100vmax rgb(20 85 30 / 0.5);
 	}
 
+	.square.check {
+		background-image: radial-gradient(
+			circle,
+			rgb(255 40 40 / 0.95) 0%,
+			rgb(230 0 0 / 0.55) 35%,
+			transparent 72%
+		);
+	}
+
 	.square.target::after {
+		animation: pop 0.15s ease-out;
 		content: '';
 		position: absolute;
 		inset: 36%;
@@ -184,12 +233,20 @@
 		border: 4px solid rgb(20 85 30 / 0.45);
 	}
 
+	@keyframes pop {
+		from {
+			transform: scale(0.3);
+			opacity: 0;
+		}
+	}
+
 	.interactive .square {
 		cursor: pointer;
 	}
 
 	.piece {
 		position: absolute;
+		z-index: 1;
 		inset: 0;
 		width: 100%;
 		height: 100%;
@@ -229,7 +286,7 @@
 		width: 14%;
 		aspect-ratio: 1;
 		padding: 4px;
-		background: var(--square-light);
+		background: var(--square-light, #f0d9b5);
 	}
 
 	.promotion img {

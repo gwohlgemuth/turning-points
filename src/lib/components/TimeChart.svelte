@@ -61,13 +61,12 @@
 		height: 70px;
 		display: block;
 		cursor: pointer;
-		border-radius: 6px;
+		border-radius: 10px;
 		overflow: hidden;
 	}
 
 	.bg {
-		fill: var(--surface);
-		stroke: var(--border);
+		fill: rgb(0 0 0 / 0.2);
 	}
 
 	.mid {
@@ -76,7 +75,7 @@
 	}
 
 	.bar {
-		fill: var(--muted);
+		fill: #5d6577;
 	}
 
 	.bar.turning {

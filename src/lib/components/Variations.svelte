@@ -77,14 +77,16 @@
 		font-weight: 700;
 		padding: 1px 4px;
 		border-radius: 4px;
-		background: #f2f2f2;
-		color: #403d39;
-		border: 1px solid var(--border);
+		background: #ece9e3;
+		color: #1b1d22;
+		border: 1px solid transparent;
+		font-variant-numeric: tabular-nums;
 	}
 
 	.score.black {
-		background: #403d39;
-		color: #f2f2f2;
+		background: #0b0d11;
+		color: #ece9e3;
+		border-color: var(--border-strong);
 	}
 
 	.muted {

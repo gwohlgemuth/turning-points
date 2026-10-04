@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { Chess } from 'chess.js';
+	import { flip } from 'svelte/animate';
+	import { fade, fly, slide } from 'svelte/transition';
+	import { ms } from '#lib/motion.ts';
 	import Board, { type BoardMove } from '#lib/components/Board.svelte';
 	import EvalBar from '#lib/components/EvalBar.svelte';
 	import EvalGraph from '#lib/components/EvalGraph.svelte';
@@ -207,205 +210,337 @@
 <svelte:window onkeydown={handleKey} />
 
 <main>
-	<header>
-		<h1>Turning Points</h1>
-		<p class="lead">
-			Find the moments where your game turned — the moves where the evaluation swung the most. Study
-			those positions first, before looking at the engine (after GM Noël Studer).
-		</p>
+	<header class="hero">
+		<img class="logo" src="/pieces/wN.svg" alt="" />
+		<div>
+			<h1>Turning Points</h1>
+			<p class="lead">
+				Find the moments where your game turned — the moves where the evaluation swung the most.
+				Study those positions first, before looking at the engine. <span class="credit"
+					>Method by GM Noël Studer</span
+				>
+			</p>
+		</div>
 	</header>
 
-	<section class="input">
-		<GameLoader onselect={loadGame} bind:games={loadedGames} />
-		<textarea bind:value={pgn} rows="8" placeholder="…or paste a PGN here"></textarea>
-		<div class="controls">
-			<label>
-				PGN file
-				<input type="file" accept=".pgn,text/plain" onchange={loadFile} />
-			</label>
-			<button onclick={() => savePgn(pgn, pgnFilename(pgn))} disabled={!pgn.trim()}>
-				Save PGN
-			</button>
-			<label>
-				Your color
-				<select bind:value={side} onchange={() => (flipped = side === 'b')}>
-					<option value="w">White</option>
-					<option value="b">Black</option>
-				</select>
-			</label>
-			<label>
-				Turning points <strong>{count}</strong>
-				<input type="range" min="1" max="10" bind:value={count} />
-			</label>
-			<label>
-				Depth
-				<input type="number" min="6" max="30" bind:value={depth} />
-			</label>
-			<label>
-				Engine lines
-				<input type="number" min="1" max="5" bind:value={lines} />
-			</label>
+	<div class="top">
+		<section class="card load">
+			<h2 class="card-title">Load a game</h2>
+			<GameLoader onselect={loadGame} bind:games={loadedGames} />
+			<textarea bind:value={pgn} rows="6" placeholder="…or paste a PGN here"></textarea>
+			<div class="file-row">
+				<input
+					type="file"
+					accept=".pgn,text/plain"
+					onchange={loadFile}
+					aria-label="Open PGN file"
+				/>
+				<button onclick={() => savePgn(pgn, pgnFilename(pgn))} disabled={!pgn.trim()}>
+					Save PGN
+				</button>
+			</div>
+			<SaveFolder />
+		</section>
+
+		<section class="card settings">
+			<h2 class="card-title">Analysis</h2>
+			<div class="controls">
+				<label>
+					<span>Your color</span>
+					<select bind:value={side} onchange={() => (flipped = side === 'b')}>
+						<option value="w">White</option>
+						<option value="b">Black</option>
+					</select>
+				</label>
+				<label>
+					<span>Turning points <strong class="value">{count}</strong></span>
+					<input type="range" min="1" max="10" bind:value={count} />
+				</label>
+				<div class="pair">
+					<label>
+						<span>Depth</span>
+						<input type="number" min="6" max="30" bind:value={depth} />
+					</label>
+					<label>
+						<span>Engine lines</span>
+						<input type="number" min="1" max="5" bind:value={lines} />
+					</label>
+				</div>
+			</div>
 			{#if status === 'running'}
-				<button onclick={stop}>Stop</button>
+				<button class="analyze" onclick={stop}>Stop</button>
+				<div class="progress" role="progressbar" aria-valuenow={progress}>
+					<div class="progress-fill" style:width="{progress}%"></div>
+				</div>
+				<span class="muted small">Analyzing… {winPercents.length}/{positions} positions</span>
 			{:else}
-				<button class="primary" onclick={analyze} disabled={!pgn.trim()}>Analyze</button>
+				<button class="primary analyze" onclick={analyze} disabled={!pgn.trim()}
+					>Analyze game</button
+				>
 			{/if}
-		</div>
-		<SaveFolder />
-		{#if status === 'running'}
-			<progress max="100" value={progress}></progress>
-			<span class="muted">Analyzing… {winPercents.length}/{positions}</span>
-		{/if}
-		{#if status === 'error'}
-			<p class="error">{message}</p>
-		{/if}
-	</section>
+			{#if status === 'error'}
+				<p class="error">{message}</p>
+			{/if}
+		</section>
+	</div>
 
 	{#if moves.length}
-		{#if headers.White || headers.Black}
-			<p class="players">
-				{headers.White ?? '?'} – {headers.Black ?? '?'}
-				{#if headers.Result}<span class="muted">({headers.Result})</span>{/if}
-			</p>
-		{/if}
-
-		<EvalGraph {winPercents} {positions} {turningPoints} {selected} onselect={select} />
-		{#if hasTimes}
-			<TimeChart {moves} {turningPlies} {selected} onselect={select} />
-		{/if}
-
-		<div class="layout">
-			<section class="board-panel">
-				<div class="board-row">
-					<EvalBar
-						score={barEval?.score ?? null}
-						winPercent={barEval?.winPercent ?? 50}
-						{flipped}
-					/>
-					<Board fen={boardFen} {flipped} highlight={boardHighlight} onmove={handleBoardMove} />
+		<div class="results" in:fade={{ duration: ms(300) }}>
+			<section class="card graphs">
+				<div class="players">
+					<span class="player white">{headers.White ?? 'White'}</span>
+					<span class="result">{headers.Result ?? '*'}</span>
+					<span class="player black">{headers.Black ?? 'Black'}</span>
 				</div>
-				<div class="nav">
-					<button onclick={() => select(0)} aria-label="Start">⏮</button>
-					<button onclick={() => select(selected - 1)} aria-label="Previous">◀</button>
-					<button onclick={() => select(selected + 1)} aria-label="Next">▶</button>
-					<button onclick={() => select(positions - 1)} aria-label="End">⏭</button>
-					<button onclick={() => (flipped = !flipped)}>Flip</button>
-				</div>
-				{#if exploration}
-					<div class="exploration">
-						<div>
-							<strong>Your line:</strong>
-							{formatLine(positionFen(exploration.base), exploration.sans)}
-						</div>
-						<div>
-							<strong>Evaluation:</strong>
-							{#if explorationPending || !explorationEval}
-								<span class="muted">Calculating…</span>
-							{:else}
-								{formatScore(explorationEval.score)}
-							{/if}
-						</div>
-						<div class="nav">
-							<button onclick={undoExploration}>Undo move</button>
-							<button onclick={() => select(exploration!.base)}>Back to game</button>
-						</div>
-						<details>
-							<summary>Engine lines</summary>
-							<Variations fen={boardFen} {depth} {lines} onresult={handleExplorationResult} />
-						</details>
-					</div>
-				{:else}
-					<p class="muted">
-						{lastMove ? moveLabel(lastMove.ply, lastMove.san) : 'Start position'}
-						{#if evals[selected]}· {formatScore(evals[selected].score)}{/if}
-						· Move a piece to try your own line
-					</p>
+				<EvalGraph {winPercents} {positions} {turningPoints} {selected} onselect={select} />
+				{#if hasTimes}
+					<TimeChart {moves} {turningPlies} {selected} onselect={select} />
 				{/if}
 			</section>
 
-			<section class="points">
-				<h2>Turning points</h2>
-				{#if !turningPoints.length}
-					<p class="muted">Waiting for the engine…</p>
-				{/if}
-				<ol>
-					{#each turningPoints as tp (tp.ply)}
-						{@const move = moves[tp.ply - 1]}
-						{@const before = evals[tp.ply - 1]}
-						{@const after = evals[tp.ply]}
-						{@const judgement = judgeMove(tp.delta)}
-						<li class:active={selected === tp.ply - 1 || selected === tp.ply}>
-							<div class="tp-head">
-								<button class="link" onclick={() => select(tp.ply - 1)}>
-									{moveLabel(tp.ply, move.san)}{#if judgement}<span
-											class="judgement {judgement.name}"
-											title={judgement.name}>{judgement.symbol}</span
-										>{/if}
-								</button>
-								<span
-									class="evals"
-									title="Winning chances {tp.delta > 0 ? '+' : ''}{tp.delta.toFixed(1)}%"
-								>
-									{formatScore(before.score)} → {formatScore(after.score)}
+			<div class="layout">
+				<section class="card board-panel">
+					<div class="board-row">
+						<EvalBar
+							score={barEval?.score ?? null}
+							winPercent={barEval?.winPercent ?? 50}
+							{flipped}
+						/>
+						<Board fen={boardFen} {flipped} highlight={boardHighlight} onmove={handleBoardMove} />
+					</div>
+					<div class="nav">
+						<button onclick={() => select(0)} aria-label="Start">⏮</button>
+						<button onclick={() => select(selected - 1)} aria-label="Previous">◀</button>
+						<button onclick={() => select(selected + 1)} aria-label="Next">▶</button>
+						<button onclick={() => select(positions - 1)} aria-label="End">⏭</button>
+						<button class="flip" onclick={() => (flipped = !flipped)}>⇅ Flip</button>
+					</div>
+					{#if exploration}
+						<div class="exploration" transition:slide={{ duration: ms(200) }}>
+							<div class="exploration-head">
+								<span class="tag">Your line</span>
+								<span class="score">
+									{#if explorationPending || !explorationEval}
+										<span class="muted">Calculating…</span>
+									{:else}
+										{formatScore(explorationEval.score)}
+									{/if}
 								</span>
 							</div>
-							{#if move.time}
-								<div class="time">⏱ {describeTime(move.time)}</div>
-							{/if}
-							<div class="tp-actions">
-								<button onclick={() => select(tp.ply - 1)}>Position before</button>
-								<button onclick={() => select(tp.ply)}>After</button>
+							<div class="line">{formatLine(positionFen(exploration.base), exploration.sans)}</div>
+							<div class="nav">
+								<button onclick={undoExploration}>Undo move</button>
+								<button onclick={() => select(exploration!.base)}>Back to game</button>
 							</div>
-							<details bind:open={opened[tp.ply]}>
-								<summary>Engine suggestion</summary>
-								{#if opened[tp.ply]}
-									<Variations fen={move.fenBefore} {depth} {lines} />
-								{/if}
+							<details>
+								<summary>Engine lines</summary>
+								<Variations fen={boardFen} {depth} {lines} onresult={handleExplorationResult} />
 							</details>
-						</li>
-					{/each}
-				</ol>
+						</div>
+					{:else}
+						<p class="position">
+							<strong>{lastMove ? moveLabel(lastMove.ply, lastMove.san) : 'Start position'}</strong>
+							{#if evals[selected]}<span class="pill">{formatScore(evals[selected].score)}</span
+								>{/if}
+							<span class="muted small">Move a piece to try your own line</span>
+						</p>
+					{/if}
+				</section>
 
-				<h2>Moves</h2>
-				<div class="moves">
-					{#each moves as move (move.ply)}
-						<button
-							class="move"
-							class:current={selected === move.ply}
-							class:turning={turningPlies.has(move.ply)}
-							onclick={() => select(move.ply)}
-							title={move.time ? describeTime(move.time) : undefined}
-						>
-							{move.ply % 2 === 1 ? `${(move.ply + 1) / 2}.` : ''}{move.san}
-						</button>
-					{/each}
-				</div>
-			</section>
+				<section class="card points">
+					<h2 class="card-title">Turning points</h2>
+					{#if !turningPoints.length}
+						<p class="muted">Waiting for the engine…</p>
+					{/if}
+					<ol>
+						{#each turningPoints as tp, i (tp.ply)}
+							{@const move = moves[tp.ply - 1]}
+							{@const before = evals[tp.ply - 1]}
+							{@const after = evals[tp.ply]}
+							{@const judgement = judgeMove(tp.delta)}
+							<li
+								class="tp {judgement?.name ?? ''}"
+								class:active={selected === tp.ply - 1 || selected === tp.ply}
+								animate:flip={{ duration: ms(250) }}
+								in:fly={{ y: 16, duration: ms(300), delay: ms(i * 70) }}
+							>
+								<div class="tp-head">
+									<button class="link" onclick={() => select(tp.ply - 1)}>
+										{moveLabel(tp.ply, move.san)}{#if judgement}<span
+												class="judgement {judgement.name}"
+												title={judgement.name}>{judgement.symbol}</span
+											>{/if}
+									</button>
+									<span
+										class="evals"
+										title="Winning chances {tp.delta > 0 ? '+' : ''}{tp.delta.toFixed(1)}%"
+									>
+										{formatScore(before.score)} → {formatScore(after.score)}
+									</span>
+								</div>
+								{#if move.time}
+									<div class="time">⏱ {describeTime(move.time)}</div>
+								{/if}
+								<div class="tp-actions">
+									<button onclick={() => select(tp.ply - 1)}>Position before</button>
+									<button onclick={() => select(tp.ply)}>After</button>
+								</div>
+								<details bind:open={opened[tp.ply]}>
+									<summary>Engine suggestion</summary>
+									{#if opened[tp.ply]}
+										<Variations fen={move.fenBefore} {depth} {lines} />
+									{/if}
+								</details>
+							</li>
+						{/each}
+					</ol>
+
+					<h2 class="card-title">Moves</h2>
+					<div class="moves">
+						{#each moves as move (move.ply)}
+							<button
+								class="move"
+								class:current={selected === move.ply}
+								class:turning={turningPlies.has(move.ply)}
+								onclick={() => select(move.ply)}
+								title={move.time ? describeTime(move.time) : undefined}
+							>
+								{#if move.ply % 2 === 1}<span class="num">{(move.ply + 1) / 2}.</span
+									>{/if}{move.san}
+							</button>
+						{/each}
+					</div>
+				</section>
+			</div>
 		</div>
 	{/if}
 </main>
 
 <style>
 	main {
-		max-width: 1100px;
+		max-width: 1180px;
 		margin: 0 auto;
-		padding: 24px 16px 64px;
+		padding: 36px 20px 80px;
 		display: grid;
-		gap: 20px;
+		gap: 22px;
+	}
+
+	.hero {
+		display: flex;
+		align-items: center;
+		gap: 18px;
+		margin-bottom: 6px;
+	}
+
+	.logo {
+		width: 64px;
+		height: 64px;
+		flex-shrink: 0;
+		padding: 8px;
+		border-radius: 18px;
+		background: radial-gradient(circle at 30% 25%, #3a3220, #191c24 70%);
+		border: 1px solid rgb(227 179 65 / 0.35);
+		box-shadow:
+			0 0 0 6px rgb(227 179 65 / 0.06),
+			0 10px 30px rgb(227 179 65 / 0.18);
+		box-sizing: border-box;
 	}
 
 	h1 {
 		margin: 0;
-	}
-
-	h2 {
-		font-size: 1.1rem;
-		margin: 0 0 8px;
+		font-size: clamp(1.9rem, 3vw, 2.5rem);
+		font-weight: 750;
+		letter-spacing: -0.02em;
+		width: fit-content;
+		background: linear-gradient(90deg, #fff 0%, var(--accent-2) 55%, var(--accent) 100%);
+		background-clip: text;
+		color: transparent;
 	}
 
 	.lead {
 		color: var(--muted);
-		margin: 4px 0 0;
+		margin: 6px 0 0;
+		max-width: 70ch;
+		line-height: 1.5;
+	}
+
+	.credit {
+		color: var(--accent);
+		white-space: nowrap;
+	}
+
+	.top {
+		display: grid;
+		grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+		gap: 22px;
+		align-items: start;
+	}
+
+	.load,
+	.settings {
+		display: grid;
+		gap: 12px;
+	}
+
+	.load .card-title,
+	.settings .card-title,
+	.points .card-title {
+		margin-bottom: 2px;
+	}
+
+	textarea {
+		width: 100%;
+		box-sizing: border-box;
+		resize: vertical;
+		font-family: ui-monospace, 'JetBrains Mono', monospace;
+		font-size: 0.85rem;
+		line-height: 1.5;
+	}
+
+	.file-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 10px;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.controls {
+		display: grid;
+		gap: 14px;
+	}
+
+	.controls label {
+		display: grid;
+		gap: 6px;
+		font-size: 0.85rem;
+		color: var(--muted);
+	}
+
+	.controls .value {
+		color: var(--accent);
+		margin-left: 4px;
+	}
+
+	.pair {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 12px;
+	}
+
+	.pair input {
+		width: 100%;
+		box-sizing: border-box;
+	}
+
+	.analyze {
+		width: 100%;
+		padding: 11px;
+		font-size: 1rem;
+	}
+
+	.small {
+		font-size: 0.85rem;
 	}
 
 	.muted {
@@ -414,97 +549,258 @@
 
 	.error {
 		color: var(--danger);
+		margin: 0;
 	}
 
-	textarea {
-		width: 100%;
-		box-sizing: border-box;
-		font-family: ui-monospace, monospace;
+	.progress {
+		height: 6px;
+		border-radius: 3px;
+		background: var(--surface-3);
+		overflow: hidden;
 	}
 
-	.input {
+	.progress-fill {
+		height: 100%;
+		border-radius: 3px;
+		background: linear-gradient(90deg, var(--accent) 0%, #fff3cf 50%, var(--accent) 100%);
+		background-size: 200% 100%;
+		animation: shimmer 1.4s linear infinite;
+		transition: width 0.3s ease;
+	}
+
+	@keyframes shimmer {
+		from {
+			background-position: 200% 0;
+		}
+	}
+
+	.results {
 		display: grid;
-		gap: 10px;
+		gap: 22px;
 	}
 
-	.controls {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 16px;
-		align-items: end;
-	}
-
-	.controls label {
+	.graphs {
 		display: grid;
-		gap: 4px;
-		font-size: 0.9rem;
-	}
-
-	.controls input[type='number'] {
-		width: 5em;
-	}
-
-	progress {
-		width: 100%;
+		gap: 12px;
 	}
 
 	.players {
-		font-weight: 600;
-		margin: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 14px;
+		font-weight: 650;
+		font-size: 1.05rem;
+	}
+
+	.player {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.player::before {
+		content: '';
+		width: 11px;
+		height: 11px;
+		border-radius: 3px;
+		border: 1px solid var(--border-strong);
+	}
+
+	.player.white::before {
+		background: #f2efe8;
+	}
+
+	.player.black::before {
+		background: #0b0d11;
+	}
+
+	.player.black {
+		flex-direction: row-reverse;
+	}
+
+	.result {
+		padding: 3px 10px;
+		border-radius: 999px;
+		background: var(--surface-3);
+		border: 1px solid var(--border-strong);
+		font-variant-numeric: tabular-nums;
+		color: var(--accent-2);
+		font-size: 0.9rem;
 	}
 
 	.layout {
 		display: grid;
-		grid-template-columns: minmax(0, 510px) minmax(0, 1fr);
-		gap: 24px;
+		grid-template-columns: minmax(0, 560px) minmax(0, 1fr);
+		gap: 22px;
+		align-items: start;
 	}
 
-	@media (max-width: 760px) {
+	@media (max-width: 900px) {
+		.top,
 		.layout {
 			grid-template-columns: 1fr;
 		}
 	}
 
+	.board-row {
+		display: flex;
+		gap: 8px;
+		max-width: 520px;
+	}
+
 	.nav {
 		display: flex;
 		gap: 6px;
-		margin-top: 8px;
+		margin-top: 12px;
+	}
+
+	.nav button {
+		min-width: 42px;
+	}
+
+	.nav .flip {
+		margin-left: auto;
+	}
+
+	.position {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 8px 10px;
+		margin: 12px 0 0;
+	}
+
+	.pill {
+		padding: 2px 9px;
+		border-radius: 999px;
+		background: var(--surface-3);
+		border: 1px solid var(--border-strong);
+		font-variant-numeric: tabular-nums;
+		font-size: 0.9rem;
+	}
+
+	.exploration {
+		display: grid;
+		gap: 8px;
+		margin-top: 14px;
+		padding: 12px 14px;
+		border: 1px solid rgb(227 179 65 / 0.45);
+		border-radius: 12px;
+		background: linear-gradient(180deg, rgb(227 179 65 / 0.08), rgb(227 179 65 / 0.02));
+	}
+
+	.exploration-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.tag {
+		font-size: 0.72rem;
+		font-weight: 650;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		color: var(--accent);
+	}
+
+	.exploration .score {
+		font-weight: 700;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.exploration .line {
+		font-weight: 550;
+	}
+
+	.exploration .nav {
+		margin-top: 0;
 	}
 
 	ol {
 		padding: 0;
-		margin: 0 0 24px;
+		margin: 0 0 22px;
 		list-style: none;
 		display: grid;
 		gap: 10px;
 	}
 
-	li {
+	.tp {
+		position: relative;
+		padding: 12px 14px 12px 18px;
 		border: 1px solid var(--border);
-		border-radius: 8px;
-		padding: 10px 12px;
-		background: var(--surface);
+		border-radius: 12px;
+		background: var(--surface-2);
+		overflow: hidden;
+		transition:
+			border-color 0.2s ease,
+			box-shadow 0.2s ease,
+			background-color 0.2s ease;
 	}
 
-	li.active {
-		border-color: var(--accent);
+	.tp::before {
+		content: '';
+		position: absolute;
+		left: 0;
+		top: 0;
+		bottom: 0;
+		width: 4px;
+		background: var(--surface-3);
+	}
+
+	.tp.inaccuracy::before {
+		background: #56b4e9;
+	}
+
+	.tp.mistake::before {
+		background: #e69f00;
+	}
+
+	.tp.blunder::before {
+		background: #df5353;
+	}
+
+	.tp:hover {
+		background: #1f2531;
+	}
+
+	.tp.active {
+		border-color: rgb(227 179 65 / 0.5);
+		box-shadow: 0 0 0 3px rgb(227 179 65 / 0.12);
 	}
 
 	.tp-head {
 		display: flex;
 		justify-content: space-between;
 		align-items: baseline;
+		gap: 10px;
+	}
+
+	.link {
+		background: none;
+		border: none;
+		padding: 0;
+		font-weight: 700;
+		font-size: 1.05rem;
+		color: var(--text);
+		cursor: pointer;
+	}
+
+	.link:not(:disabled):hover {
+		background: none;
+		color: var(--accent-2);
 	}
 
 	.time {
 		color: var(--muted);
-		font-size: 0.9rem;
-		margin-top: 2px;
+		font-size: 0.85rem;
+		margin-top: 4px;
 	}
 
 	.evals {
 		color: var(--muted);
 		font-variant-numeric: tabular-nums;
+		font-size: 0.9rem;
 	}
 
 	.judgement.inaccuracy {
@@ -517,63 +813,59 @@
 
 	.judgement.blunder {
 		color: #df5353;
+		display: inline-block;
+		animation: pulse 0.6s ease-out 0.4s 2;
+	}
+
+	@keyframes pulse {
+		50% {
+			transform: scale(1.4);
+		}
 	}
 
 	.tp-actions {
 		display: flex;
 		gap: 6px;
-		margin: 8px 0;
+		margin: 10px 0 8px;
 	}
 
-	.exploration {
-		display: grid;
-		gap: 6px;
-		margin-top: 10px;
-		padding: 10px 12px;
-		border: 1px solid var(--accent);
-		border-radius: 8px;
-		background: var(--surface);
-	}
-
-	.exploration .nav {
-		margin-top: 0;
-	}
-
-	.board-row {
-		display: flex;
-		gap: 6px;
-		max-width: 510px;
-	}
-
-	.link {
-		background: none;
-		border: none;
-		padding: 0;
-		font-weight: 700;
-		font-size: 1rem;
-		color: var(--text);
-		cursor: pointer;
+	.tp-actions button {
+		padding: 5px 10px;
+		font-size: 0.85rem;
 	}
 
 	.moves {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 4px;
+		gap: 5px;
 	}
 
 	.move {
-		padding: 2px 6px;
-		font-size: 0.9rem;
+		padding: 3px 8px;
+		font-size: 0.85rem;
+		background: transparent;
+		border-color: var(--border);
+		border-radius: 7px;
+	}
+
+	.move .num {
+		color: var(--muted);
+		margin-right: 3px;
 	}
 
 	.move.turning {
-		border-color: var(--danger);
-		color: var(--danger);
+		border-color: rgb(240 106 106 / 0.6);
+		color: #ff9a9a;
 	}
 
 	.move.current {
 		background: var(--accent);
 		border-color: var(--accent);
-		color: #fff;
+		color: var(--accent-ink);
+		font-weight: 650;
+	}
+
+	.move.current .num {
+		color: var(--accent-ink);
 	}
 </style>

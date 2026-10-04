@@ -51,10 +51,10 @@
 <style>
 	svg {
 		width: 100%;
-		height: 140px;
+		height: 150px;
 		cursor: pointer;
 		display: block;
-		border-radius: 6px;
+		border-radius: 10px;
 		overflow: hidden;
 	}
 
@@ -64,6 +64,7 @@
 
 	.area {
 		fill: var(--graph-white);
+		fill-opacity: 0.82;
 	}
 
 	.mid {
@@ -75,13 +76,14 @@
 	.line {
 		fill: none;
 		stroke: var(--accent);
-		stroke-width: 2;
+		stroke-width: 2.5;
 		vector-effect: non-scaling-stroke;
 	}
 
 	.cursor {
-		stroke: var(--accent);
-		stroke-width: 2;
+		stroke: #fff;
+		stroke-opacity: 0.7;
+		stroke-width: 1.5;
 		vector-effect: non-scaling-stroke;
 	}
 

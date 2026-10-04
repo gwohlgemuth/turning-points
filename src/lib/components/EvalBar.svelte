@@ -21,10 +21,13 @@
 <style>
 	.bar {
 		position: relative;
-		width: 24px;
+		width: 26px;
 		flex-shrink: 0;
-		background: #403d39;
-		border: 2px solid var(--board-border);
+		background: #2b2925;
+		border-radius: 8px;
+		box-shadow:
+			0 0 0 1px rgb(0 0 0 / 0.4),
+			0 16px 40px rgb(0 0 0 / 0.45);
 		overflow: hidden;
 		display: flex;
 		flex-direction: column-reverse;
@@ -36,7 +39,7 @@
 
 	.white {
 		background: #f2f2f2;
-		transition: height 0.3s ease;
+		transition: height 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
 	}
 
 	.label {

@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { slide } from 'svelte/transition';
+	import { ms } from '#lib/motion.ts';
 	import type { Side } from '#lib/analysis.ts';
 	import {
 		GAME_COUNTS,
@@ -94,7 +96,7 @@
 {/if}
 
 {#if games.length}
-	<ul class="games">
+	<ul class="games" transition:slide={{ duration: ms(200) }}>
 		{#each games as game (game.id)}
 			<li>
 				<button class:selected={selectedId === game.id} onclick={() => choose(game)}>
@@ -149,7 +151,8 @@
 		max-height: 260px;
 		overflow-y: auto;
 		border: 1px solid var(--border);
-		border-radius: 6px;
+		border-radius: 10px;
+		background: rgb(0 0 0 / 0.18);
 	}
 
 	.games button {
@@ -168,12 +171,19 @@
 		border-bottom: none;
 	}
 
-	.games button:hover {
-		background: var(--bg);
+	.games button {
+		background: transparent;
+		padding: 9px 12px;
+	}
+
+	.games button:not(:disabled):hover {
+		background: rgb(255 255 255 / 0.04);
+		transform: none;
 	}
 
 	.games button.selected {
 		box-shadow: inset 3px 0 0 var(--accent);
+		background: rgb(227 179 65 / 0.07);
 	}
 
 	.meta {

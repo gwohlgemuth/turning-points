@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { fade, slide } from 'svelte/transition';
+	import { ms } from '#lib/motion.ts';
 	import {
 		DEFAULT_SAVE_FOLDER,
 		loadSaveFolder,
@@ -67,12 +69,16 @@
 	<span>Save folder: <strong>{display(saving.folder)}</strong></span>
 	<button onclick={toggle}>{open ? 'Close' : 'Change'}</button>
 	{#if saving.message}
-		<span class:error={saving.failed} class="status">{saving.message}</span>
+		{#key saving.message}
+			<span class:error={saving.failed} class="status" in:fade={{ duration: ms(200) }}
+				>{saving.message}</span
+			>
+		{/key}
 	{/if}
 </div>
 
 {#if open}
-	<div class="picker">
+	<div class="picker" transition:slide={{ duration: ms(200) }}>
 		<div class="current">
 			<button onclick={() => browse(up(path))} disabled={!path} aria-label="Up">↑</button>
 			<strong>{display(path)}</strong>
@@ -128,8 +134,8 @@
 		gap: 8px;
 		padding: 10px;
 		border: 1px solid var(--border);
-		border-radius: 8px;
-		background: var(--surface);
+		border-radius: 12px;
+		background: var(--surface-2);
 		max-width: 520px;
 	}
 
@@ -146,7 +152,8 @@
 		max-height: 220px;
 		overflow-y: auto;
 		border: 1px solid var(--border);
-		border-radius: 6px;
+		border-radius: 10px;
+		background: rgb(0 0 0 / 0.18);
 	}
 
 	li.muted {
@@ -161,8 +168,13 @@
 		border-bottom: 1px solid var(--border);
 	}
 
-	.folder:hover {
-		background: var(--bg);
+	.folder {
+		background: transparent;
+	}
+
+	.folder:not(:disabled):hover {
+		background: rgb(255 255 255 / 0.04);
+		transform: none;
 	}
 
 	form,
