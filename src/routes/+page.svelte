@@ -3,6 +3,7 @@
 	import EvalBar from '#lib/components/EvalBar.svelte';
 	import EvalGraph from '#lib/components/EvalGraph.svelte';
 	import GameLoader from '#lib/components/GameLoader.svelte';
+	import SaveFolder from '#lib/components/SaveFolder.svelte';
 	import Variations from '#lib/components/Variations.svelte';
 	import {
 		findTurningPoints,
@@ -15,7 +16,7 @@
 		type Side
 	} from '#lib/analysis.ts';
 	import { pgnFilename, splitPgn, summaryFromPgn, type GameSummary } from '#lib/games.ts';
-	import { downloadText } from '#lib/download.ts';
+	import { savePgn } from '#lib/saving.svelte.ts';
 
 	let pgn = $state('');
 	let count = $state(3);
@@ -155,7 +156,7 @@
 				PGN file
 				<input type="file" accept=".pgn,text/plain" onchange={loadFile} />
 			</label>
-			<button onclick={() => downloadText(pgn, pgnFilename(pgn))} disabled={!pgn.trim()}>
+			<button onclick={() => savePgn(pgn, pgnFilename(pgn))} disabled={!pgn.trim()}>
 				Save PGN
 			</button>
 			<label>
@@ -183,6 +184,7 @@
 				<button class="primary" onclick={analyze} disabled={!pgn.trim()}>Analyze</button>
 			{/if}
 		</div>
+		<SaveFolder />
 		{#if status === 'running'}
 			<progress max="100" value={progress}></progress>
 			<span class="muted">Analyzing… {winPercents.length}/{positions}</span>

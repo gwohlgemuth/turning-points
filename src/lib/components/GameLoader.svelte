@@ -9,7 +9,7 @@
 		type GameSource,
 		type GameSummary
 	} from '#lib/games.ts';
-	import { downloadText } from '#lib/download.ts';
+	import { savePgn } from '#lib/saving.svelte.ts';
 
 	type Props = {
 		onselect: (game: GameSummary, side: Side | null) => void;
@@ -66,7 +66,7 @@
 	}
 
 	function save() {
-		downloadText(gamesToPgn(games), `${username.trim() || 'games'}-${today()}.pgn`);
+		savePgn(gamesToPgn(games), `${username.trim() || 'games'}-${today()}.pgn`);
 	}
 
 	const player = (name: string, rating: number | null) => (rating ? `${name} (${rating})` : name);
