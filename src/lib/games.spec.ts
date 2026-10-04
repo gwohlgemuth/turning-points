@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { playerSide, type GameSummary } from './games.ts';
+import {
+	gamesToPgn,
+	pgnFilename,
+	playerSide,
+	splitPgn,
+	summaryFromPgn,
+	type GameSummary
+} from './games.ts';
 
 const game = { white: 'MagnusFan', black: 'hikaru' } as GameSummary;
 
@@ -11,5 +18,54 @@ describe('playerSide', () => {
 
 	it('returns null when the user did not play the game', () => {
 		expect(playerSide(game, 'someone')).toBeNull();
+	});
+});
+
+const first =
+	'[White "A"]\n[Black "B"]\n[Result "1-0"]\n[WhiteElo "1500"]\n[Date "2026.10.03"]\n\n1. e4 e5 1-0';
+const second = '[White "C"]\n[Black "D"]\n[Result "0-1"]\n[BlackElo "?"]\n\n1. d4 d5 0-1';
+
+describe('gamesToPgn and splitPgn', () => {
+	it('round-trips several games through one PGN file', () => {
+		const text = gamesToPgn([{ pgn: first }, { pgn: second }] as GameSummary[]);
+		expect(splitPgn(text)).toEqual([first, second]);
+	});
+
+	it('keeps a single game with Windows line endings in one piece', () => {
+		expect(splitPgn(first.replaceAll('\n', '\r\n'))).toEqual([first]);
+	});
+});
+
+describe('summaryFromPgn', () => {
+	it('reads players, ratings, result and date from the headers', () => {
+		expect(summaryFromPgn(first, 0)).toMatchObject({
+			id: 'file-0',
+			white: 'A',
+			black: 'B',
+			whiteRating: 1500,
+			blackRating: null,
+			result: '1-0',
+			date: Date.parse('2026-10-03')
+		});
+	});
+
+	it('handles missing or unknown values', () => {
+		expect(summaryFromPgn(second, 1)).toMatchObject({ blackRating: null, date: 0 });
+	});
+});
+
+describe('pgnFilename', () => {
+	it('names the file after the players and the date', () => {
+		expect(pgnFilename(first)).toBe('A-vs-B-2026-10-03.pgn');
+	});
+
+	it('replaces unsafe characters but keeps letters like umlauts', () => {
+		const pgn = '[White "Müller, Hans"]\n[Black "O\'Neil/Jr"]\n[Date "????.??.??"]\n\n1. e4 *';
+		expect(pgnFilename(pgn)).toBe('Müller_Hans-vs-O_Neil_Jr.pgn');
+	});
+
+	it('falls back to a dated name without player headers', () => {
+		expect(pgnFilename('1. e4 e5 *')).toMatch(/^game-\d{4}-\d{2}-\d{2}\.pgn$/);
+		expect(pgnFilename('[White "?"]\n[Black "B"]\n\n1. e4 *')).toMatch(/^game-/);
 	});
 });

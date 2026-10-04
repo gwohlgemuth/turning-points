@@ -1,18 +1,28 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import type { Side } from '#lib/analysis.ts';
-	import { GAME_COUNTS, playerSide, type GameSource, type GameSummary } from '#lib/games.ts';
+	import {
+		GAME_COUNTS,
+		gamesToPgn,
+		playerSide,
+		today,
+		type GameSource,
+		type GameSummary
+	} from '#lib/games.ts';
+	import { downloadText } from '#lib/download.ts';
 
-	type Props = { onselect: (game: GameSummary, side: Side | null) => void };
+	type Props = {
+		onselect: (game: GameSummary, side: Side | null) => void;
+		games?: GameSummary[];
+	};
 
-	let { onselect }: Props = $props();
+	let { onselect, games = $bindable([]) }: Props = $props();
 
 	const STORAGE_KEY = 'turning-points:account';
 
 	let source = $state<GameSource>('lichess');
 	let username = $state('');
 	let max = $state(20);
-	let games = $state<GameSummary[]>([]);
 	let loading = $state(false);
 	let message = $state('');
 	let selectedId = $state('');
@@ -55,8 +65,12 @@
 		onselect(game, playerSide(game, username));
 	}
 
+	function save() {
+		downloadText(gamesToPgn(games), `${username.trim() || 'games'}-${today()}.pgn`);
+	}
+
 	const player = (name: string, rating: number | null) => (rating ? `${name} (${rating})` : name);
-	const formatDate = (ms: number) => new Date(ms).toLocaleDateString();
+	const formatDate = (ms: number) => (ms ? new Date(ms).toLocaleDateString() : '');
 </script>
 
 <form class="loader" onsubmit={load}>
@@ -88,12 +102,19 @@
 						{player(game.white, game.whiteRating)} – {player(game.black, game.blackRating)}
 					</span>
 					<span class="meta">
-						<strong>{game.result}</strong> · {game.timeClass} · {formatDate(game.date)}
+						<strong>{game.result}</strong>
+						{#each [game.timeClass, formatDate(game.date)].filter(Boolean) as part (part)}
+							· {part}
+						{/each}
 					</span>
 				</button>
 			</li>
 		{/each}
 	</ul>
+	<div class="list-footer">
+		<span class="muted">{games.length} games</span>
+		<button onclick={save}>Save as PGN</button>
+	</div>
 {/if}
 
 <style>
@@ -112,6 +133,13 @@
 	.muted {
 		color: var(--muted);
 		margin: 0;
+	}
+
+	.list-footer {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
 	}
 
 	.games {

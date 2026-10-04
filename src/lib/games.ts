@@ -23,3 +23,53 @@ export function playerSide(game: GameSummary, username: string): Side | null {
 	if (game.black.toLowerCase() === name) return 'b';
 	return null;
 }
+
+export function pgnHeader(pgn: string, name: string): string | undefined {
+	return new RegExp(`\\[${name} "([^"]*)"\\]`).exec(pgn)?.[1];
+}
+
+export function gamesToPgn(games: GameSummary[]): string {
+	return games.map((game) => game.pgn.trim()).join('\n\n') + '\n';
+}
+
+export function splitPgn(text: string): string[] {
+	return text
+		.replace(/\r\n/g, '\n')
+		.split(/\n\s*\n(?=\s*\[)/)
+		.map((part) => part.trim())
+		.filter(Boolean);
+}
+
+export function summaryFromPgn(pgn: string, index: number): GameSummary {
+	const rating = (value?: string) => (value && /^\d+$/.test(value) ? Number(value) : null);
+	const date = Date.parse(
+		(pgnHeader(pgn, 'UTCDate') ?? pgnHeader(pgn, 'Date') ?? '').replaceAll('.', '-')
+	);
+	return {
+		id: `file-${index}`,
+		url: '',
+		white: pgnHeader(pgn, 'White') ?? '?',
+		black: pgnHeader(pgn, 'Black') ?? '?',
+		whiteRating: rating(pgnHeader(pgn, 'WhiteElo')),
+		blackRating: rating(pgnHeader(pgn, 'BlackElo')),
+		result: pgnHeader(pgn, 'Result') ?? '*',
+		date: Number.isNaN(date) ? 0 : date,
+		timeClass: '',
+		pgn
+	};
+}
+
+export function today(): string {
+	return new Date().toISOString().slice(0, 10);
+}
+
+export function pgnFilename(pgn: string): string {
+	const clean = (value?: string) =>
+		value && !/^\?*$/.test(value) ? value.replace(/[^\p{L}\p{N}_-]+/gu, '_') : '';
+	const white = clean(pgnHeader(pgn, 'White'));
+	const black = clean(pgnHeader(pgn, 'Black'));
+	if (!white || !black) return `game-${today()}.pgn`;
+	const date = pgnHeader(pgn, 'UTCDate') ?? pgnHeader(pgn, 'Date') ?? '';
+	const suffix = /^\d{4}\.\d{2}\.\d{2}$/.test(date) ? `-${date.replaceAll('.', '-')}` : '';
+	return `${white}-vs-${black}${suffix}.pgn`;
+}

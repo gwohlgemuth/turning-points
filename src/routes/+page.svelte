@@ -14,7 +14,8 @@
 		type PositionEval,
 		type Side
 	} from '#lib/analysis.ts';
-	import type { GameSummary } from '#lib/games.ts';
+	import { pgnFilename, splitPgn, summaryFromPgn, type GameSummary } from '#lib/games.ts';
+	import { downloadText } from '#lib/download.ts';
 
 	let pgn = $state('');
 	let count = $state(3);
@@ -31,6 +32,7 @@
 	let selected = $state(0);
 	let flipped = $state(false);
 	let opened = $state<Record<number, boolean>>({});
+	let loadedGames = $state<GameSummary[]>([]);
 	let controller: AbortController | null = null;
 
 	let positions = $derived(moves.length + 1);
@@ -126,7 +128,11 @@
 
 	async function loadFile(event: Event) {
 		const file = (event.currentTarget as HTMLInputElement).files?.[0];
-		if (file) pgn = await file.text();
+		if (!file) return;
+		const text = await file.text();
+		const games = splitPgn(text);
+		if (games.length > 1) loadedGames = games.map(summaryFromPgn);
+		else pgn = text;
 	}
 </script>
 
@@ -142,13 +148,16 @@
 	</header>
 
 	<section class="input">
-		<GameLoader onselect={loadGame} />
+		<GameLoader onselect={loadGame} bind:games={loadedGames} />
 		<textarea bind:value={pgn} rows="8" placeholder="…or paste a PGN here"></textarea>
 		<div class="controls">
 			<label>
 				PGN file
 				<input type="file" accept=".pgn,text/plain" onchange={loadFile} />
 			</label>
+			<button onclick={() => downloadText(pgn, pgnFilename(pgn))} disabled={!pgn.trim()}>
+				Save PGN
+			</button>
 			<label>
 				Your color
 				<select bind:value={side} onchange={() => (flipped = side === 'b')}>

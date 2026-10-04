@@ -1,4 +1,4 @@
-import type { GameSummary } from '#lib/games.ts';
+import { pgnHeader, type GameSummary } from '#lib/games.ts';
 
 const USER_AGENT = 'turning-points (local chess analysis app)';
 const MAX_CHESSCOM_ARCHIVES = 6;
@@ -33,10 +33,6 @@ type ChessComGame = {
 	black: ChessComPlayer;
 };
 
-function pgnResult(pgn: string): string {
-	return /\[Result "([^"]+)"\]/.exec(pgn)?.[1] ?? '*';
-}
-
 function lichessName(player: LichessPlayer): string {
 	if (player.user) return player.user.name;
 	return player.aiLevel ? `Stockfish level ${player.aiLevel}` : 'Anonymous';
@@ -50,7 +46,7 @@ export function fromLichess(game: LichessGame): GameSummary {
 		black: lichessName(game.players.black),
 		whiteRating: game.players.white.rating ?? null,
 		blackRating: game.players.black.rating ?? null,
-		result: pgnResult(game.pgn),
+		result: pgnHeader(game.pgn, 'Result') ?? '*',
 		date: game.createdAt,
 		timeClass: game.speed,
 		pgn: game.pgn
@@ -65,7 +61,7 @@ export function fromChessCom(game: ChessComGame & { pgn: string }): GameSummary 
 		black: game.black.username,
 		whiteRating: game.white.rating,
 		blackRating: game.black.rating,
-		result: pgnResult(game.pgn),
+		result: pgnHeader(game.pgn, 'Result') ?? '*',
 		date: game.end_time * 1000,
 		timeClass: game.time_class,
 		pgn: game.pgn
