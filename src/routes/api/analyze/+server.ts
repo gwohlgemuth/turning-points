@@ -2,6 +2,7 @@ import { error } from '@sveltejs/kit';
 import { STOCKFISH_PATH, STOCKFISH_THREADS } from '$app/env/private';
 import { Chess } from 'chess.js';
 import { toWhitePerspective, winPercent, type AnalyzeEvent, type Move } from '#lib/analysis.ts';
+import { extractClocks, moveTimes, parseTimeControl } from '#lib/clock.ts';
 import { clampDepth, Stockfish } from '#lib/server/stockfish.ts';
 import { isWhiteToMove } from '#lib/server/variations.ts';
 import type { RequestHandler } from './$types';
@@ -15,15 +16,21 @@ function parseGame(pgn: string) {
 	}
 	const history = chess.history({ verbose: true });
 	if (history.length === 0) error(400, 'The PGN contains no moves');
+	const headers = chess.getHeaders();
+	const timeControl = parseTimeControl(headers.TimeControl);
+	const clocks = extractClocks(pgn);
+	const times =
+		timeControl && clocks.length === history.length ? moveTimes(clocks, timeControl) : null;
 	const moves: Move[] = history.map((m, i) => ({
 		ply: i + 1,
 		san: m.san,
 		from: m.from,
 		to: m.to,
 		fenBefore: m.before,
-		fenAfter: m.after
+		fenAfter: m.after,
+		time: times?.[i] ?? null
 	}));
-	return { startFen: history[0].before, moves, headers: chess.getHeaders() };
+	return { startFen: history[0].before, moves, headers };
 }
 
 export const POST: RequestHandler = async ({ request }) => {

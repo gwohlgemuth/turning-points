@@ -1,3 +1,5 @@
+import type { MoveTime } from './clock.ts';
+
 export type Score = { type: 'cp' | 'mate'; value: number };
 
 export type Side = 'w' | 'b';
@@ -17,6 +19,7 @@ export type Move = {
 	to: string;
 	fenBefore: string;
 	fenAfter: string;
+	time: MoveTime | null;
 };
 
 export type TurningPoint = {

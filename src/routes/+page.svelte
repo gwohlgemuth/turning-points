@@ -4,6 +4,8 @@
 	import EvalGraph from '#lib/components/EvalGraph.svelte';
 	import GameLoader from '#lib/components/GameLoader.svelte';
 	import SaveFolder from '#lib/components/SaveFolder.svelte';
+	import TimeChart from '#lib/components/TimeChart.svelte';
+	import { describeTime } from '#lib/clock.ts';
 	import Variations from '#lib/components/Variations.svelte';
 	import {
 		findTurningPoints,
@@ -46,6 +48,7 @@
 		return result;
 	});
 	let turningPoints = $derived(findTurningPoints(winPercents, count, side));
+	let hasTimes = $derived(moves.some((m) => m.time));
 	let turningPlies = $derived(new Set(turningPoints.map((tp) => tp.ply)));
 	let fen = $derived(selected === 0 ? startFen : (moves[selected - 1]?.fenAfter ?? startFen));
 	let lastMove = $derived(selected > 0 ? moves[selected - 1] : null);
@@ -203,6 +206,9 @@
 		{/if}
 
 		<EvalGraph {winPercents} {positions} {turningPoints} {selected} onselect={select} />
+		{#if hasTimes}
+			<TimeChart {moves} {turningPlies} {selected} onselect={select} />
+		{/if}
 
 		<div class="layout">
 			<section class="board-panel">
@@ -253,6 +259,9 @@
 									{formatScore(before.score)} → {formatScore(after.score)}
 								</span>
 							</div>
+							{#if move.time}
+								<div class="time">⏱ {describeTime(move.time)}</div>
+							{/if}
 							<div class="tp-actions">
 								<button onclick={() => select(tp.ply - 1)}>Position before</button>
 								<button onclick={() => select(tp.ply)}>After</button>
@@ -275,6 +284,7 @@
 							class:current={selected === move.ply}
 							class:turning={turningPlies.has(move.ply)}
 							onclick={() => select(move.ply)}
+							title={move.time ? describeTime(move.time) : undefined}
 						>
 							{move.ply % 2 === 1 ? `${(move.ply + 1) / 2}.` : ''}{move.san}
 						</button>
@@ -394,6 +404,12 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: baseline;
+	}
+
+	.time {
+		color: var(--muted);
+		font-size: 0.9rem;
+		margin-top: 2px;
 	}
 
 	.evals {
