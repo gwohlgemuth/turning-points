@@ -60,19 +60,26 @@ describe('formatScore', () => {
 describe('findTurningPoints', () => {
 	const series = [50, 52, 30, 31, 80, 79, 78, 20];
 
-	it('returns the n largest swings in chronological order', () => {
-		const points = findTurningPoints(series, 3);
-		expect(points.map((p) => p.ply)).toEqual([2, 4, 7]);
-		expect(points[2].delta).toBe(-58);
+	it("returns the n largest swings of White's moves in chronological order", () => {
+		const points = findTurningPoints(series, 2, 'w');
+		expect(points.map((p) => p.ply)).toEqual([1, 7]);
+		expect(points[1].delta).toBe(-58);
 	});
 
-	it('returns all swings when n exceeds the number of moves', () => {
-		expect(findTurningPoints(series, 100)).toHaveLength(7);
+	it("returns only Black's moves with the swing from Black's perspective", () => {
+		const points = findTurningPoints(series, 2, 'b');
+		expect(points.map((p) => p.ply)).toEqual([2, 4]);
+		expect(points.map((p) => p.delta)).toEqual([22, -49]);
+	});
+
+	it('returns all moves of a side when n exceeds their number', () => {
+		expect(findTurningPoints(series, 100, 'w')).toHaveLength(4);
+		expect(findTurningPoints(series, 100, 'b')).toHaveLength(3);
 	});
 
 	it('returns nothing for n = 0 or an empty game', () => {
-		expect(findTurningPoints(series, 0)).toEqual([]);
-		expect(findTurningPoints([50], 3)).toEqual([]);
+		expect(findTurningPoints(series, 0, 'w')).toEqual([]);
+		expect(findTurningPoints([50], 3, 'w')).toEqual([]);
 	});
 });
 

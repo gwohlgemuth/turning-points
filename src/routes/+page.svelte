@@ -9,11 +9,13 @@
 		moveLabel,
 		type AnalyzeEvent,
 		type Move,
-		type PositionEval
+		type PositionEval,
+		type Side
 	} from '#lib/analysis.ts';
 
 	let pgn = $state('');
 	let count = $state(3);
+	let side = $state<Side>('w');
 	let depth = $state(16);
 	let lines = $state(3);
 
@@ -37,7 +39,7 @@
 		}
 		return result;
 	});
-	let turningPoints = $derived(findTurningPoints(winPercents, count));
+	let turningPoints = $derived(findTurningPoints(winPercents, count, side));
 	let turningPlies = $derived(new Set(turningPoints.map((tp) => tp.ply)));
 	let fen = $derived(selected === 0 ? startFen : (moves[selected - 1]?.fenAfter ?? startFen));
 	let lastMove = $derived(selected > 0 ? moves[selected - 1] : null);
@@ -133,6 +135,13 @@
 			<label>
 				PGN file
 				<input type="file" accept=".pgn,text/plain" onchange={loadFile} />
+			</label>
+			<label>
+				Your color
+				<select bind:value={side} onchange={() => (flipped = side === 'b')}>
+					<option value="w">White</option>
+					<option value="b">Black</option>
+				</select>
 			</label>
 			<label>
 				Turning points <strong>{count}</strong>

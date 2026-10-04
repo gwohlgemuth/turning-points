@@ -59,7 +59,8 @@ button:disabled {
 }
 
 textarea,
-input {
+input,
+select {
 	font: inherit;
 	color: var(--text);
 	background: var(--surface);

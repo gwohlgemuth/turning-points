@@ -1,5 +1,7 @@
 export type Score = { type: 'cp' | 'mate'; value: number };
 
+export type Side = 'w' | 'b';
+
 export type PositionEval = {
 	index: number;
 	score: Score;
@@ -54,12 +56,13 @@ export function formatScore(score: Score): string {
 	return `${pawns > 0 ? '+' : ''}${pawns.toFixed(2)}`;
 }
 
-export function findTurningPoints(winPercents: number[], n: number): TurningPoint[] {
+export function findTurningPoints(winPercents: number[], n: number, side: Side): TurningPoint[] {
+	const sign = side === 'w' ? 1 : -1;
 	const swings: TurningPoint[] = [];
-	for (let ply = 1; ply < winPercents.length; ply++) {
+	for (let ply = side === 'w' ? 1 : 2; ply < winPercents.length; ply += 2) {
 		const before = winPercents[ply - 1];
 		const after = winPercents[ply];
-		swings.push({ ply, before, after, delta: after - before });
+		swings.push({ ply, before, after, delta: sign * (after - before) });
 	}
 	return swings
 		.filter((s) => s.delta !== 0)
