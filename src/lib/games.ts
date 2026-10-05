@@ -60,8 +60,10 @@ export function playersByCount(games: GameSummary[]): string[] {
 	return [...counts.keys()].sort((a, b) => counts.get(b)! - counts.get(a)! || a.localeCompare(b));
 }
 
+export const parseRating = (value?: string) =>
+	value && /^\d+$/.test(value) ? Number(value) : null;
+
 export function summaryFromPgn(pgn: string, index: number): GameSummary {
-	const rating = (value?: string) => (value && /^\d+$/.test(value) ? Number(value) : null);
 	const date = Date.parse(
 		(pgnHeader(pgn, 'UTCDate') ?? pgnHeader(pgn, 'Date') ?? '').replaceAll('.', '-')
 	);
@@ -70,8 +72,8 @@ export function summaryFromPgn(pgn: string, index: number): GameSummary {
 		url: '',
 		white: pgnHeader(pgn, 'White') ?? '?',
 		black: pgnHeader(pgn, 'Black') ?? '?',
-		whiteRating: rating(pgnHeader(pgn, 'WhiteElo')),
-		blackRating: rating(pgnHeader(pgn, 'BlackElo')),
+		whiteRating: parseRating(pgnHeader(pgn, 'WhiteElo')),
+		blackRating: parseRating(pgnHeader(pgn, 'BlackElo')),
 		result: pgnHeader(pgn, 'Result') ?? '*',
 		date: Number.isNaN(date) ? 0 : date,
 		timeClass: '',

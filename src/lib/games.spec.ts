@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	gamesToPgn,
 	mergeAdjacentComments,
+	parseRating,
 	pgnFilename,
 	playerSide,
 	playersByCount,
@@ -29,6 +30,14 @@ describe('mergeAdjacentComments', () => {
 		expect(mergeAdjacentComments('1. d4 { [%eval 0.15] } { A45 } 1... Nf6 { x } 1-0')).toBe(
 			'1. d4 { [%eval 0.15]   A45 } 1... Nf6 { x } 1-0'
 		);
+	});
+});
+
+describe('parseRating', () => {
+	it('reads numeric ratings and ignores unknown ones', () => {
+		expect(parseRating('1604')).toBe(1604);
+		expect(parseRating('?')).toBeNull();
+		expect(parseRating(undefined)).toBeNull();
 	});
 });
 

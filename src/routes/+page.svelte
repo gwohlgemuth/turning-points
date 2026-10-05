@@ -27,6 +27,7 @@
 	} from '#lib/analysis.ts';
 	import {
 		pgnFilename,
+		parseRating,
 		pgnHeader,
 		splitPgn,
 		summaryFromPgn,
@@ -377,11 +378,17 @@
 				<div class="players">
 					<span class="player white" class:winner={won === 'w'} class:loser={won === 'b'}>
 						{headers.White ?? 'White'}
+						{#if parseRating(headers.WhiteElo)}
+							<span class="rating">{parseRating(headers.WhiteElo)}</span>
+						{/if}
 						{#if won === 'w'}<span class="crown" title="Winner">♚</span>{/if}
 					</span>
 					<span class="result {won ?? ''}">{won ? RESULT_LABELS[won] : 'No result'}</span>
 					<span class="player black" class:winner={won === 'b'} class:loser={won === 'w'}>
 						{headers.Black ?? 'Black'}
+						{#if parseRating(headers.BlackElo)}
+							<span class="rating">{parseRating(headers.BlackElo)}</span>
+						{/if}
 						{#if won === 'b'}<span class="crown" title="Winner">♚</span>{/if}
 					</span>
 				</div>
@@ -737,6 +744,13 @@
 
 	.player.loser {
 		opacity: 0.5;
+	}
+
+	.rating {
+		color: var(--muted);
+		font-weight: 400;
+		font-size: 0.85rem;
+		font-variant-numeric: tabular-nums;
 	}
 
 	.crown {
