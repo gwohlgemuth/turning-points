@@ -25,7 +25,7 @@
 		type Variation,
 		winPercent
 	} from '#lib/analysis.ts';
-	import { pgnFilename, splitPgn, summaryFromPgn, type GameSummary } from '#lib/games.ts';
+	import { pgnFilename, splitPgn, summaryFromPgn, winner, type GameSummary } from '#lib/games.ts';
 	import { savePgn } from '#lib/saving.svelte.ts';
 	import type { PageProps } from './$types';
 
@@ -73,6 +73,8 @@
 		return result;
 	});
 	let turningPoints = $derived(findTurningPoints(winPercents, count, side));
+	const RESULT_LABELS = { w: 'White wins', b: 'Black wins', draw: 'Draw' };
+	let won = $derived(winner(headers.Result ?? '*'));
 	let hasTimes = $derived(moves.some((m) => m.time));
 	let turningPlies = $derived(new Set(turningPoints.map((tp) => tp.ply)));
 	let fen = $derived(positionFen(selected));
@@ -366,9 +368,15 @@
 		<div class="results" in:fade={{ duration: ms(300) }}>
 			<section class="card graphs">
 				<div class="players">
-					<span class="player white">{headers.White ?? 'White'}</span>
-					<span class="result">{headers.Result ?? '*'}</span>
-					<span class="player black">{headers.Black ?? 'Black'}</span>
+					<span class="player white" class:winner={won === 'w'} class:loser={won === 'b'}>
+						{headers.White ?? 'White'}
+						{#if won === 'w'}<span class="crown" title="Winner">♚</span>{/if}
+					</span>
+					<span class="result {won ?? ''}">{won ? RESULT_LABELS[won] : 'No result'}</span>
+					<span class="player black" class:winner={won === 'b'} class:loser={won === 'w'}>
+						{headers.Black ?? 'Black'}
+						{#if won === 'b'}<span class="crown" title="Winner">♚</span>{/if}
+					</span>
 				</div>
 				<EvalGraph {winPercents} {positions} {turningPoints} {selected} onselect={select} />
 				{#if hasTimes}
@@ -720,14 +728,31 @@
 		flex-direction: row-reverse;
 	}
 
+	.player.loser {
+		opacity: 0.5;
+	}
+
+	.crown {
+		color: var(--accent);
+		font-size: 1.2rem;
+		line-height: 1;
+	}
+
 	.result {
 		padding: 3px 10px;
 		border-radius: 999px;
 		background: var(--surface-3);
 		border: 1px solid var(--border-strong);
 		font-variant-numeric: tabular-nums;
-		color: var(--accent-2);
+		color: var(--muted);
 		font-size: 0.9rem;
+	}
+
+	.result.w,
+	.result.b {
+		color: var(--accent-2);
+		border-color: rgb(227 179 65 / 0.4);
+		background: rgb(227 179 65 / 0.1);
 	}
 
 	.layout {
