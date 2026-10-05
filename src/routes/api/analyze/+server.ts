@@ -3,6 +3,7 @@ import { STOCKFISH_PATH, STOCKFISH_THREADS } from '$app/env/private';
 import { Chess } from 'chess.js';
 import { toWhitePerspective, winPercent, type AnalyzeEvent, type Move } from '#lib/analysis.ts';
 import { extractClocks, moveTimes, parseTimeControl } from '#lib/clock.ts';
+import { mergeAdjacentComments } from '#lib/games.ts';
 import { clampDepth, Stockfish } from '#lib/server/stockfish.ts';
 import { isWhiteToMove } from '#lib/server/variations.ts';
 import type { RequestHandler } from './$types';
@@ -10,7 +11,7 @@ import type { RequestHandler } from './$types';
 function parseGame(pgn: string) {
 	const chess = new Chess();
 	try {
-		chess.loadPgn(pgn);
+		chess.loadPgn(mergeAdjacentComments(pgn));
 	} catch (err) {
 		error(400, `Invalid PGN: ${(err as Error).message}`);
 	}

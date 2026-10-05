@@ -31,6 +31,10 @@ export function winner(result: string): Side | 'draw' | null {
 	return null;
 }
 
+export function mergeAdjacentComments(pgn: string): string {
+	return pgn.replace(/\}\s*\{/g, ' ');
+}
+
 export function pgnHeader(pgn: string, name: string): string | undefined {
 	return new RegExp(`\\[${name} "([^"]*)"\\]`).exec(pgn)?.[1];
 }

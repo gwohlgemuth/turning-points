@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
 	gamesToPgn,
+	mergeAdjacentComments,
 	pgnFilename,
 	playerSide,
 	playersByCount,
@@ -20,6 +21,14 @@ describe('playerSide', () => {
 
 	it('returns null when the user did not play the game', () => {
 		expect(playerSide(game, 'someone')).toBeNull();
+	});
+});
+
+describe('mergeAdjacentComments', () => {
+	it('joins comments that follow each other into one', () => {
+		expect(mergeAdjacentComments('1. d4 { [%eval 0.15] } { A45 } 1... Nf6 { x } 1-0')).toBe(
+			'1. d4 { [%eval 0.15]   A45 } 1... Nf6 { x } 1-0'
+		);
 	});
 });
 
