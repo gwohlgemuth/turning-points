@@ -25,7 +25,14 @@
 		type Variation,
 		winPercent
 	} from '#lib/analysis.ts';
-	import { pgnFilename, splitPgn, summaryFromPgn, winner, type GameSummary } from '#lib/games.ts';
+	import {
+		pgnFilename,
+		pgnHeader,
+		splitPgn,
+		summaryFromPgn,
+		winner,
+		type GameSummary
+	} from '#lib/games.ts';
 	import { savePgn } from '#lib/saving.svelte.ts';
 	import type { PageProps } from './$types';
 
@@ -326,10 +333,10 @@
 			<h2 class="card-title">Analysis</h2>
 			<div class="controls">
 				<label>
-					<span>Your color</span>
+					<span>Analyze for</span>
 					<select bind:value={side} onchange={() => (flipped = side === 'b')}>
-						<option value="w">White</option>
-						<option value="b">Black</option>
+						<option value="w">{pgnHeader(pgn, 'White') ?? 'White'} (White)</option>
+						<option value="b">{pgnHeader(pgn, 'Black') ?? 'Black'} (Black)</option>
 					</select>
 				</label>
 				<label>
