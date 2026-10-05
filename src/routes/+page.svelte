@@ -56,7 +56,12 @@
 	let explorationEval = $state<{ score: Score; winPercent: number } | null>(null);
 	let explorationPending = $state(false);
 	let showEngine = $state(false);
+	let play = $state(false);
+	let elo = $state(1500);
+	let engineThinking = $state(false);
+	let engineError = $state('');
 	let controller: AbortController | null = null;
+	let moveController: AbortController | null = null;
 
 	let positions = $derived(moves.length + 1);
 	let winPercents = $derived.by(() => {
@@ -77,35 +82,89 @@
 		const move = exploration?.moves.at(-1) ?? lastMove;
 		return move ? [move.from, move.to] : [];
 	});
-	let barEval = $derived(exploration ? explorationEval : (evals[selected] ?? null));
+	let playing = $derived(play && !!exploration);
+	let gameOver = $derived(new Chess(boardFen).isGameOver());
+	let barEval = $derived(
+		playing ? null : exploration ? explorationEval : (evals[selected] ?? null)
+	);
 
 	function positionFen(index: number): string {
 		return index === 0 ? startFen : (moves[index - 1]?.fenAfter ?? startFen);
 	}
 
-	function handleBoardMove(boardMove: BoardMove) {
+	function pushExplorationMove(boardMove: BoardMove) {
 		const chess = new Chess(boardFen);
 		const move = chess.move(boardMove);
 		if (!exploration) {
-			const next = moves[selected];
-			if (next?.san === move.san) {
-				select(selected + 1);
-				return;
-			}
 			exploration = { base: selected, moves: [], sans: [], fens: [] };
 			explorationEval = null;
 		}
 		exploration.moves.push(boardMove);
 		exploration.sans.push(move.san);
 		exploration.fens.push(chess.fen());
+		return chess;
 	}
 
-	function undoExploration() {
+	function handleBoardMove(boardMove: BoardMove) {
+		if (!exploration && !play) {
+			const move = new Chess(boardFen).move(boardMove);
+			if (moves[selected]?.san === move.san) {
+				select(selected + 1);
+				return;
+			}
+		}
+		const chess = pushExplorationMove(boardMove);
+		if (play && !chess.isGameOver()) requestEngineMove();
+	}
+
+	async function requestEngineMove() {
+		moveController?.abort();
+		const current = (moveController = new AbortController());
+		engineThinking = true;
+		engineError = '';
+		try {
+			const response = await fetch('/api/move', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ fen: boardFen, elo }),
+				signal: current.signal
+			});
+			const body = await response.json();
+			if (!response.ok) throw new Error(body.message ?? `Request failed (${response.status})`);
+			if (!body.uci) return;
+			const uci: string = body.uci;
+			pushExplorationMove({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci[4] });
+		} catch (err) {
+			if ((err as Error).name === 'AbortError') return;
+			engineError = (err as Error).message;
+		} finally {
+			if (moveController === current) engineThinking = false;
+		}
+	}
+
+	function cancelEngineMove() {
+		moveController?.abort();
+		moveController = null;
+		engineThinking = false;
+		engineError = '';
+	}
+
+	function popExplorationMove() {
 		if (!exploration) return;
 		exploration.moves.pop();
 		exploration.sans.pop();
 		exploration.fens.pop();
 		if (!exploration.moves.length) exploration = null;
+	}
+
+	function undoExploration() {
+		if (!exploration) return;
+		const thinking = engineThinking;
+		cancelEngineMove();
+		popExplorationMove();
+		if (!play || thinking || !exploration) return;
+		const userSide = positionFen(exploration.base).split(' ')[1];
+		if (boardFen.split(' ')[1] !== userSide) popExplorationMove();
 	}
 
 	function handleExplorationResult(variations: Variation[] | null) {
@@ -126,6 +185,7 @@
 			headers = event.headers;
 			evals = [];
 			opened = {};
+			cancelEngineMove();
 			exploration = null;
 			selected = 0;
 		} else if (event.type === 'eval') {
@@ -178,6 +238,7 @@
 	}
 
 	function select(index: number) {
+		cancelEngineMove();
 		exploration = null;
 		selected = Math.min(positions - 1, Math.max(0, index));
 	}
@@ -212,6 +273,21 @@
 </script>
 
 <svelte:window onkeydown={handleKey} />
+
+{#snippet playControls()}
+	<div class="play">
+		<label class="toggle">
+			<input type="checkbox" bind:checked={play} onchange={() => !play && cancelEngineMove()} />
+			Play vs Stockfish
+		</label>
+		{#if play}
+			<label class="toggle">
+				Elo
+				<input type="number" min="1320" max="3190" step="50" bind:value={elo} />
+			</label>
+		{/if}
+	</div>
+{/snippet}
 
 <main>
 	<header class="hero">
@@ -310,7 +386,12 @@
 							winPercent={barEval?.winPercent ?? 50}
 							{flipped}
 						/>
-						<Board fen={boardFen} {flipped} highlight={boardHighlight} onmove={handleBoardMove} />
+						<Board
+							fen={boardFen}
+							{flipped}
+							highlight={boardHighlight}
+							onmove={engineThinking ? undefined : handleBoardMove}
+						/>
 					</div>
 					<div class="nav">
 						<button onclick={() => select(0)} aria-label="Start">⏮</button>
@@ -324,7 +405,12 @@
 							<div class="exploration-head">
 								<span class="tag">Your line</span>
 								<span class="score">
-									{#if explorationPending || !explorationEval}
+									{#if playing}
+										<span class="muted">
+											{#if gameOver}Game over{:else if engineThinking}Stockfish is thinking…{:else}Playing
+												vs Stockfish · Elo {elo}{/if}
+										</span>
+									{:else if explorationPending || !explorationEval}
 										<span class="muted">Calculating…</span>
 									{:else}
 										{formatScore(explorationEval.score)}
@@ -332,22 +418,29 @@
 								</span>
 							</div>
 							<div class="line">{formatLine(positionFen(exploration.base), exploration.sans)}</div>
+							{#if engineError}<p class="error">{engineError}</p>{/if}
 							<div class="nav">
 								<button onclick={undoExploration}>Undo move</button>
 								<button onclick={() => select(exploration!.base)}>Back to game</button>
 							</div>
-							<details bind:open={showEngine}>
-								<summary>Engine lines</summary>
-								<Variations fen={boardFen} {depth} {lines} onresult={handleExplorationResult} />
-							</details>
+							{@render playControls()}
+							{#if !playing}
+								<details bind:open={showEngine}>
+									<summary>Engine lines</summary>
+									<Variations fen={boardFen} {depth} {lines} onresult={handleExplorationResult} />
+								</details>
+							{/if}
 						</div>
 					{:else}
 						<p class="position">
 							<strong>{lastMove ? moveLabel(lastMove.ply, lastMove.san) : 'Start position'}</strong>
 							{#if evals[selected]}<span class="pill">{formatScore(evals[selected].score)}</span
 								>{/if}
-							<span class="muted small">Move a piece to try your own line</span>
+							<span class="muted small"
+								>{play ? 'Make a move to start playing' : 'Move a piece to try your own line'}</span
+							>
 						</p>
+						{@render playControls()}
 						<details class="engine" bind:open={showEngine}>
 							<summary>Engine lines</summary>
 							{#if showEngine}
@@ -683,6 +776,29 @@
 
 	.engine {
 		margin-top: 10px;
+	}
+
+	.play {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 8px 16px;
+		margin-top: 10px;
+	}
+
+	.exploration .play {
+		margin-top: 0;
+	}
+
+	.toggle {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 0.9rem;
+	}
+
+	.toggle input[type='number'] {
+		width: 6em;
 	}
 
 	.pill {

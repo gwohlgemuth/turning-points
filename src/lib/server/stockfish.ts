@@ -8,6 +8,16 @@ export function clampDepth(value: unknown): number {
 	return Math.min(30, Math.max(6, Number(value) || 16));
 }
 
+export function clampElo(value: unknown): number {
+	return Math.min(3190, Math.max(1320, Number(value) || 1500));
+}
+
+export function parseBestMove(line: string): string | null {
+	const [command, move] = line.split(' ');
+	if (command !== 'bestmove' || !move || move === '(none)') return null;
+	return move;
+}
+
 export function parseInfo(line: string): (EngineLine & { multipv: number }) | null {
 	const tokens = line.split(' ');
 	if (tokens[0] !== 'info') return null;
@@ -66,6 +76,14 @@ export class Stockfish {
 		});
 		const result = lines.filter(Boolean);
 		return result.length ? result : [{ score: { type: 'cp', value: 0 }, pv: [] }];
+	}
+
+	async bestMove(fen: string, elo: number, movetime: number): Promise<string | null> {
+		this.#send('setoption name UCI_LimitStrength value true');
+		this.#send(`setoption name UCI_Elo value ${elo}`);
+		this.#send(`position fen ${fen}`);
+		const line = await this.#request(`go movetime ${movetime}`, (l) => l.startsWith('bestmove'));
+		return parseBestMove(line);
 	}
 
 	quit(): void {

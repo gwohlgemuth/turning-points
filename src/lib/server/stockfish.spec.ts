@@ -2,7 +2,7 @@ import { chmodSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
-import { parseInfo, Stockfish } from './stockfish.ts';
+import { clampElo, parseBestMove, parseInfo, Stockfish } from './stockfish.ts';
 
 describe('parseInfo', () => {
 	it('parses centipawn scores and the principal variation', () => {
@@ -30,6 +30,27 @@ describe('parseInfo', () => {
 		expect(parseInfo('info depth 10 score cp 20 lowerbound pv e2e4')).toBeNull();
 		expect(parseInfo('info string NNUE enabled')).toBeNull();
 		expect(parseInfo('bestmove e2e4')).toBeNull();
+	});
+});
+
+describe('parseBestMove', () => {
+	it('reads the best move', () => {
+		expect(parseBestMove('bestmove e2e4')).toBe('e2e4');
+		expect(parseBestMove('bestmove e7e8q ponder d1d8')).toBe('e7e8q');
+	});
+
+	it('returns null when there is no move', () => {
+		expect(parseBestMove('bestmove (none)')).toBeNull();
+		expect(parseBestMove('info depth 1 score cp 0 pv e2e4')).toBeNull();
+	});
+});
+
+describe('clampElo', () => {
+	it('keeps the Elo within the range Stockfish supports', () => {
+		expect(clampElo(1000)).toBe(1320);
+		expect(clampElo(4000)).toBe(3190);
+		expect(clampElo('2000')).toBe(2000);
+		expect(clampElo(undefined)).toBe(1500);
 	});
 });
 
