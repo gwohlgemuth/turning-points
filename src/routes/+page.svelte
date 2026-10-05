@@ -316,7 +316,7 @@
 					aria-label="Open PGN file"
 				/>
 				<button onclick={() => savePgn(pgn, pgnFilename(pgn))} disabled={!pgn.trim()}>
-					Save PGN
+					Save
 				</button>
 			</div>
 			<SaveFolder folder={data.preferences.folder} />

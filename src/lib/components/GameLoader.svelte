@@ -145,7 +145,7 @@
 	</ul>
 	<div class="list-footer">
 		<span class="muted">{games.length} games</span>
-		<button onclick={save}>Save as PGN</button>
+		<button onclick={save}>Save all</button>
 	</div>
 {/if}
 
