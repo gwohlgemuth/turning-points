@@ -3,8 +3,10 @@ import {
 	gamesToPgn,
 	pgnFilename,
 	playerSide,
+	playersByCount,
 	splitPgn,
 	summaryFromPgn,
+	winner,
 	type GameSummary
 } from './games.ts';
 
@@ -18,6 +20,15 @@ describe('playerSide', () => {
 
 	it('returns null when the user did not play the game', () => {
 		expect(playerSide(game, 'someone')).toBeNull();
+	});
+});
+
+describe('winner', () => {
+	it('maps the PGN result to the winning side', () => {
+		expect(winner('1-0')).toBe('w');
+		expect(winner('0-1')).toBe('b');
+		expect(winner('1/2-1/2')).toBe('draw');
+		expect(winner('*')).toBeNull();
 	});
 });
 
@@ -51,6 +62,18 @@ describe('summaryFromPgn', () => {
 
 	it('handles missing or unknown values', () => {
 		expect(summaryFromPgn(second, 1)).toMatchObject({ blackRating: null, date: 0 });
+	});
+});
+
+describe('playersByCount', () => {
+	it('lists the players by number of games, then by name', () => {
+		const games = [
+			{ white: 'me', black: 'Bob' },
+			{ white: 'Carl', black: 'me' },
+			{ white: 'Bob', black: 'Anna' },
+			{ white: 'me', black: 'Dora' }
+		] as GameSummary[];
+		expect(playersByCount(games)).toEqual(['me', 'Bob', 'Anna', 'Carl', 'Dora']);
 	});
 });
 

@@ -7,7 +7,9 @@
 		GAME_COUNTS,
 		gamesToPgn,
 		playerSide,
+		playersByCount,
 		today,
+		winner,
 		type GameSource,
 		type GameSummary
 	} from '#lib/games.ts';
@@ -15,7 +17,7 @@
 	import { updatePreferences, type Preferences } from '#lib/preferences.ts';
 
 	type Props = {
-		onselect: (game: GameSummary, side: Side | null) => void;
+		onselect: (game: GameSummary, side: Side) => void;
 		games?: GameSummary[];
 		preferences: Preferences;
 	};
@@ -29,12 +31,18 @@
 	let loading = $state(false);
 	let message = $state('');
 	let selectedId = $state('');
+	let loadedUser = $state(initial.username);
+	const players = $derived(playersByCount(games));
+	let perspective = $derived(
+		players.find((name) => name.toLowerCase() === loadedUser.toLowerCase()) ?? players[0] ?? ''
+	);
 
 	async function load(event: SubmitEvent) {
 		event.preventDefault();
 		loading = true;
 		message = '';
 		games = [];
+		loadedUser = username.trim();
 		updatePreferences({ source, username: username.trim(), max });
 		try {
 			const params = new URLSearchParams({ source, user: username.trim(), max: String(max) });
@@ -52,14 +60,22 @@
 
 	function choose(game: GameSummary) {
 		selectedId = game.id;
-		onselect(game, playerSide(game, username));
+		onselect(game, playerSide(game, perspective) ?? 'w');
 	}
 
 	function save() {
 		savePgn(gamesToPgn(games), `${username.trim() || 'games'}-${today()}.pgn`);
 	}
 
-	const player = (name: string, rating: number | null) => (rating ? `${name} (${rating})` : name);
+	const OUTCOME_LABELS = { win: 'Win', loss: 'Loss', draw: 'Draw' };
+
+	function outcome(game: GameSummary) {
+		const won = winner(game.result);
+		const side = playerSide(game, perspective);
+		if (!won || !side) return null;
+		if (won === 'draw') return 'draw';
+		return won === side ? 'win' : 'loss';
+	}
 	const formatDate = (ms: number) => (ms ? new Date(ms).toLocaleDateString() : '');
 </script>
 
@@ -84,18 +100,44 @@
 {/if}
 
 {#if games.length}
+	<label class="perspective">
+		<span class="muted">View as</span>
+		<select bind:value={perspective}>
+			<option value="">Neutral</option>
+			{#each players as name (name)}
+				<option value={name}>{name}</option>
+			{/each}
+		</select>
+	</label>
 	<ul class="games" transition:slide={{ duration: ms(200) }}>
 		{#each games as game (game.id)}
+			{@const won = winner(game.result)}
+			{@const mine = outcome(game)}
 			<li>
 				<button class:selected={selectedId === game.id} onclick={() => choose(game)}>
+					{#if perspective}
+						<span class="outcome {mine ?? ''}">{mine ? OUTCOME_LABELS[mine] : ''}</span>
+					{/if}
 					<span class="players">
-						{player(game.white, game.whiteRating)} – {player(game.black, game.blackRating)}
+						{#each [{ side: 'w', name: game.white, rating: game.whiteRating }, { side: 'b', name: game.black, rating: game.blackRating }] as p (p.side)}
+							<span
+								class="player"
+								class:winner={won === p.side}
+								class:loser={won !== null && won !== 'draw' && won !== p.side}
+							>
+								<span class="piece {p.side}" aria-hidden="true"></span>
+								<span class="name">{p.name}</span>
+								{#if p.rating}<span class="rating">{p.rating}</span>{/if}
+								{#if won === p.side}
+									<span class="crown" title="Winner">♚</span>
+								{:else if won === 'draw'}
+									<span class="half" title="Draw">½</span>
+								{/if}
+							</span>
+						{/each}
 					</span>
 					<span class="meta">
-						<strong>{game.result}</strong>
-						{#each [game.timeClass, formatDate(game.date)].filter(Boolean) as part (part)}
-							· {part}
-						{/each}
+						{[game.timeClass, formatDate(game.date)].filter(Boolean).join(' · ')}
 					</span>
 				</button>
 			</li>
@@ -125,6 +167,12 @@
 		margin: 0;
 	}
 
+	.perspective {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
 	.list-footer {
 		display: flex;
 		align-items: center;
@@ -136,7 +184,7 @@
 		list-style: none;
 		padding: 0;
 		margin: 0;
-		max-height: 260px;
+		max-height: 320px;
 		overflow-y: auto;
 		border: 1px solid var(--border);
 		border-radius: 10px;
@@ -146,9 +194,8 @@
 	.games button {
 		width: 100%;
 		display: flex;
-		flex-wrap: wrap;
-		justify-content: space-between;
-		gap: 4px 12px;
+		align-items: center;
+		gap: 12px;
 		text-align: left;
 		border: none;
 		border-bottom: 1px solid var(--border);
@@ -174,8 +221,98 @@
 		background: rgb(227 179 65 / 0.07);
 	}
 
-	.meta {
+	.outcome {
+		flex: none;
+		width: 44px;
+		padding: 3px 0;
+		border-radius: 6px;
+		font-size: 0.72rem;
+		font-weight: 700;
+		letter-spacing: 0.04em;
+		text-align: center;
+		text-transform: uppercase;
+	}
+
+	.outcome.win {
+		color: var(--good);
+		background: rgb(92 201 138 / 0.14);
+	}
+
+	.outcome.loss {
+		color: var(--danger);
+		background: rgb(240 106 106 / 0.14);
+	}
+
+	.outcome.draw {
 		color: var(--muted);
-		font-size: 0.9rem;
+		background: rgb(255 255 255 / 0.07);
+	}
+
+	.players {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.player {
+		display: flex;
+		align-items: center;
+		gap: 7px;
+		min-width: 0;
+	}
+
+	.name {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.player.winner .name {
+		font-weight: 600;
+	}
+
+	.player.loser {
+		opacity: 0.55;
+	}
+
+	.piece {
+		flex: none;
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		border: 1px solid var(--border-strong);
+	}
+
+	.piece.w {
+		background: var(--graph-white);
+	}
+
+	.piece.b {
+		background: var(--graph-black);
+	}
+
+	.rating {
+		color: var(--muted);
+		font-size: 0.85rem;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.crown {
+		color: var(--accent);
+		line-height: 1;
+	}
+
+	.half {
+		color: var(--muted);
+		font-size: 0.85rem;
+	}
+
+	.meta {
+		flex: none;
+		color: var(--muted);
+		font-size: 0.85rem;
+		text-align: right;
 	}
 </style>

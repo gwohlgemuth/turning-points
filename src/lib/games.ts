@@ -24,6 +24,13 @@ export function playerSide(game: GameSummary, username: string): Side | null {
 	return null;
 }
 
+export function winner(result: string): Side | 'draw' | null {
+	if (result === '1-0') return 'w';
+	if (result === '0-1') return 'b';
+	if (result === '1/2-1/2') return 'draw';
+	return null;
+}
+
 export function pgnHeader(pgn: string, name: string): string | undefined {
 	return new RegExp(`\\[${name} "([^"]*)"\\]`).exec(pgn)?.[1];
 }
@@ -38,6 +45,15 @@ export function splitPgn(text: string): string[] {
 		.split(/\n\s*\n(?=\s*\[)/)
 		.map((part) => part.trim())
 		.filter(Boolean);
+}
+
+export function playersByCount(games: GameSummary[]): string[] {
+	const counts = new Map<string, number>();
+	for (const { white, black } of games) {
+		counts.set(white, (counts.get(white) ?? 0) + 1);
+		counts.set(black, (counts.get(black) ?? 0) + 1);
+	}
+	return [...counts.keys()].sort((a, b) => counts.get(b)! - counts.get(a)! || a.localeCompare(b));
 }
 
 export function summaryFromPgn(pgn: string, index: number): GameSummary {

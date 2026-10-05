@@ -253,12 +253,10 @@
 		if (event.key === 'ArrowRight') select(selected + 1);
 	}
 
-	function loadGame(game: GameSummary, player: Side | null) {
+	function loadGame(game: GameSummary, player: Side) {
 		pgn = game.pgn;
-		if (player) {
-			side = player;
-			flipped = player === 'b';
-		}
+		side = player;
+		flipped = player === 'b';
 		analyze();
 	}
 
