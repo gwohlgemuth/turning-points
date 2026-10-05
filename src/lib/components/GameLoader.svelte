@@ -184,7 +184,10 @@
 		list-style: none;
 		padding: 0;
 		margin: 0;
-		max-height: 320px;
+		height: 320px;
+		min-height: 80px;
+		max-height: fit-content;
+		resize: vertical;
 		overflow-y: auto;
 		border: 1px solid var(--border);
 		border-radius: 10px;
