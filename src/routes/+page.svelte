@@ -34,7 +34,8 @@
 		winner,
 		type GameSummary
 	} from '#lib/games.ts';
-	import { savePgn } from '#lib/saving.svelte.ts';
+	import { NOTE_QUESTIONS, answeredCount, readNotes, writeNotes, type Notes } from '#lib/notes.ts';
+	import { saving, savePgn } from '#lib/saving.svelte.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -55,6 +56,8 @@
 	let selected = $state(0);
 	let flipped = $state(false);
 	let opened = $state<Record<number, boolean>>({});
+	let notes = $state<Record<number, Notes>>({});
+	let notesOpen = $state<Record<number, boolean>>({});
 	let loadedGames = $state<GameSummary[]>([]);
 	let exploration = $state<{
 		base: number;
@@ -197,6 +200,8 @@
 			headers = event.headers;
 			evals = [];
 			opened = {};
+			notes = readNotes(pgn);
+			notesOpen = {};
 			cancelEngineMove();
 			exploration = null;
 			selected = 0;
@@ -249,6 +254,16 @@
 	function stop() {
 		controller?.abort();
 		status = 'done';
+	}
+
+	function toggleNotes(ply: number) {
+		notes[ply] ??= ['', '', ''];
+		notesOpen[ply] = !notesOpen[ply];
+	}
+
+	function saveNotes() {
+		pgn = writeNotes(pgn, notes);
+		savePgn(pgn, pgnFilename(pgn));
 	}
 
 	function select(index: number) {
@@ -568,8 +583,25 @@
 												aria-expanded={!!opened[tp.ply]}
 												title="Engine suggestion">Engine</button
 											>
+											<button
+												class:on={notesOpen[tp.ply]}
+												onclick={() => toggleNotes(tp.ply)}
+												aria-expanded={!!notesOpen[tp.ply]}
+												title="Studer's three questions"
+												>Notes {answeredCount(notes[tp.ply])}/3</button
+											>
 										</span>
 									</div>
+									{#if notesOpen[tp.ply] && notes[tp.ply]}
+										<div class="notes" transition:slide={{ duration: ms(200) }}>
+											{#each NOTE_QUESTIONS as { question }, q (question)}
+												<label>
+													<span>{q + 1}. {question}</span>
+													<textarea rows="2" bind:value={notes[tp.ply][q]}></textarea>
+												</label>
+											{/each}
+										</div>
+									{/if}
 									{#if opened[tp.ply]}
 										<div transition:slide={{ duration: ms(200) }}>
 											<Variations fen={move.fenBefore} {depth} {lines} />
@@ -578,6 +610,14 @@
 								</li>
 							{/each}
 						</ol>
+						{#if turningPoints.length}
+							<div class="save-notes">
+								<button onclick={saveNotes} disabled={!pgn.trim()}>Save notes</button>
+								{#if saving.message}
+									<span class="muted small" class:error={saving.failed}>{saving.message}</span>
+								{/if}
+							</div>
+						{/if}
 
 						<h2 class="card-title">Moves</h2>
 						<div class="moves">
@@ -1177,6 +1217,30 @@
 	.tp-actions button.on {
 		border-color: var(--accent);
 		color: var(--accent-2);
+	}
+
+	.notes {
+		display: grid;
+		gap: 8px;
+		padding: 10px 0 4px;
+	}
+
+	.notes label {
+		display: grid;
+		gap: 4px;
+		font-size: 0.85rem;
+		color: var(--muted);
+	}
+
+	.notes textarea {
+		resize: vertical;
+	}
+
+	.save-notes {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		margin: -12px 0 22px;
 	}
 
 	.moves {

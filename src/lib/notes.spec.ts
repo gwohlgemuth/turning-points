@@ -1,0 +1,62 @@
+import { describe, it, expect } from 'vitest';
+import { answeredCount, formatNote, readNotes, writeNotes, type Notes } from './notes.ts';
+
+const pgn = `[White "A"]
+[Black "B"]
+[Result "*"]
+
+1. e4 { [%clk 0:03:00] } 1... e5 { [%clk 0:03:00] } 2. Qh5 { [%clk 0:02:58] } *`;
+
+const notes: Notes = ['It attacks f7', 'It ignores {development}', 'Nf3 develops\na piece'];
+
+describe('formatNote', () => {
+	it('labels each answer and removes braces and line breaks', () => {
+		expect(formatNote(notes)).toBe(
+			'Turning point. Why I chose it: It attacks f7 Why it is not ideal: It ignores development Why the better move is better: Nf3 develops a piece'
+		);
+	});
+
+	it('leaves out empty answers', () => {
+		expect(formatNote(['', ' ', 'Because'])).toBe(
+			'Turning point. Why the better move is better: Because'
+		);
+		expect(formatNote(['', '', ''])).toBe('');
+	});
+});
+
+describe('answeredCount', () => {
+	it('counts non-empty answers', () => {
+		expect(answeredCount(['a', ' ', 'b'])).toBe(2);
+		expect(answeredCount(undefined)).toBe(0);
+	});
+});
+
+describe('writeNotes and readNotes', () => {
+	it('round-trips the answers and keeps clock comments and headers', () => {
+		const written = writeNotes(pgn, { 3: notes });
+		expect(written).toContain('[White "A"]');
+		expect(written).toContain('{[%clk 0:02:58] Turning point. Why I chose it: It attacks f7');
+		expect(written).toContain('{[%clk 0:03:00]}');
+		expect(readNotes(written)).toEqual({
+			3: ['It attacks f7', 'It ignores development', 'Nf3 develops a piece']
+		});
+	});
+
+	it('replaces earlier notes instead of adding them again', () => {
+		const once = writeNotes(pgn, { 3: notes });
+		const twice = writeNotes(once, { 3: ['Changed', '', ''] });
+		expect(twice.match(/Turning point\./g)).toHaveLength(1);
+		expect(readNotes(twice)).toEqual({ 3: ['Changed', '', ''] });
+	});
+
+	it('removes notes that were cleared', () => {
+		const written = writeNotes(writeNotes(pgn, { 1: notes }), { 1: ['', '', ''] });
+		expect(written).not.toContain('Turning point');
+		expect(readNotes(written)).toEqual({});
+	});
+
+	it('reads nothing from a game without notes or an invalid PGN', () => {
+		expect(readNotes(pgn)).toEqual({});
+		expect(readNotes('not a game')).toEqual({});
+	});
+});
