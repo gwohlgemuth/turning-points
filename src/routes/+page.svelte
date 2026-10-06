@@ -904,13 +904,13 @@
 	.board-row {
 		display: flex;
 		gap: 8px;
-		width: min(520px, calc(100svh - 250px));
+		width: clamp(400px, calc(100svh - 250px), 520px);
 	}
 
 	@media (min-width: 901px) {
 		.board-panel {
 			width: min-content;
-			max-height: calc(100svh - 96px);
+			max-height: max(calc(100svh - 96px), 600px);
 			overflow-y: auto;
 			box-sizing: border-box;
 		}
