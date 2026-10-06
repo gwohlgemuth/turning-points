@@ -9,7 +9,7 @@
 	import GameLoader from '#lib/components/GameLoader.svelte';
 	import SaveFolder from '#lib/components/SaveFolder.svelte';
 	import TimeChart from '#lib/components/TimeChart.svelte';
-	import { describeTime } from '#lib/clock.ts';
+	import { describeTime, formatDuration } from '#lib/clock.ts';
 	import Variations from '#lib/components/Variations.svelte';
 	import {
 		findTurningPoints,
@@ -531,7 +531,7 @@
 									animate:flip={{ duration: ms(250) }}
 									in:fly={{ y: 16, duration: ms(300), delay: ms(i * 70) }}
 								>
-									<div class="tp-head">
+									<div class="tp-row">
 										<button class="link" onclick={() => select(tp.ply - 1)}>
 											{moveLabel(tp.ply, move.san)}{#if judgement}<span
 													class="judgement {judgement.name}"
@@ -544,20 +544,27 @@
 										>
 											{formatScore(before.score)} → {formatScore(after.score)}
 										</span>
-									</div>
-									{#if move.time}
-										<div class="time">⏱ {describeTime(move.time)}</div>
-									{/if}
-									<div class="tp-actions">
-										<button onclick={() => select(tp.ply - 1)}>Position before</button>
-										<button onclick={() => select(tp.ply)}>After</button>
-									</div>
-									<details bind:open={opened[tp.ply]}>
-										<summary>Engine suggestion</summary>
-										{#if opened[tp.ply]}
-											<Variations fen={move.fenBefore} {depth} {lines} />
+										{#if move.time}
+											<span class="time" title={describeTime(move.time)}
+												>⏱ {formatDuration(move.time.spent)}</span
+											>
 										{/if}
-									</details>
+										<span class="tp-actions">
+											<button onclick={() => select(tp.ply - 1)}>Before</button>
+											<button onclick={() => select(tp.ply)}>After</button>
+											<button
+												class:on={opened[tp.ply]}
+												onclick={() => (opened[tp.ply] = !opened[tp.ply])}
+												aria-expanded={!!opened[tp.ply]}
+												title="Engine suggestion">Engine</button
+											>
+										</span>
+									</div>
+									{#if opened[tp.ply]}
+										<div transition:slide={{ duration: ms(200) }}>
+											<Variations fen={move.fenBefore} {depth} {lines} />
+										</div>
+									{/if}
 								</li>
 							{/each}
 						</ol>
@@ -1028,12 +1035,12 @@
 		margin: 0 0 22px;
 		list-style: none;
 		display: grid;
-		gap: 10px;
+		gap: 6px;
 	}
 
 	.tp {
 		position: relative;
-		padding: 12px 14px 12px 18px;
+		padding: 7px 10px 7px 16px;
 		border: 1px solid var(--border);
 		border-radius: 12px;
 		background: var(--surface-2);
@@ -1075,11 +1082,11 @@
 		box-shadow: 0 0 0 3px rgb(227 179 65 / 0.12);
 	}
 
-	.tp-head {
+	.tp-row {
 		display: flex;
-		justify-content: space-between;
-		align-items: baseline;
-		gap: 10px;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 4px 14px;
 	}
 
 	.link {
@@ -1087,7 +1094,7 @@
 		border: none;
 		padding: 0;
 		font-weight: 700;
-		font-size: 1.05rem;
+		font-size: 1rem;
 		color: var(--text);
 		cursor: pointer;
 	}
@@ -1100,7 +1107,6 @@
 	.time {
 		color: var(--muted);
 		font-size: 0.85rem;
-		margin-top: 4px;
 	}
 
 	.evals {
@@ -1131,13 +1137,18 @@
 
 	.tp-actions {
 		display: flex;
-		gap: 6px;
-		margin: 10px 0 8px;
+		gap: 4px;
+		margin-left: auto;
 	}
 
 	.tp-actions button {
-		padding: 5px 10px;
-		font-size: 0.85rem;
+		padding: 3px 9px;
+		font-size: 0.8rem;
+	}
+
+	.tp-actions button.on {
+		border-color: var(--accent);
+		color: var(--accent-2);
 	}
 
 	.moves {
