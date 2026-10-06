@@ -58,7 +58,7 @@
 <style>
 	svg {
 		width: 100%;
-		height: 70px;
+		height: 50px;
 		display: block;
 		cursor: pointer;
 		border-radius: 10px;

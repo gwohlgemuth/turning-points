@@ -131,7 +131,7 @@
 
 	svg {
 		width: 100%;
-		height: 150px;
+		height: 110px;
 		cursor: pointer;
 		display: block;
 		border-radius: 10px;
