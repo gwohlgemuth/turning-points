@@ -1,3 +1,4 @@
+import { Chess } from 'chess.js';
 import type { Side } from './analysis.ts';
 
 export type GameSource = 'lichess' | 'chesscom';
@@ -37,6 +38,30 @@ export function mergeAdjacentComments(pgn: string): string {
 
 export function pgnHeader(pgn: string, name: string): string | undefined {
 	return new RegExp(`\\[${name} "([^"]*)"\\]`).exec(pgn)?.[1];
+}
+
+function gameUrl(pgn: string): string | undefined {
+	const url = pgnHeader(pgn, 'Link') ?? pgnHeader(pgn, 'Site');
+	return url?.startsWith('http') ? url : undefined;
+}
+
+function mainline(pgn: string): string | null {
+	const chess = new Chess();
+	try {
+		chess.loadPgn(mergeAdjacentComments(pgn));
+	} catch {
+		return null;
+	}
+	const players = [pgnHeader(pgn, 'White'), pgnHeader(pgn, 'Black')];
+	return [...players, ...chess.history()].join(' ');
+}
+
+export function sameGame(a: string, b: string): boolean {
+	if (splitPgn(a).length !== 1 || splitPgn(b).length !== 1) return false;
+	const [urlA, urlB] = [gameUrl(a), gameUrl(b)];
+	if (urlA && urlB) return urlA === urlB;
+	const moves = mainline(a);
+	return moves !== null && moves === mainline(b);
 }
 
 export function gamesToPgn(games: GameSummary[]): string {

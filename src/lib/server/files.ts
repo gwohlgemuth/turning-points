@@ -1,4 +1,5 @@
-import { mkdir, readdir, realpath, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readFile, readdir, realpath, writeFile } from 'node:fs/promises';
+import { sameGame } from '#lib/games.ts';
 import { basename, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 
 export class FileError extends Error {
@@ -68,11 +69,17 @@ export async function createFolder(root: string, parent: string, name: string): 
 	return toRelative(root, absolute);
 }
 
+async function holdsSameGame(path: string, text: string): Promise<boolean> {
+	if (!(await lstat(path)).isFile()) return false;
+	return sameGame(await readFile(path, 'utf8'), text);
+}
+
 export async function saveFile(
 	root: string,
 	folder: string,
 	filename: string,
-	text: string
+	text: string,
+	replaceSameGame = false
 ): Promise<string> {
 	const name = validateName(filename, 'file name');
 	if (basename(name) !== name || extname(name).toLowerCase() !== '.pgn') {
@@ -90,6 +97,10 @@ export async function saveFile(
 			return toRelative(root, candidate);
 		} catch (err) {
 			if ((err as NodeJS.ErrnoException).code !== 'EEXIST') throw err;
+			if (replaceSameGame && (await holdsSameGame(candidate, text))) {
+				await writeFile(candidate, text);
+				return toRelative(root, candidate);
+			}
 		}
 	}
 	throw new FileError('Too many files with this name');

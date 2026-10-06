@@ -4,6 +4,7 @@ import {
 	mergeAdjacentComments,
 	parseRating,
 	pgnFilename,
+	sameGame,
 	playerSide,
 	playersByCount,
 	splitPgn,
@@ -108,5 +109,32 @@ describe('pgnFilename', () => {
 	it('falls back to a dated name without player headers', () => {
 		expect(pgnFilename('1. e4 e5 *')).toMatch(/^game-\d{4}-\d{2}-\d{2}\.pgn$/);
 		expect(pgnFilename('[White "?"]\n[Black "B"]\n\n1. e4 *')).toMatch(/^game-/);
+	});
+});
+
+describe('sameGame', () => {
+	it('compares game URLs when both games have one', () => {
+		const a = '[Site "https://lichess.org/abc"]\n\n1. e4 e5 *';
+		expect(sameGame(a, '[Site "https://lichess.org/abc"]\n\n1. e4 { note } e5 *')).toBe(true);
+		expect(sameGame(a, '[Site "https://lichess.org/xyz"]\n\n1. e4 e5 *')).toBe(false);
+		expect(
+			sameGame(
+				'[Site "Chess.com"]\n[Link "https://www.chess.com/game/live/1"]\n\n1. e4 *',
+				'[Site "Chess.com"]\n[Link "https://www.chess.com/game/live/2"]\n\n1. e4 *'
+			)
+		).toBe(false);
+	});
+
+	it('falls back to players and moves without game URLs', () => {
+		const a = '[White "A"]\n[Black "B"]\n\n1. e4 e5 *';
+		expect(sameGame(a, '[White "A"]\n[Black "B"]\n\n1. e4 { Turning point. } e5 *')).toBe(true);
+		expect(sameGame(a, '[White "A"]\n[Black "B"]\n\n1. d4 d5 *')).toBe(false);
+		expect(sameGame(a, '[White "A"]\n[Black "C"]\n\n1. e4 e5 *')).toBe(false);
+		expect(sameGame('not a game', 'not a game')).toBe(false);
+	});
+
+	it('never matches a file with several games', () => {
+		const a = '[White "A"]\n[Black "B"]\n\n1. e4 e5 *';
+		expect(sameGame(`${a}\n\n${a}`, a)).toBe(false);
 	});
 });

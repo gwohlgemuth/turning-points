@@ -21,6 +21,16 @@ describe('saveFile', () => {
 		expect(readFileSync(join(root, 'Documents/Turning Points/a.pgn'), 'utf8')).toBe('one');
 	});
 
+	it('replaces a file only when it holds the same game', async () => {
+		const game = '[Site "https://lichess.org/abc"]\n\n1. e4 e5 *';
+		const other = '[Site "https://lichess.org/xyz"]\n\n1. e4 e5 *';
+		expect(await saveFile(root, '', 'a.pgn', other)).toBe('a.pgn');
+		expect(await saveFile(root, '', 'a.pgn', game, true)).toBe('a (2).pgn');
+		expect(await saveFile(root, '', 'a.pgn', game + ' notes', true)).toBe('a (2).pgn');
+		expect(readFileSync(join(root, 'a.pgn'), 'utf8')).toBe(other);
+		expect(readFileSync(join(root, 'a (2).pgn'), 'utf8')).toBe(game + ' notes');
+	});
+
 	it('rejects folders outside the root and unsafe file names', async () => {
 		await expect(saveFile(root, '../outside', 'a.pgn', 'x')).rejects.toThrow('home folder');
 		await expect(saveFile(root, '/etc', 'a.pgn', 'x')).rejects.toThrow('home folder');

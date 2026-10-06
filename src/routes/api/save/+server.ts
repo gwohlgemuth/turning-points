@@ -12,7 +12,8 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 			homedir(),
 			String(body.folder ?? ''),
 			String(body.filename ?? ''),
-			body.text
+			body.text,
+			body.replaceSameGame === true
 		);
 		return json({ path });
 	} catch (err) {

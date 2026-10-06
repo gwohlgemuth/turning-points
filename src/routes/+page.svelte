@@ -263,7 +263,7 @@
 
 	function saveNotes() {
 		pgn = writeNotes(pgn, notes);
-		savePgn(pgn, pgnFilename(pgn));
+		savePgn(pgn, pgnFilename(pgn), true);
 	}
 
 	function select(index: number) {

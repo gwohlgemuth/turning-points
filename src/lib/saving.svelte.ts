@@ -7,14 +7,18 @@ export function setSaveFolder(folder: string): void {
 	updatePreferences({ folder });
 }
 
-export async function savePgn(text: string, filename: string): Promise<void> {
+export async function savePgn(
+	text: string,
+	filename: string,
+	replaceSameGame = false
+): Promise<void> {
 	saving.message = 'Saving…';
 	saving.failed = false;
 	try {
 		const response = await fetch('/api/save', {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
-			body: JSON.stringify({ folder: saving.folder, filename, text })
+			body: JSON.stringify({ folder: saving.folder, filename, text, replaceSameGame })
 		});
 		const body = await response.json();
 		if (!response.ok) throw new Error(body.message ?? `Request failed (${response.status})`);
