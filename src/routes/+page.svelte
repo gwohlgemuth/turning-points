@@ -392,7 +392,15 @@
 						{#if won === 'b'}<span class="crown" title="Winner">♚</span>{/if}
 					</span>
 				</div>
-				<EvalGraph {winPercents} {positions} {turningPoints} {selected} onselect={select} />
+				<EvalGraph
+					{winPercents}
+					{positions}
+					{moves}
+					{evals}
+					{turningPoints}
+					{selected}
+					onselect={select}
+				/>
 				{#if hasTimes}
 					<TimeChart {moves} {turningPlies} {selected} onselect={select} />
 				{/if}
