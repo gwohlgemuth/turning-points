@@ -305,7 +305,7 @@
 			<p class="lead">
 				Find the moments where your game turned — the moves where the evaluation swung the most.
 				Study those positions first, before looking at the engine. <span class="credit"
-					>Method by GM Noël Studer</span
+					>Inspired by GM Noël Studer</span
 				>
 			</p>
 		</div>
