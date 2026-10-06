@@ -216,6 +216,7 @@
 		status = 'running';
 		message = '';
 		setupOpen = false;
+		window.scrollTo({ top: 0 });
 		try {
 			const response = await fetch('/api/analyze', {
 				method: 'POST',
@@ -397,38 +398,6 @@
 
 	{#if moves.length}
 		<div class="results" in:fade={{ duration: ms(300) }}>
-			<section class="card graphs">
-				<div class="players">
-					<span class="player white" class:winner={won === 'w'} class:loser={won === 'b'}>
-						{headers.White ?? 'White'}
-						{#if parseRating(headers.WhiteElo)}
-							<span class="rating">{parseRating(headers.WhiteElo)}</span>
-						{/if}
-						{#if won === 'w'}<span class="crown" title="Winner">♚</span>{/if}
-					</span>
-					<span class="result {won ?? ''}">{won ? RESULT_LABELS[won] : 'No result'}</span>
-					<span class="player black" class:winner={won === 'b'} class:loser={won === 'w'}>
-						{headers.Black ?? 'Black'}
-						{#if parseRating(headers.BlackElo)}
-							<span class="rating">{parseRating(headers.BlackElo)}</span>
-						{/if}
-						{#if won === 'b'}<span class="crown" title="Winner">♚</span>{/if}
-					</span>
-				</div>
-				<EvalGraph
-					{winPercents}
-					{positions}
-					{moves}
-					{evals}
-					{turningPoints}
-					{selected}
-					onselect={select}
-				/>
-				{#if hasTimes}
-					<TimeChart {moves} {turningPlies} {selected} onselect={select} />
-				{/if}
-			</section>
-
 			<div class="layout">
 				<section class="card board-panel">
 					<div class="board-row">
@@ -501,76 +470,115 @@
 					{/if}
 				</section>
 
-				<section class="card points">
-					<div class="points-head">
-						<h2 class="card-title">Turning points</h2>
-						<label class="count">
-							<input type="range" min="1" max="10" bind:value={count} aria-label="Turning points" />
-							<strong>{count}</strong>
-						</label>
-					</div>
-					{#if !turningPoints.length}
-						<p class="muted">Waiting for the engine…</p>
-					{/if}
-					<ol>
-						{#each turningPoints as tp, i (tp.ply)}
-							{@const move = moves[tp.ply - 1]}
-							{@const before = evals[tp.ply - 1]}
-							{@const after = evals[tp.ply]}
-							{@const judgement = judgeMove(tp.delta)}
-							<li
-								class="tp {judgement?.name ?? ''}"
-								class:active={selected === tp.ply - 1 || selected === tp.ply}
-								animate:flip={{ duration: ms(250) }}
-								in:fly={{ y: 16, duration: ms(300), delay: ms(i * 70) }}
-							>
-								<div class="tp-head">
-									<button class="link" onclick={() => select(tp.ply - 1)}>
-										{moveLabel(tp.ply, move.san)}{#if judgement}<span
-												class="judgement {judgement.name}"
-												title={judgement.name}>{judgement.symbol}</span
-											>{/if}
-									</button>
-									<span
-										class="evals"
-										title="Winning chances {tp.delta > 0 ? '+' : ''}{tp.delta.toFixed(1)}%"
-									>
-										{formatScore(before.score)} → {formatScore(after.score)}
-									</span>
-								</div>
-								{#if move.time}
-									<div class="time">⏱ {describeTime(move.time)}</div>
+				<div class="side">
+					<section class="card graphs">
+						<div class="players">
+							<span class="player white" class:winner={won === 'w'} class:loser={won === 'b'}>
+								{headers.White ?? 'White'}
+								{#if parseRating(headers.WhiteElo)}
+									<span class="rating">{parseRating(headers.WhiteElo)}</span>
 								{/if}
-								<div class="tp-actions">
-									<button onclick={() => select(tp.ply - 1)}>Position before</button>
-									<button onclick={() => select(tp.ply)}>After</button>
-								</div>
-								<details bind:open={opened[tp.ply]}>
-									<summary>Engine suggestion</summary>
-									{#if opened[tp.ply]}
-										<Variations fen={move.fenBefore} {depth} {lines} />
+								{#if won === 'w'}<span class="crown" title="Winner">♚</span>{/if}
+							</span>
+							<span class="result {won ?? ''}">{won ? RESULT_LABELS[won] : 'No result'}</span>
+							<span class="player black" class:winner={won === 'b'} class:loser={won === 'w'}>
+								{headers.Black ?? 'Black'}
+								{#if parseRating(headers.BlackElo)}
+									<span class="rating">{parseRating(headers.BlackElo)}</span>
+								{/if}
+								{#if won === 'b'}<span class="crown" title="Winner">♚</span>{/if}
+							</span>
+						</div>
+						<EvalGraph
+							{winPercents}
+							{positions}
+							{moves}
+							{evals}
+							{turningPoints}
+							{selected}
+							onselect={select}
+						/>
+						{#if hasTimes}
+							<TimeChart {moves} {turningPlies} {selected} onselect={select} />
+						{/if}
+					</section>
+					<section class="card points">
+						<div class="points-head">
+							<h2 class="card-title">Turning points</h2>
+							<label class="count">
+								<input
+									type="range"
+									min="1"
+									max="10"
+									bind:value={count}
+									aria-label="Turning points"
+								/>
+								<strong>{count}</strong>
+							</label>
+						</div>
+						{#if !turningPoints.length}
+							<p class="muted">Waiting for the engine…</p>
+						{/if}
+						<ol>
+							{#each turningPoints as tp, i (tp.ply)}
+								{@const move = moves[tp.ply - 1]}
+								{@const before = evals[tp.ply - 1]}
+								{@const after = evals[tp.ply]}
+								{@const judgement = judgeMove(tp.delta)}
+								<li
+									class="tp {judgement?.name ?? ''}"
+									class:active={selected === tp.ply - 1 || selected === tp.ply}
+									animate:flip={{ duration: ms(250) }}
+									in:fly={{ y: 16, duration: ms(300), delay: ms(i * 70) }}
+								>
+									<div class="tp-head">
+										<button class="link" onclick={() => select(tp.ply - 1)}>
+											{moveLabel(tp.ply, move.san)}{#if judgement}<span
+													class="judgement {judgement.name}"
+													title={judgement.name}>{judgement.symbol}</span
+												>{/if}
+										</button>
+										<span
+											class="evals"
+											title="Winning chances {tp.delta > 0 ? '+' : ''}{tp.delta.toFixed(1)}%"
+										>
+											{formatScore(before.score)} → {formatScore(after.score)}
+										</span>
+									</div>
+									{#if move.time}
+										<div class="time">⏱ {describeTime(move.time)}</div>
 									{/if}
-								</details>
-							</li>
-						{/each}
-					</ol>
+									<div class="tp-actions">
+										<button onclick={() => select(tp.ply - 1)}>Position before</button>
+										<button onclick={() => select(tp.ply)}>After</button>
+									</div>
+									<details bind:open={opened[tp.ply]}>
+										<summary>Engine suggestion</summary>
+										{#if opened[tp.ply]}
+											<Variations fen={move.fenBefore} {depth} {lines} />
+										{/if}
+									</details>
+								</li>
+							{/each}
+						</ol>
 
-					<h2 class="card-title">Moves</h2>
-					<div class="moves">
-						{#each moves as move (move.ply)}
-							<button
-								class="move"
-								class:current={selected === move.ply}
-								class:turning={turningPlies.has(move.ply)}
-								onclick={() => select(move.ply)}
-								title={move.time ? describeTime(move.time) : undefined}
-							>
-								{#if move.ply % 2 === 1}<span class="num">{(move.ply + 1) / 2}.</span
-									>{/if}{move.san}
-							</button>
-						{/each}
-					</div>
-				</section>
+						<h2 class="card-title">Moves</h2>
+						<div class="moves">
+							{#each moves as move (move.ply)}
+								<button
+									class="move"
+									class:current={selected === move.ply}
+									class:turning={turningPlies.has(move.ply)}
+									onclick={() => select(move.ply)}
+									title={move.time ? describeTime(move.time) : undefined}
+								>
+									{#if move.ply % 2 === 1}<span class="num">{(move.ply + 1) / 2}.</span
+										>{/if}{move.san}
+								</button>
+							{/each}
+						</div>
+					</section>
+				</div>
 			</div>
 		</div>
 	{/if}
@@ -583,6 +591,11 @@
 		padding: 36px 20px 80px;
 		display: grid;
 		gap: 22px;
+	}
+
+	main:has(.hero.compact) {
+		padding-top: 16px;
+		padding-bottom: 16px;
 	}
 
 	.hero {
@@ -863,9 +876,44 @@
 
 	.layout {
 		display: grid;
-		grid-template-columns: minmax(0, 560px) minmax(0, 1fr);
+		grid-template-columns: auto minmax(0, 1fr);
 		gap: 22px;
 		align-items: start;
+	}
+
+	.side {
+		display: grid;
+		gap: 22px;
+		align-content: start;
+	}
+
+	.board-row {
+		display: flex;
+		gap: 8px;
+		width: min(520px, calc(100svh - 250px));
+	}
+
+	@media (min-width: 901px) {
+		.board-panel {
+			width: min-content;
+			max-height: calc(100svh - 96px);
+			overflow-y: auto;
+			box-sizing: border-box;
+		}
+
+		.layout {
+			align-items: stretch;
+		}
+
+		.side {
+			height: 0;
+			min-height: 100%;
+			grid-template-rows: auto minmax(0, 1fr);
+		}
+
+		.points {
+			overflow-y: auto;
+		}
 	}
 
 	@media (max-width: 900px) {
@@ -873,12 +921,11 @@
 		.layout {
 			grid-template-columns: 1fr;
 		}
-	}
 
-	.board-row {
-		display: flex;
-		gap: 8px;
-		max-width: 520px;
+		.board-row {
+			width: 100%;
+			max-width: 520px;
+		}
 	}
 
 	.nav {

@@ -177,8 +177,8 @@
 		position: relative;
 		display: grid;
 		grid-template-columns: repeat(8, 1fr);
-		width: 100%;
-		max-width: 480px;
+		flex: 1;
+		min-width: 0;
 		aspect-ratio: 1;
 		border-radius: 8px;
 		overflow: hidden;
