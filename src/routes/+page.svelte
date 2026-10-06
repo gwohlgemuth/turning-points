@@ -44,6 +44,7 @@
 	let side = $state<Side>('w');
 	let depth = $state(16);
 	let lines = $state(3);
+	let setupOpen = $state(true);
 
 	let status = $state<'idle' | 'running' | 'done' | 'error'>('idle');
 	let message = $state('');
@@ -186,6 +187,7 @@
 			winPercent: winPercent(best.score, boardFen.split(' ')[1] === 'w')
 		};
 	}
+	let showSetup = $derived(!moves.length || setupOpen || status === 'error');
 	let progress = $derived(positions > 0 ? Math.round((winPercents.length / positions) * 100) : 0);
 
 	function handleEvent(event: AnalyzeEvent) {
@@ -213,6 +215,7 @@
 		controller = new AbortController();
 		status = 'running';
 		message = '';
+		setupOpen = false;
 		try {
 			const response = await fetch('/api/analyze', {
 				method: 'POST',
@@ -298,79 +301,99 @@
 {/snippet}
 
 <main>
-	<header class="hero">
+	<header class="hero" class:compact={moves.length > 0}>
 		<img class="logo" src="/pieces/wN.svg" alt="" />
 		<div>
 			<h1>Turning Points</h1>
-			<p class="lead">
-				Find the moments where your game turned — the moves where the evaluation swung the most.
-				Study those positions first, before looking at the engine. <span class="credit"
-					>Inspired by GM Noël Studer</span
-				>
-			</p>
+			{#if !moves.length}
+				<p class="lead">
+					Find the moments where your game turned — the moves where the evaluation swung the most.
+					Study those positions first, before looking at the engine. <span class="credit"
+						>Inspired by GM Noël Studer</span
+					>
+				</p>
+			{/if}
 		</div>
-	</header>
-
-	<div class="top">
-		<section class="card load">
-			<h2 class="card-title">Load a game</h2>
-			<GameLoader onselect={loadGame} bind:games={loadedGames} preferences={data.preferences} />
-			<textarea bind:value={pgn} rows="6" placeholder="…or paste a PGN here"></textarea>
-			<div class="file-row">
-				<input
-					type="file"
-					accept=".pgn,text/plain"
-					onchange={loadFile}
-					aria-label="Open PGN file"
-				/>
-				<button onclick={() => savePgn(pgn, pgnFilename(pgn))} disabled={!pgn.trim()}>
-					Save
+		{#if moves.length}
+			<div class="toolbar">
+				{#if status === 'running'}
+					<div class="progress inline" role="progressbar" aria-valuenow={progress}>
+						<div class="progress-fill" style:width="{progress}%"></div>
+					</div>
+					<span class="muted small">{winPercents.length}/{positions}</span>
+					<button onclick={stop}>Stop</button>
+				{:else}
+					<span class="muted small">
+						For {(side === 'w' ? headers.White : headers.Black) ??
+							(side === 'w' ? 'White' : 'Black')}
+						· Depth {depth}
+					</span>
+				{/if}
+				<button onclick={() => (setupOpen = !showSetup)} aria-expanded={showSetup}>
+					{showSetup ? 'Hide' : '⚙ Game & settings'}
 				</button>
 			</div>
-			<SaveFolder folder={data.preferences.folder} />
-		</section>
+		{/if}
+	</header>
 
-		<section class="card settings">
-			<h2 class="card-title">Analysis</h2>
-			<div class="controls">
-				<label>
-					<span>Analyze for</span>
-					<select bind:value={side} onchange={() => (flipped = side === 'b')}>
-						<option value="w">{pgnHeader(pgn, 'White') ?? 'White'} (White)</option>
-						<option value="b">{pgnHeader(pgn, 'Black') ?? 'Black'} (Black)</option>
-					</select>
-				</label>
-				<label>
-					<span>Turning points <strong class="value">{count}</strong></span>
-					<input type="range" min="1" max="10" bind:value={count} />
-				</label>
-				<div class="pair">
-					<label>
-						<span>Depth</span>
-						<input type="number" min="6" max="30" bind:value={depth} />
-					</label>
-					<label>
-						<span>Engine lines</span>
-						<input type="number" min="1" max="5" bind:value={lines} />
-					</label>
+	{#if showSetup}
+		<div class="top" transition:slide={{ duration: ms(200) }}>
+			<section class="card load">
+				<h2 class="card-title">Load a game</h2>
+				<GameLoader onselect={loadGame} bind:games={loadedGames} preferences={data.preferences} />
+				<textarea bind:value={pgn} rows="6" placeholder="…or paste a PGN here"></textarea>
+				<div class="file-row">
+					<input
+						type="file"
+						accept=".pgn,text/plain"
+						onchange={loadFile}
+						aria-label="Open PGN file"
+					/>
+					<button onclick={() => savePgn(pgn, pgnFilename(pgn))} disabled={!pgn.trim()}>
+						Save
+					</button>
 				</div>
-			</div>
-			{#if status === 'running'}
-				<button class="analyze" onclick={stop}>Stop</button>
-				<div class="progress" role="progressbar" aria-valuenow={progress}>
-					<div class="progress-fill" style:width="{progress}%"></div>
+				<SaveFolder folder={data.preferences.folder} />
+			</section>
+
+			<section class="card settings">
+				<h2 class="card-title">Analysis</h2>
+				<div class="controls">
+					<label>
+						<span>Analyze for</span>
+						<select bind:value={side} onchange={() => (flipped = side === 'b')}>
+							<option value="w">{pgnHeader(pgn, 'White') ?? 'White'} (White)</option>
+							<option value="b">{pgnHeader(pgn, 'Black') ?? 'Black'} (Black)</option>
+						</select>
+					</label>
+					<div class="pair">
+						<label>
+							<span>Depth</span>
+							<input type="number" min="6" max="30" bind:value={depth} />
+						</label>
+						<label>
+							<span>Engine lines</span>
+							<input type="number" min="1" max="5" bind:value={lines} />
+						</label>
+					</div>
 				</div>
-				<span class="muted small">Analyzing… {winPercents.length}/{positions} positions</span>
-			{:else}
-				<button class="primary analyze" onclick={analyze} disabled={!pgn.trim()}
-					>Analyze game</button
-				>
-			{/if}
-			{#if status === 'error'}
-				<p class="error">{message}</p>
-			{/if}
-		</section>
-	</div>
+				{#if status === 'running'}
+					<button class="analyze" onclick={stop}>Stop</button>
+					<div class="progress" role="progressbar" aria-valuenow={progress}>
+						<div class="progress-fill" style:width="{progress}%"></div>
+					</div>
+					<span class="muted small">Analyzing… {winPercents.length}/{positions} positions</span>
+				{:else}
+					<button class="primary analyze" onclick={analyze} disabled={!pgn.trim()}
+						>Analyze game</button
+					>
+				{/if}
+				{#if status === 'error'}
+					<p class="error">{message}</p>
+				{/if}
+			</section>
+		</div>
+	{/if}
 
 	{#if moves.length}
 		<div class="results" in:fade={{ duration: ms(300) }}>
@@ -479,7 +502,13 @@
 				</section>
 
 				<section class="card points">
-					<h2 class="card-title">Turning points</h2>
+					<div class="points-head">
+						<h2 class="card-title">Turning points</h2>
+						<label class="count">
+							<input type="range" min="1" max="10" bind:value={count} aria-label="Turning points" />
+							<strong>{count}</strong>
+						</label>
+					</div>
 					{#if !turningPoints.length}
 						<p class="muted">Waiting for the engine…</p>
 					{/if}
@@ -561,6 +590,54 @@
 		align-items: center;
 		gap: 18px;
 		margin-bottom: 6px;
+	}
+
+	.hero.compact {
+		gap: 12px;
+		margin-bottom: 0;
+	}
+
+	.hero.compact .logo {
+		width: 40px;
+		height: 40px;
+		padding: 5px;
+		border-radius: 12px;
+		box-shadow: none;
+	}
+
+	.hero.compact h1 {
+		font-size: 1.4rem;
+	}
+
+	.toolbar {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: flex-end;
+		gap: 10px;
+		margin-left: auto;
+	}
+
+	.progress.inline {
+		width: 140px;
+	}
+
+	.points-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+	}
+
+	.count {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		color: var(--accent);
+	}
+
+	.count input {
+		width: 110px;
 	}
 
 	.logo {
