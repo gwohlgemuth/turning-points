@@ -203,7 +203,11 @@
 	}
 
 	.dot.inaccuracy {
+		width: 5px;
+		height: 5px;
+		border-width: 1px;
 		background: #56b4e9;
+		opacity: 0.6;
 	}
 
 	.dot.mistake {
