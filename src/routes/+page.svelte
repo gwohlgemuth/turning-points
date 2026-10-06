@@ -422,54 +422,62 @@
 						<button onclick={() => select(positions - 1)} aria-label="End">⏭</button>
 						<button class="flip" onclick={() => (flipped = !flipped)}>⇅ Flip</button>
 					</div>
-					{#if exploration}
-						<div class="exploration" transition:slide={{ duration: ms(200) }}>
-							<div class="exploration-head">
-								<span class="tag">Your line</span>
-								<span class="score">
-									{#if playing}
-										<span class="muted">
-											{#if gameOver}Game over{:else if engineThinking}Stockfish is thinking…{:else}Playing
-												vs Stockfish · Elo {elo}{/if}
-										</span>
-									{:else if explorationPending || !explorationEval}
-										<span class="muted">Calculating…</span>
-									{:else}
-										{formatScore(explorationEval.score)}
-									{/if}
-								</span>
+					<div class="panel-body">
+						{#if exploration}
+							<div class="exploration" transition:slide={{ duration: ms(200) }}>
+								<div class="exploration-head">
+									<span class="tag">Your line</span>
+									<span class="score">
+										{#if playing}
+											<span class="muted">
+												{#if gameOver}Game over{:else if engineThinking}Stockfish is thinking…{:else}Playing
+													vs Stockfish · Elo {elo}{/if}
+											</span>
+										{:else if explorationPending || !explorationEval}
+											<span class="muted">Calculating…</span>
+										{:else}
+											{formatScore(explorationEval.score)}
+										{/if}
+									</span>
+								</div>
+								<div class="line">
+									{formatLine(positionFen(exploration.base), exploration.sans)}
+								</div>
+								{#if engineError}<p class="error">{engineError}</p>{/if}
+								<div class="nav">
+									<button onclick={undoExploration}>Undo move</button>
+									<button onclick={() => select(exploration!.base)}>Back to game</button>
+								</div>
+								{@render playControls()}
+								{#if !playing}
+									<details bind:open={showEngine}>
+										<summary>Engine lines</summary>
+										<Variations fen={boardFen} {depth} {lines} onresult={handleExplorationResult} />
+									</details>
+								{/if}
 							</div>
-							<div class="line">{formatLine(positionFen(exploration.base), exploration.sans)}</div>
-							{#if engineError}<p class="error">{engineError}</p>{/if}
-							<div class="nav">
-								<button onclick={undoExploration}>Undo move</button>
-								<button onclick={() => select(exploration!.base)}>Back to game</button>
-							</div>
+						{:else}
+							<p class="position">
+								<strong
+									>{lastMove ? moveLabel(lastMove.ply, lastMove.san) : 'Start position'}</strong
+								>
+								{#if evals[selected]}<span class="pill">{formatScore(evals[selected].score)}</span
+									>{/if}
+								<span class="muted small"
+									>{play
+										? 'Make a move to start playing'
+										: 'Move a piece to try your own line'}</span
+								>
+							</p>
 							{@render playControls()}
-							{#if !playing}
-								<details bind:open={showEngine}>
-									<summary>Engine lines</summary>
-									<Variations fen={boardFen} {depth} {lines} onresult={handleExplorationResult} />
-								</details>
-							{/if}
-						</div>
-					{:else}
-						<p class="position">
-							<strong>{lastMove ? moveLabel(lastMove.ply, lastMove.san) : 'Start position'}</strong>
-							{#if evals[selected]}<span class="pill">{formatScore(evals[selected].score)}</span
-								>{/if}
-							<span class="muted small"
-								>{play ? 'Make a move to start playing' : 'Move a piece to try your own line'}</span
-							>
-						</p>
-						{@render playControls()}
-						<details class="engine" bind:open={showEngine}>
-							<summary>Engine lines</summary>
-							{#if showEngine}
-								<Variations {fen} {depth} {lines} />
-							{/if}
-						</details>
-					{/if}
+							<details class="engine" bind:open={showEngine}>
+								<summary>Engine lines</summary>
+								{#if showEngine}
+									<Variations {fen} {depth} {lines} />
+								{/if}
+							</details>
+						{/if}
+					</div>
 				</section>
 
 				<div class="side">
@@ -910,9 +918,22 @@
 	@media (min-width: 901px) {
 		.board-panel {
 			width: min-content;
-			max-height: max(calc(100svh - 96px), 600px);
-			overflow-y: auto;
+			max-height: max(calc(100svh - 100px), 600px);
+			overflow: hidden;
 			box-sizing: border-box;
+			display: flex;
+			flex-direction: column;
+		}
+
+		.board-row,
+		.board-panel > .nav {
+			flex: none;
+		}
+
+		.panel-body {
+			flex: 1;
+			min-height: 0;
+			overflow-y: auto;
 		}
 
 		.layout {
