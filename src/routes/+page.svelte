@@ -313,6 +313,8 @@
 						>Inspired by GM Noël Studer</span
 					>
 				</p>
+			{:else}
+				<p class="credit">Inspired by GM Noël Studer</p>
 			{/if}
 		</div>
 		{#if moves.length}
@@ -627,6 +629,11 @@
 
 	.hero.compact h1 {
 		font-size: 1.4rem;
+	}
+
+	.hero.compact .credit {
+		margin: 2px 0 0;
+		font-size: 0.8rem;
 	}
 
 	.toolbar {
