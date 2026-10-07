@@ -40,6 +40,7 @@
 		answeredCount,
 		emptyNotes,
 		isRevealed,
+		notesSignature,
 		readNotes,
 		writeNotes,
 		type Notes
@@ -68,6 +69,7 @@
 	let notes = $state<Record<number, Notes>>({});
 	let notesOpen = $state<Record<number, boolean>>({});
 	let revealed = $state<Record<number, boolean>>({});
+	let savedNotes = $state(notesSignature({}));
 	let loadedGames = $state<GameSummary[]>([]);
 	let exploration = $state<{
 		base: number;
@@ -118,6 +120,7 @@
 		) ?? null
 	);
 	let candidateTp = $derived(hiddenTp?.ply === selected + 1 ? hiddenTp : null);
+	let unsaved = $derived(notesSignature(notes) !== savedNotes);
 	let hasHidden = $derived(turningPoints.some((tp) => !revealed[tp.ply]));
 	let graphVisible = $derived(
 		Math.min(Infinity, ...turningPoints.filter((tp) => !revealed[tp.ply]).map((tp) => tp.ply - 1))
@@ -227,6 +230,7 @@
 			evals = [];
 			opened = {};
 			notes = readNotes(pgn);
+			savedNotes = notesSignature(notes);
 			notesOpen = {};
 			revealed = Object.fromEntries(
 				Object.entries(notes).map(([ply, value]) => [ply, isRevealed(value)])
@@ -246,6 +250,7 @@
 	}
 
 	async function analyze() {
+		if (unsaved && !confirm('Your notes are not saved yet. Discard them?')) return;
 		controller?.abort();
 		controller = new AbortController();
 		status = 'running';
@@ -308,9 +313,16 @@
 		if (next) select(next.ply - 1);
 	}
 
-	function saveNotes() {
+	async function saveNotes() {
+		const previous = savedNotes;
+		savedNotes = notesSignature(notes);
 		pgn = writeNotes(pgn, notes);
-		savePgn(pgn, pgnFilename(pgn), true);
+		await savePgn(pgn, pgnFilename(pgn), true);
+		if (saving.failed) savedNotes = previous;
+	}
+
+	function warnUnsaved(event: BeforeUnloadEvent) {
+		if (unsaved) event.preventDefault();
 	}
 
 	function show(index: number) {
@@ -378,7 +390,7 @@
 	}
 </script>
 
-<svelte:window onkeydown={handleKey} />
+<svelte:window onkeydown={handleKey} onbeforeunload={warnUnsaved} />
 
 {#snippet playControls()}
 	<div class="play">
@@ -754,8 +766,10 @@
 						</ol>
 						{#if turningPoints.length}
 							<div class="save-notes">
-								<button onclick={saveNotes} disabled={!pgn.trim()}>Save notes</button>
-								{#if saving.message}
+								<button onclick={saveNotes} disabled={!pgn.trim()} class:unsaved>Save notes</button>
+								{#if unsaved && !saving.failed}
+									<span class="muted small">Unsaved changes</span>
+								{:else if saving.message}
 									<span class="muted small" class:error={saving.failed}>{saving.message}</span>
 								{/if}
 							</div>
@@ -1402,6 +1416,11 @@
 		align-items: center;
 		gap: 10px;
 		margin: -12px 0 22px;
+	}
+
+	.save-notes .unsaved {
+		border-color: var(--accent);
+		color: var(--accent-2);
 	}
 
 	.moves-block {

@@ -64,6 +64,13 @@ function load(pgn: string): Chess | null {
 	}
 }
 
+export const notesSignature = (notes: Record<number, Notes>) =>
+	JSON.stringify(
+		Object.entries(notes)
+			.map(([ply, value]) => [ply, formatNote(value)])
+			.filter(([, text]) => text)
+	);
+
 export function readNotes(pgn: string): Record<number, Notes> {
 	const chess = load(pgn);
 	if (!chess) return {};

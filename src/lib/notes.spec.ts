@@ -4,6 +4,7 @@ import {
 	emptyNotes,
 	formatNote,
 	isRevealed,
+	notesSignature,
 	readNotes,
 	writeNotes,
 	type Notes
@@ -99,5 +100,17 @@ describe('writeNotes and readNotes', () => {
 	it('reads nothing from a game without notes or an invalid PGN', () => {
 		expect(readNotes(pgn)).toEqual({});
 		expect(readNotes('not a game')).toEqual({});
+	});
+});
+
+describe('notesSignature', () => {
+	it('ignores empty notes', () => {
+		expect(notesSignature({ 3: emptyNotes() })).toBe(notesSignature({}));
+	});
+
+	it('changes when an answer or the candidate changes', () => {
+		const base = notesSignature({ 3: answers('a', '', '') });
+		expect(notesSignature({ 3: answers('ab', '', '') })).not.toBe(base);
+		expect(notesSignature({ 3: { ...answers('a', '', ''), candidate: 'Nf3' } })).not.toBe(base);
 	});
 });
