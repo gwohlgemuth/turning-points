@@ -75,6 +75,7 @@
 	let autoplay = $state(false);
 	let speed = $state(1000);
 	const SPEEDS = [500, 1000, 2000, 3000];
+	let movesList = $state<HTMLElement>();
 	let controller: AbortController | null = null;
 	let moveController: AbortController | null = null;
 
@@ -295,6 +296,16 @@
 			if (next >= positions - 1 || turningPlies.has(next + 1)) autoplay = false;
 		}, speed);
 		return () => clearTimeout(timer);
+	});
+
+	$effect(() => {
+		void selected;
+		const current = movesList?.querySelector<HTMLElement>('.current');
+		if (!movesList || !current) return;
+		const bottom = current.offsetTop + current.offsetHeight;
+		if (current.offsetTop < movesList.scrollTop) movesList.scrollTop = current.offsetTop;
+		else if (bottom > movesList.scrollTop + movesList.clientHeight)
+			movesList.scrollTop = bottom - movesList.clientHeight;
 	});
 
 	function handleKey(event: KeyboardEvent) {
@@ -525,6 +536,23 @@
 								{/if}
 							</details>
 						{/if}
+						<div class="moves-block">
+							<h2 class="card-title">Moves</h2>
+							<div class="moves" bind:this={movesList}>
+								{#each moves as move (move.ply)}
+									<button
+										class="move"
+										class:current={selected === move.ply}
+										class:turning={turningPlies.has(move.ply)}
+										onclick={() => select(move.ply)}
+										title={move.time ? describeTime(move.time) : undefined}
+									>
+										{#if move.ply % 2 === 1}<span class="num">{(move.ply + 1) / 2}.</span
+											>{/if}{move.san}
+									</button>
+								{/each}
+							</div>
+						</div>
 					</div>
 				</section>
 
@@ -651,22 +679,6 @@
 								{/if}
 							</div>
 						{/if}
-
-						<h2 class="card-title">Moves</h2>
-						<div class="moves">
-							{#each moves as move (move.ply)}
-								<button
-									class="move"
-									class:current={selected === move.ply}
-									class:turning={turningPlies.has(move.ply)}
-									onclick={() => select(move.ply)}
-									title={move.time ? describeTime(move.time) : undefined}
-								>
-									{#if move.ply % 2 === 1}<span class="num">{(move.ply + 1) / 2}.</span
-										>{/if}{move.san}
-								</button>
-							{/each}
-						</div>
 					</section>
 				</div>
 			</div>
@@ -985,7 +997,7 @@
 	.board-row {
 		display: flex;
 		gap: 8px;
-		width: clamp(400px, calc(100svh - 250px), 520px);
+		width: clamp(400px, calc(100svh - 360px), 520px);
 	}
 
 	@media (min-width: 901px) {
@@ -1007,6 +1019,8 @@
 			flex: 1;
 			min-height: 0;
 			overflow-y: auto;
+			display: flex;
+			flex-direction: column;
 		}
 
 		.layout {
@@ -1022,6 +1036,21 @@
 		.points {
 			overflow-y: auto;
 			scrollbar-gutter: stable;
+		}
+
+		.moves-block {
+			flex: 1;
+			min-height: 0;
+			display: flex;
+			flex-direction: column;
+		}
+
+		.moves {
+			flex: 1;
+			min-height: calc(4 * 26px + 3 * 5px);
+			overflow-y: auto;
+			scrollbar-gutter: stable;
+			align-content: flex-start;
 		}
 	}
 
@@ -1278,7 +1307,12 @@
 		margin: -12px 0 22px;
 	}
 
+	.moves-block {
+		margin-top: 14px;
+	}
+
 	.moves {
+		position: relative;
 		display: flex;
 		flex-wrap: wrap;
 		gap: 5px;
@@ -1286,6 +1320,7 @@
 
 	.move {
 		padding: 3px 8px;
+		line-height: 18px;
 		font-size: 0.85rem;
 		background: transparent;
 		border-color: var(--border);
