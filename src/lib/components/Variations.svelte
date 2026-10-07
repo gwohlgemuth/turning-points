@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { formatLine, formatScore, type Variation } from '#lib/analysis.ts';
+	import { fetchLines } from '#lib/lines.ts';
 
 	type Props = {
 		fen: string;
@@ -18,17 +19,10 @@
 		variations = null;
 		message = '';
 		onresult?.(null);
-		fetch('/api/lines', {
-			method: 'POST',
-			headers: { 'content-type': 'application/json' },
-			body: JSON.stringify({ fen, depth, lines }),
-			signal: controller.signal
-		})
-			.then(async (response) => {
-				const body = await response.json();
-				if (!response.ok) throw new Error(body.message ?? `Request failed (${response.status})`);
-				variations = body.variations;
-				onresult?.(body.variations);
+		fetchLines(fen, depth, lines, controller.signal)
+			.then((result) => {
+				variations = result;
+				onresult?.(result);
 			})
 			.catch((err: Error) => {
 				if (err.name !== 'AbortError') message = err.message;

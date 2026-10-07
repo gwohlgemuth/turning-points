@@ -1,7 +1,9 @@
 import { Chess } from 'chess.js';
 import { mergeAdjacentComments } from './games.ts';
 
-export type Notes = [string, string, string];
+export type Notes = { answers: [string, string, string]; candidate: string };
+
+export const emptyNotes = (): Notes => ({ answers: ['', '', ''], candidate: '' });
 
 export const NOTE_QUESTIONS = [
 	{ question: 'Why did I choose that move?', label: 'Why I chose it:' },
@@ -13,8 +15,9 @@ export const NOTE_QUESTIONS = [
 ] as const;
 
 const MARKER = 'Turning point.';
+const CANDIDATE = 'Candidate:';
 const NOTE_PATTERN = new RegExp(
-	`${escape(MARKER)}${NOTE_QUESTIONS.map(({ label }) => `(?: ${escape(label)} (.*?))?`).join('')}$`
+	`${escape(MARKER)}(?: ${escape(CANDIDATE)} (\\S+))?${NOTE_QUESTIONS.map(({ label }) => `(?: ${escape(label)} (.*?))?`).join('')}$`
 );
 
 function escape(text: string): string {
@@ -26,21 +29,28 @@ function clean(text: string): string {
 }
 
 export const answeredCount = (notes: Notes | undefined) =>
-	notes?.filter((answer) => clean(answer)).length ?? 0;
+	notes?.answers.filter((answer) => clean(answer)).length ?? 0;
+
+export const isRevealed = (notes: Notes | undefined) =>
+	!!notes && (!!notes.candidate || !!clean(notes.answers[1]) || !!clean(notes.answers[2]));
 
 export function formatNote(notes: Notes): string {
-	if (!answeredCount(notes)) return '';
+	const candidate = clean(notes.candidate).split(' ')[0];
+	if (!answeredCount(notes) && !candidate) return '';
 	const parts = NOTE_QUESTIONS.flatMap(({ label }, i) =>
-		clean(notes[i]) ? [`${label} ${clean(notes[i])}`] : []
+		clean(notes.answers[i]) ? [`${label} ${clean(notes.answers[i])}`] : []
 	);
-	return [MARKER, ...parts].join(' ');
+	return [MARKER, ...(candidate ? [`${CANDIDATE} ${candidate}`] : []), ...parts].join(' ');
 }
 
 function splitComment(comment: string): { rest: string; notes: Notes | null } {
 	const index = comment.indexOf(MARKER);
 	if (index < 0) return { rest: comment.trim(), notes: null };
 	const match = NOTE_PATTERN.exec(comment.slice(index).trim());
-	const notes: Notes = [match?.[1] ?? '', match?.[2] ?? '', match?.[3] ?? ''];
+	const notes: Notes = {
+		answers: [match?.[2] ?? '', match?.[3] ?? '', match?.[4] ?? ''],
+		candidate: match?.[1] ?? ''
+	};
 	return { rest: comment.slice(0, index).trim(), notes };
 }
 

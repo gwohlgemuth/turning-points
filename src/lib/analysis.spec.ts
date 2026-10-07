@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	cpToWinPercent,
 	findTurningPoints,
+	foundBetterMove,
 	formatLine,
 	formatScore,
 	judgeMove,
@@ -94,6 +95,20 @@ describe('judgeMove', () => {
 
 	it('does not judge moves that gained winning chances', () => {
 		expect(judgeMove(20)).toBeNull();
+	});
+});
+
+describe('foundBetterMove', () => {
+	it('accepts a candidate within five percent of the best move for the player', () => {
+		expect(foundBetterMove(70, 66, 'w')).toBe(true);
+		expect(foundBetterMove(70, 60, 'w')).toBe(false);
+		expect(foundBetterMove(30, 34, 'b')).toBe(true);
+		expect(foundBetterMove(30, 40, 'b')).toBe(false);
+	});
+
+	it('accepts a candidate better than the engine line', () => {
+		expect(foundBetterMove(50, 55, 'w')).toBe(true);
+		expect(foundBetterMove(50, 45, 'b')).toBe(true);
 	});
 });
 

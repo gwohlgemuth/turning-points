@@ -83,6 +83,13 @@ export function judgeMove(delta: number): Judgement | null {
 	return null;
 }
 
+const FOUND_MARGIN = 5;
+
+export function foundBetterMove(best: number, candidate: number, side: Side): boolean {
+	const sign = side === 'w' ? 1 : -1;
+	return sign * (best - candidate) <= FOUND_MARGIN;
+}
+
 export function moveLabel(ply: number, san: string): string {
 	const moveNumber = Math.ceil(ply / 2);
 	return ply % 2 === 1 ? `${moveNumber}. ${san}` : `${moveNumber}… ${san}`;

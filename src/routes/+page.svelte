@@ -11,6 +11,7 @@
 	import TimeChart from '#lib/components/TimeChart.svelte';
 	import { describeTime, formatDuration } from '#lib/clock.ts';
 	import Variations from '#lib/components/Variations.svelte';
+	import CandidateCheck from '#lib/components/CandidateCheck.svelte';
 	import {
 		findTurningPoints,
 		formatLine,
@@ -34,7 +35,15 @@
 		winner,
 		type GameSummary
 	} from '#lib/games.ts';
-	import { NOTE_QUESTIONS, answeredCount, readNotes, writeNotes, type Notes } from '#lib/notes.ts';
+	import {
+		NOTE_QUESTIONS,
+		answeredCount,
+		emptyNotes,
+		isRevealed,
+		readNotes,
+		writeNotes,
+		type Notes
+	} from '#lib/notes.ts';
 	import { saving, savePgn } from '#lib/saving.svelte.ts';
 	import type { PageProps } from './$types';
 
@@ -58,6 +67,7 @@
 	let opened = $state<Record<number, boolean>>({});
 	let notes = $state<Record<number, Notes>>({});
 	let notesOpen = $state<Record<number, boolean>>({});
+	let revealed = $state<Record<number, boolean>>({});
 	let loadedGames = $state<GameSummary[]>([]);
 	let exploration = $state<{
 		base: number;
@@ -102,8 +112,15 @@
 	});
 	let playing = $derived(play && !!exploration);
 	let gameOver = $derived(new Chess(boardFen).isGameOver());
+	let hiddenTp = $derived(
+		turningPoints.find(
+			(tp) => !revealed[tp.ply] && (selected === tp.ply - 1 || selected === tp.ply)
+		) ?? null
+	);
+	let candidateTp = $derived(hiddenTp?.ply === selected + 1 ? hiddenTp : null);
+	let hasHidden = $derived(turningPoints.some((tp) => !revealed[tp.ply]));
 	let barEval = $derived(
-		playing ? null : exploration ? explorationEval : (evals[selected] ?? null)
+		playing || hiddenTp ? null : exploration ? explorationEval : (evals[selected] ?? null)
 	);
 
 	function positionFen(index: number): string {
@@ -116,6 +133,7 @@
 		if (!exploration) {
 			exploration = { base: selected, moves: [], sans: [], fens: [] };
 			explorationEval = null;
+			if (candidateTp) (notes[candidateTp.ply] ??= emptyNotes()).candidate = move.san;
 		}
 		exploration.moves.push(boardMove);
 		exploration.sans.push(move.san);
@@ -125,7 +143,7 @@
 
 	function handleBoardMove(boardMove: BoardMove) {
 		autoplay = false;
-		if (!exploration && !play) {
+		if (!exploration && !play && !candidateTp) {
 			const move = new Chess(boardFen).move(boardMove);
 			if (moves[selected]?.san === move.san) {
 				select(selected + 1);
@@ -207,6 +225,9 @@
 			opened = {};
 			notes = readNotes(pgn);
 			notesOpen = {};
+			revealed = Object.fromEntries(
+				Object.entries(notes).map(([ply, value]) => [ply, isRevealed(value)])
+			);
 			cancelEngineMove();
 			exploration = null;
 			autoplay = false;
@@ -263,8 +284,25 @@
 	}
 
 	function toggleNotes(ply: number) {
-		notes[ply] ??= ['', '', ''];
+		notes[ply] ??= emptyNotes();
 		notesOpen[ply] = !notesOpen[ply];
+	}
+
+	function reveal(ply: number) {
+		revealed[ply] = true;
+		notes[ply] ??= emptyNotes();
+		notesOpen[ply] = true;
+		select(ply - 1);
+	}
+
+	function revealAll() {
+		for (const tp of turningPoints) revealed[tp.ply] = true;
+	}
+
+	function nextHidden() {
+		const open = turningPoints.filter((tp) => !revealed[tp.ply]);
+		const next = open.find((tp) => tp.ply - 1 > selected) ?? open[0];
+		if (next) select(next.ply - 1);
 	}
 
 	function saveNotes() {
@@ -309,7 +347,9 @@
 	});
 
 	function handleKey(event: KeyboardEvent) {
-		if (!moves.length || (event.target as HTMLElement).tagName === 'TEXTAREA') return;
+		const tag = (event.target as HTMLElement).tagName;
+		if (!moves.length || ['TEXTAREA', 'INPUT', 'SELECT'].includes(tag)) return;
+		if (event.key === 'n') nextHidden();
 		if (exploration) {
 			if (event.key === 'ArrowLeft') undoExploration();
 			return;
@@ -492,6 +532,10 @@
 												{#if gameOver}Game over{:else if engineThinking}Stockfish is thinking…{:else}Playing
 													vs Stockfish · Elo {elo}{/if}
 											</span>
+										{:else if candidateTp}
+											<span class="muted">Candidate: {notes[candidateTp.ply]?.candidate}</span>
+										{:else if hiddenTp}
+											<span class="muted">Evaluation hidden until you reveal</span>
 										{:else if explorationPending || !explorationEval}
 											<span class="muted">Calculating…</span>
 										{:else}
@@ -508,7 +552,7 @@
 									<button onclick={() => select(exploration!.base)}>Back to game</button>
 								</div>
 								{@render playControls()}
-								{#if !playing}
+								{#if !playing && !hiddenTp}
 									<details bind:open={showEngine}>
 										<summary>Engine lines</summary>
 										<Variations fen={boardFen} {depth} {lines} onresult={handleExplorationResult} />
@@ -520,21 +564,28 @@
 								<strong
 									>{lastMove ? moveLabel(lastMove.ply, lastMove.san) : 'Start position'}</strong
 								>
-								{#if evals[selected]}<span class="pill">{formatScore(evals[selected].score)}</span
+								{#if evals[selected] && !hiddenTp}<span class="pill"
+										>{formatScore(evals[selected].score)}</span
 									>{/if}
 								<span class="muted small"
-									>{play
-										? 'Make a move to start playing'
-										: 'Move a piece to try your own line'}</span
+									>{candidateTp
+										? 'Answer question 1, then play the move you would choose now'
+										: hiddenTp
+											? 'Reveal the turning point to see the evaluation'
+											: play
+												? 'Make a move to start playing'
+												: 'Move a piece to try your own line'}</span
 								>
 							</p>
 							{@render playControls()}
-							<details class="engine" bind:open={showEngine}>
-								<summary>Engine lines</summary>
-								{#if showEngine}
-									<Variations {fen} {depth} {lines} />
-								{/if}
-							</details>
+							{#if !hiddenTp}
+								<details class="engine" bind:open={showEngine}>
+									<summary>Engine lines</summary>
+									{#if showEngine}
+										<Variations {fen} {depth} {lines} />
+									{/if}
+								</details>
+							{/if}
 						{/if}
 						<div class="moves-block">
 							<h2 class="card-title">Moves</h2>
@@ -602,6 +653,12 @@
 								<strong>{count}</strong>
 							</label>
 						</div>
+						{#if hasHidden}
+							<div class="training">
+								<button onclick={nextHidden} title="Shortcut: N">Next open turning point</button>
+								<button onclick={revealAll}>Reveal all</button>
+							</div>
+						{/if}
 						{#if !turningPoints.length}
 							<p class="muted">Waiting for the engine…</p>
 						{/if}
@@ -610,7 +667,8 @@
 								{@const move = moves[tp.ply - 1]}
 								{@const before = evals[tp.ply - 1]}
 								{@const after = evals[tp.ply]}
-								{@const judgement = judgeMove(tp.delta)}
+								{@const hidden = !revealed[tp.ply]}
+								{@const judgement = hidden ? null : judgeMove(tp.delta)}
 								<li
 									class="tp {judgement?.name ?? ''}"
 									class:active={selected === tp.ply - 1 || selected === tp.ply}
@@ -624,12 +682,16 @@
 													title={judgement.name}>{judgement.symbol}</span
 												>{/if}
 										</button>
-										<span
-											class="evals"
-											title="Winning chances {tp.delta > 0 ? '+' : ''}{tp.delta.toFixed(1)}%"
-										>
-											{formatScore(before.score)} → {formatScore(after.score)}
-										</span>
+										{#if hidden}
+											<span class="evals">? → ?</span>
+										{:else}
+											<span
+												class="evals"
+												title="Winning chances {tp.delta > 0 ? '+' : ''}{tp.delta.toFixed(1)}%"
+											>
+												{formatScore(before.score)} → {formatScore(after.score)}
+											</span>
+										{/if}
 										{#if move.time}
 											<span class="time" title={describeTime(move.time)}
 												>⏱ {formatDuration(move.time.spent)}</span
@@ -637,13 +699,15 @@
 										{/if}
 										<span class="tp-actions">
 											<button onclick={() => select(tp.ply - 1)}>Before</button>
-											<button onclick={() => select(tp.ply)}>After</button>
-											<button
-												class:on={opened[tp.ply]}
-												onclick={() => (opened[tp.ply] = !opened[tp.ply])}
-												aria-expanded={!!opened[tp.ply]}
-												title="Engine suggestion">Engine</button
-											>
+											{#if !hidden}
+												<button onclick={() => select(tp.ply)}>After</button>
+												<button
+													class:on={opened[tp.ply]}
+													onclick={() => (opened[tp.ply] = !opened[tp.ply])}
+													aria-expanded={!!opened[tp.ply]}
+													title="Engine suggestion">Engine</button
+												>
+											{/if}
 											<button
 												class:on={notesOpen[tp.ply]}
 												onclick={() => toggleNotes(tp.ply)}
@@ -651,19 +715,32 @@
 												title="Studer's three questions"
 												>Notes {answeredCount(notes[tp.ply])}/3</button
 											>
+											{#if hidden}
+												<button class="reveal" onclick={() => reveal(tp.ply)}>Reveal</button>
+											{/if}
 										</span>
 									</div>
 									{#if notesOpen[tp.ply] && notes[tp.ply]}
 										<div class="notes" transition:slide={{ duration: ms(200) }}>
-											{#each NOTE_QUESTIONS as { question }, q (question)}
+											{#each NOTE_QUESTIONS.slice(0, hidden ? 1 : 3) as { question }, q (question)}
 												<label>
 													<span>{q + 1}. {question}</span>
-													<textarea rows="2" bind:value={notes[tp.ply][q]}></textarea>
+													<textarea rows="2" bind:value={notes[tp.ply].answers[q]}></textarea>
 												</label>
 											{/each}
 										</div>
 									{/if}
-									{#if opened[tp.ply]}
+									{#if !hidden && notes[tp.ply]?.candidate}
+										<CandidateCheck
+											{move}
+											candidate={notes[tp.ply].candidate}
+											{before}
+											{after}
+											{depth}
+											{side}
+										/>
+									{/if}
+									{#if opened[tp.ply] && !hidden}
 										<div transition:slide={{ duration: ms(200) }}>
 											<Variations fen={move.fenBefore} {depth} {lines} />
 										</div>
@@ -1278,6 +1355,22 @@
 	}
 
 	.nav button.on,
+	.tp-actions .reveal {
+		border-color: var(--accent);
+		color: var(--accent-2);
+	}
+
+	.training {
+		display: flex;
+		gap: 6px;
+		margin-bottom: 10px;
+	}
+
+	.training button {
+		padding: 3px 9px;
+		font-size: 0.8rem;
+	}
+
 	.tp-actions button.on {
 		border-color: var(--accent);
 		color: var(--accent-2);
