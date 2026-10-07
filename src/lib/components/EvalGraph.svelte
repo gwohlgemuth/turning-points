@@ -15,10 +15,20 @@
 		evals: PositionEval[];
 		turningPoints: TurningPoint[];
 		selected: number;
+		visible?: number;
 		onselect: (index: number) => void;
 	};
 
-	let { winPercents, positions, moves, evals, turningPoints, selected, onselect }: Props = $props();
+	let {
+		winPercents,
+		positions,
+		moves,
+		evals,
+		turningPoints,
+		selected,
+		visible = Infinity,
+		onselect
+	}: Props = $props();
 
 	const width = 800;
 	const height = 160;
@@ -31,14 +41,15 @@
 	const left = (index: number) => `${((index * step) / width) * 100}%`;
 	const top = (wp: number) => `${(y(wp) / height) * 100}%`;
 
-	let line = $derived(winPercents.map((wp, i) => `${i * step},${y(wp)}`).join(' '));
+	let shown = $derived(winPercents.slice(0, visible));
+	let line = $derived(shown.map((wp, i) => `${i * step},${y(wp)}`).join(' '));
 	let area = $derived(
-		winPercents.length ? `0,${height} ${line} ${(winPercents.length - 1) * step},${height}` : ''
+		shown.length ? `0,${height} ${line} ${(shown.length - 1) * step},${height}` : ''
 	);
 
 	let mistakes = $derived.by(() => {
 		const result = [];
-		for (let ply = 1; ply < winPercents.length; ply++) {
+		for (let ply = 1; ply < shown.length; ply++) {
 			const sign = ply % 2 === 1 ? 1 : -1;
 			const judgement = judgeMove(sign * (winPercents[ply] - winPercents[ply - 1]));
 			if (judgement) result.push({ ply, judgement });
@@ -72,7 +83,7 @@
 		const move = index > 0 ? moves[index - 1] : null;
 		const label = move ? moveLabel(move.ply, move.san) : 'Start';
 		const evaluation = evals[index];
-		if (!evaluation) return label;
+		if (!evaluation || index >= visible) return label;
 		return `${label} · ${formatScore(evaluation.score)} · ${evaluation.winPercent.toFixed(0)}%`;
 	}
 </script>
@@ -90,6 +101,10 @@
 	>
 		<rect {width} {height} class="bg" />
 		<polygon points={area} class="area" />
+		{#if visible < positions}
+			{@const x = Math.max(0, shown.length - 1) * step}
+			<rect {x} width={width - x} {height} class="hidden" />
+		{/if}
 		<line x1="0" x2={width} y1={height / 2} y2={height / 2} class="mid" />
 		{#each ticks as tick (tick.n)}
 			<line x1={tick.ply * step} x2={tick.ply * step} y1={height - 6} y2={height} class="tick" />
@@ -145,6 +160,11 @@
 	.area {
 		fill: var(--graph-white);
 		fill-opacity: 0.82;
+	}
+
+	.hidden {
+		fill: var(--muted);
+		fill-opacity: 0.25;
 	}
 
 	.mid {

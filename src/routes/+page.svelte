@@ -119,6 +119,9 @@
 	);
 	let candidateTp = $derived(hiddenTp?.ply === selected + 1 ? hiddenTp : null);
 	let hasHidden = $derived(turningPoints.some((tp) => !revealed[tp.ply]));
+	let graphVisible = $derived(
+		Math.min(Infinity, ...turningPoints.filter((tp) => !revealed[tp.ply]).map((tp) => tp.ply - 1))
+	);
 	let barEval = $derived(
 		playing || hiddenTp ? null : exploration ? explorationEval : (evals[selected] ?? null)
 	);
@@ -633,6 +636,7 @@
 							{evals}
 							{turningPoints}
 							{selected}
+							visible={graphVisible}
 							onselect={select}
 						/>
 						{#if hasTimes}
