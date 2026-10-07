@@ -1021,6 +1021,7 @@
 
 		.points {
 			overflow-y: auto;
+			scrollbar-gutter: stable;
 		}
 	}
 
