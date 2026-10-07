@@ -69,6 +69,30 @@ export async function createFolder(root: string, parent: string, name: string): 
 	return toRelative(root, absolute);
 }
 
+const MAX_PGN_FILES = 2000;
+
+export async function readPgnFiles(root: string, folder: string) {
+	const absolute = resolveInside(root, folder);
+	let entries;
+	try {
+		await checkRealPath(root, absolute);
+		entries = await readdir(absolute, { withFileTypes: true, recursive: true });
+	} catch (err) {
+		if ((err as NodeJS.ErrnoException).code === 'ENOENT') return [];
+		throw err;
+	}
+	const paths = entries
+		.filter((entry) => entry.isFile() && extname(entry.name).toLowerCase() === '.pgn')
+		.map((entry) => join(entry.parentPath, entry.name))
+		.slice(0, MAX_PGN_FILES);
+	return Promise.all(
+		paths.map(async (path) => ({
+			path: toRelative(absolute, path),
+			text: await readFile(path, 'utf8')
+		}))
+	);
+}
+
 async function holdsSameGame(path: string, text: string): Promise<boolean> {
 	if (!(await lstat(path)).isFile()) return false;
 	return sameGame(await readFile(path, 'utf8'), text);

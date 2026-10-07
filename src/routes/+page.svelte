@@ -140,7 +140,11 @@
 		if (!exploration) {
 			exploration = { base: selected, moves: [], sans: [], fens: [] };
 			explorationEval = null;
-			if (candidateTp) (notes[candidateTp.ply] ??= emptyNotes()).candidate = move.san;
+			if (candidateTp) {
+				const tpNotes = (notes[candidateTp.ply] ??= emptyNotes());
+				tpNotes.candidate = move.san;
+				tpNotes.verdict = '';
+			}
 		}
 		exploration.moves.push(boardMove);
 		exploration.sans.push(move.san);
@@ -304,6 +308,11 @@
 		select(ply - 1);
 	}
 
+	function setVerdict(ply: number, found: boolean) {
+		const verdict = found ? 'found' : 'missed';
+		if (notes[ply].verdict !== verdict) notes[ply].verdict = verdict;
+	}
+
 	function revealAll() {
 		for (const tp of turningPoints) revealed[tp.ply] = true;
 	}
@@ -425,8 +434,8 @@
 				<p class="credit">Inspired by GM Noël Studer</p>
 			{/if}
 		</div>
-		{#if moves.length}
-			<div class="toolbar">
+		<div class="toolbar">
+			{#if moves.length}
 				{#if status === 'running'}
 					<div class="progress inline" role="progressbar" aria-valuenow={progress}>
 						<div class="progress-fill" style:width="{progress}%"></div>
@@ -443,8 +452,9 @@
 				<button onclick={() => (setupOpen = !showSetup)} aria-expanded={showSetup}>
 					{showSetup ? 'Hide' : '⚙ Game & settings'}
 				</button>
-			</div>
-		{/if}
+			{/if}
+			<a class="stats-link" href="/stats" target="_blank">Stats</a>
+		</div>
 	</header>
 
 	{#if showSetup}
@@ -768,6 +778,7 @@
 											{after}
 											{depth}
 											{side}
+											onverdict={(found) => setVerdict(tp.ply, found)}
 										/>
 									{/if}
 									{#if opened[tp.ply] && !hidden}
@@ -845,6 +856,15 @@
 		justify-content: flex-end;
 		gap: 10px;
 		margin-left: auto;
+	}
+
+	.stats-link {
+		color: var(--accent-2);
+		text-decoration: none;
+	}
+
+	.stats-link:hover {
+		text-decoration: underline;
 	}
 
 	.progress.inline {

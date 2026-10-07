@@ -1,9 +1,11 @@
 import { Chess } from 'chess.js';
 import { mergeAdjacentComments } from './games.ts';
 
-export type Notes = { answers: [string, string, string]; candidate: string };
+export type Verdict = 'found' | 'missed' | '';
 
-export const emptyNotes = (): Notes => ({ answers: ['', '', ''], candidate: '' });
+export type Notes = { answers: [string, string, string]; candidate: string; verdict: Verdict };
+
+export const emptyNotes = (): Notes => ({ answers: ['', '', ''], candidate: '', verdict: '' });
 
 export const NOTE_QUESTIONS = [
 	{ question: 'Why did I choose that move?', label: 'Why I chose it:' },
@@ -17,7 +19,7 @@ export const NOTE_QUESTIONS = [
 const MARKER = 'Turning point.';
 const CANDIDATE = 'Candidate:';
 const NOTE_PATTERN = new RegExp(
-	`${escape(MARKER)}(?: ${escape(CANDIDATE)} (\\S+))?${NOTE_QUESTIONS.map(({ label }) => `(?: ${escape(label)} (.*?))?`).join('')}$`
+	`${escape(MARKER)}(?: ${escape(CANDIDATE)} (\\S+)(?: \\((found|missed)\\))?)?${NOTE_QUESTIONS.map(({ label }) => `(?: ${escape(label)} (.*?))?`).join('')}$`
 );
 
 function escape(text: string): string {
@@ -40,7 +42,10 @@ export function formatNote(notes: Notes): string {
 	const parts = NOTE_QUESTIONS.flatMap(({ label }, i) =>
 		clean(notes.answers[i]) ? [`${label} ${clean(notes.answers[i])}`] : []
 	);
-	return [MARKER, ...(candidate ? [`${CANDIDATE} ${candidate}`] : []), ...parts].join(' ');
+	const verdict = candidate && notes.verdict ? ` (${notes.verdict})` : '';
+	return [MARKER, ...(candidate ? [`${CANDIDATE} ${candidate}${verdict}`] : []), ...parts].join(
+		' '
+	);
 }
 
 function splitComment(comment: string): { rest: string; notes: Notes | null } {
@@ -48,8 +53,9 @@ function splitComment(comment: string): { rest: string; notes: Notes | null } {
 	if (index < 0) return { rest: comment.trim(), notes: null };
 	const match = NOTE_PATTERN.exec(comment.slice(index).trim());
 	const notes: Notes = {
-		answers: [match?.[2] ?? '', match?.[3] ?? '', match?.[4] ?? ''],
-		candidate: match?.[1] ?? ''
+		answers: [match?.[3] ?? '', match?.[4] ?? '', match?.[5] ?? ''],
+		candidate: match?.[1] ?? '',
+		verdict: (match?.[2] ?? '') as Verdict
 	};
 	return { rest: comment.slice(0, index).trim(), notes };
 }

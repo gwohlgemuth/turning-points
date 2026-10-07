@@ -1,8 +1,8 @@
-import { mkdirSync, mkdtempSync, readFileSync, symlinkSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeEach, describe, it, expect } from 'vitest';
-import { createFolder, isLocalAddress, listFolders, saveFile } from './files.ts';
+import { createFolder, isLocalAddress, listFolders, readPgnFiles, saveFile } from './files.ts';
 
 let root: string;
 
@@ -67,6 +67,34 @@ describe('listFolders and createFolder', () => {
 		expect((await listFolders(root, 'Documents')).folders).toEqual(['Openings']);
 		await expect(createFolder(root, '', 'a/b')).rejects.toThrow('Invalid folder name');
 		await expect(createFolder(root, '', '..')).rejects.toThrow('Invalid folder name');
+	});
+});
+
+describe('readPgnFiles', () => {
+	it('reads .pgn files in the folder and its subfolders', async () => {
+		mkdirSync(join(root, 'games/png'), { recursive: true });
+		writeFileSync(join(root, 'games/a.pgn'), 'one');
+		writeFileSync(join(root, 'games/png/b.PGN'), 'two');
+		writeFileSync(join(root, 'games/notes.txt'), 'skip');
+		const files = await readPgnFiles(root, 'games');
+		expect(files.sort((a, b) => a.path.localeCompare(b.path))).toEqual([
+			{ path: 'a.pgn', text: 'one' },
+			{ path: 'png/b.PGN', text: 'two' }
+		]);
+	});
+
+	it('skips symlinks and returns nothing for a missing folder', async () => {
+		const outside = mkdtempSync(join(tmpdir(), 'outside-'));
+		writeFileSync(join(outside, 'secret.pgn'), 'x');
+		mkdirSync(join(root, 'games'));
+		symlinkSync(join(outside, 'secret.pgn'), join(root, 'games/link.pgn'));
+		symlinkSync(outside, join(root, 'games/dir'));
+		expect(await readPgnFiles(root, 'games')).toEqual([]);
+		expect(await readPgnFiles(root, 'missing')).toEqual([]);
+	});
+
+	it('rejects folders outside the root', async () => {
+		await expect(readPgnFiles(root, '../outside')).rejects.toThrow('home folder');
 	});
 });
 

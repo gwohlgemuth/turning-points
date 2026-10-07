@@ -19,10 +19,11 @@
 		after: PositionEval;
 		depth: number;
 		side: Side;
+		onverdict?: (found: boolean) => void;
 	};
 	type Result = { san: string; score: Score; winPercent: number };
 
-	let { move, candidate, before, after, depth, side }: Props = $props();
+	let { move, candidate, before, after, depth, side, onverdict }: Props = $props();
 
 	let best = $state<string | null>(null);
 	let yours = $state<Result | null>(null);
@@ -65,6 +66,7 @@
 			.then(([[line], score]) => {
 				best = line?.moves[0] ?? null;
 				yours = { san, score, winPercent: winPercent(score, whiteToMove) };
+				onverdict?.(found);
 			})
 			.catch((err: Error) => {
 				if (err.name !== 'AbortError') message = err.message;

@@ -18,10 +18,14 @@ const pgn = `[White "A"]
 
 const notes: Notes = {
 	answers: ['It attacks f7', 'It ignores {development}', 'Nf3 develops\na piece'],
-	candidate: ''
+	candidate: '',
+	verdict: ''
 };
 
-const answers = (a: string, b: string, c: string): Notes => ({ answers: [a, b, c], candidate: '' });
+const answers = (a: string, b: string, c: string): Notes => ({
+	...emptyNotes(),
+	answers: [a, b, c]
+});
 
 describe('formatNote', () => {
 	it('labels each answer and removes braces and line breaks', () => {
@@ -38,10 +42,17 @@ describe('formatNote', () => {
 	});
 
 	it('puts the candidate move first', () => {
-		expect(formatNote({ answers: ['Fast', '', ''], candidate: 'Nf3' })).toBe(
+		expect(formatNote({ ...answers('Fast', '', ''), candidate: 'Nf3' })).toBe(
 			'Turning point. Candidate: Nf3 Why I chose it: Fast'
 		);
 		expect(formatNote({ ...emptyNotes(), candidate: 'O-O' })).toBe('Turning point. Candidate: O-O');
+	});
+
+	it('adds the verdict after the candidate', () => {
+		expect(formatNote({ ...emptyNotes(), candidate: 'Nf3', verdict: 'missed' })).toBe(
+			'Turning point. Candidate: Nf3 (missed)'
+		);
+		expect(formatNote({ ...emptyNotes(), verdict: 'found' })).toBe('');
 	});
 });
 
@@ -75,13 +86,20 @@ describe('writeNotes and readNotes', () => {
 
 	it('round-trips the candidate move', () => {
 		const withAnswers = writeNotes(pgn, {
-			3: { answers: ['Fast', '', 'Better'], candidate: 'Nc3' }
+			3: { ...answers('Fast', '', 'Better'), candidate: 'Nc3' }
 		});
 		expect(readNotes(withAnswers)).toEqual({
-			3: { answers: ['Fast', '', 'Better'], candidate: 'Nc3' }
+			3: { ...answers('Fast', '', 'Better'), candidate: 'Nc3' }
 		});
 		const alone = writeNotes(pgn, { 3: { ...emptyNotes(), candidate: 'Qxf7+' } });
 		expect(readNotes(alone)).toEqual({ 3: { ...emptyNotes(), candidate: 'Qxf7+' } });
+	});
+
+	it('round-trips the verdict', () => {
+		const found: Notes = { ...answers('Fast', '', ''), candidate: 'Nc3', verdict: 'found' };
+		expect(readNotes(writeNotes(pgn, { 3: found }))).toEqual({ 3: found });
+		const missed: Notes = { ...emptyNotes(), candidate: 'Qxf7+', verdict: 'missed' };
+		expect(readNotes(writeNotes(pgn, { 3: missed }))).toEqual({ 3: missed });
 	});
 
 	it('replaces earlier notes instead of adding them again', () => {
