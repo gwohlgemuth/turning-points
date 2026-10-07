@@ -114,12 +114,13 @@
 	});
 	let playing = $derived(play && !!exploration);
 	let gameOver = $derived(new Chess(boardFen).isGameOver());
+	let analyzing = $derived(status === 'running');
 	let hiddenTp = $derived(
 		turningPoints.find(
 			(tp) => !revealed[tp.ply] && (selected === tp.ply - 1 || selected === tp.ply)
 		) ?? null
 	);
-	let candidateTp = $derived(hiddenTp?.ply === selected + 1 ? hiddenTp : null);
+	let candidateTp = $derived(!analyzing && hiddenTp?.ply === selected + 1 ? hiddenTp : null);
 	let unsaved = $derived(notesSignature(notes) !== savedNotes);
 	let hasHidden = $derived(turningPoints.some((tp) => !revealed[tp.ply]));
 	let graphVisible = $derived(
@@ -308,6 +309,7 @@
 	}
 
 	function nextHidden() {
+		if (analyzing) return;
 		const open = turningPoints.filter((tp) => !revealed[tp.ply]);
 		const next = open.find((tp) => tp.ply - 1 > selected) ?? open[0];
 		if (next) select(next.ply - 1);
@@ -585,11 +587,13 @@
 								<span class="muted small"
 									>{candidateTp
 										? 'Answer question 1, then play the move you would choose now'
-										: hiddenTp
-											? 'Reveal the turning point to see the evaluation'
-											: play
-												? 'Make a move to start playing'
-												: 'Move a piece to try your own line'}</span
+										: hiddenTp && analyzing
+											? 'Wait for the analysis to finish'
+											: hiddenTp
+												? 'Reveal the turning point to see the evaluation'
+												: play
+													? 'Make a move to start playing'
+													: 'Move a piece to try your own line'}</span
 								>
 							</p>
 							{@render playControls()}
@@ -671,8 +675,11 @@
 						</div>
 						{#if hasHidden}
 							<div class="training">
-								<button onclick={nextHidden} title="Shortcut: N">Next open turning point</button>
-								<button onclick={revealAll}>Reveal all</button>
+								<button onclick={nextHidden} disabled={analyzing} title="Shortcut: N"
+									>Next open turning point</button
+								>
+								<button onclick={revealAll} disabled={analyzing}>Reveal all</button>
+								{#if analyzing}<span class="muted small">Wait for the analysis to finish</span>{/if}
 							</div>
 						{/if}
 						{#if !turningPoints.length}
@@ -732,7 +739,9 @@
 												>Notes {answeredCount(notes[tp.ply])}/3</button
 											>
 											{#if hidden}
-												<button class="reveal" onclick={() => reveal(tp.ply)}>Reveal</button>
+												<button class="reveal" onclick={() => reveal(tp.ply)} disabled={analyzing}
+													>Reveal</button
+												>
 											{/if}
 										</span>
 									</div>
@@ -1380,6 +1389,7 @@
 
 	.training {
 		display: flex;
+		align-items: center;
 		gap: 6px;
 		margin-bottom: 10px;
 	}
