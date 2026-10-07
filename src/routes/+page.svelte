@@ -72,6 +72,9 @@
 	let elo = $state(1500);
 	let engineThinking = $state(false);
 	let engineError = $state('');
+	let autoplay = $state(false);
+	let speed = $state(1000);
+	const SPEEDS = [500, 1000, 2000, 3000];
 	let controller: AbortController | null = null;
 	let moveController: AbortController | null = null;
 
@@ -120,6 +123,7 @@
 	}
 
 	function handleBoardMove(boardMove: BoardMove) {
+		autoplay = false;
 		if (!exploration && !play) {
 			const move = new Chess(boardFen).move(boardMove);
 			if (moves[selected]?.san === move.san) {
@@ -204,6 +208,7 @@
 			notesOpen = {};
 			cancelEngineMove();
 			exploration = null;
+			autoplay = false;
 			selected = 0;
 		} else if (event.type === 'eval') {
 			evals[event.eval.index] = event.eval;
@@ -266,11 +271,31 @@
 		savePgn(pgn, pgnFilename(pgn), true);
 	}
 
-	function select(index: number) {
+	function show(index: number) {
 		cancelEngineMove();
 		exploration = null;
 		selected = Math.min(positions - 1, Math.max(0, index));
 	}
+
+	function select(index: number) {
+		autoplay = false;
+		show(index);
+	}
+
+	function toggleAutoplay() {
+		if (!autoplay && selected >= positions - 1) show(0);
+		autoplay = !autoplay;
+	}
+
+	$effect(() => {
+		if (!autoplay) return;
+		const next = selected + 1;
+		const timer = setTimeout(() => {
+			show(next);
+			if (next >= positions - 1 || turningPlies.has(next + 1)) autoplay = false;
+		}, speed);
+		return () => clearTimeout(timer);
+	});
 
 	function handleKey(event: KeyboardEvent) {
 		if (!moves.length || (event.target as HTMLElement).tagName === 'TEXTAREA') return;
@@ -435,6 +460,14 @@
 						<button onclick={() => select(selected - 1)} aria-label="Previous">◀</button>
 						<button onclick={() => select(selected + 1)} aria-label="Next">▶</button>
 						<button onclick={() => select(positions - 1)} aria-label="End">⏭</button>
+						<button
+							class:on={autoplay}
+							onclick={toggleAutoplay}
+							aria-label={autoplay ? 'Pause' : 'Autoplay'}>{autoplay ? '⏸' : '⏵'}</button
+						>
+						<select bind:value={speed} aria-label="Autoplay speed">
+							{#each SPEEDS as s (s)}<option value={s}>{s / 1000} s</option>{/each}
+						</select>
 						<button class="flip" onclick={() => (flipped = !flipped)}>⇅ Flip</button>
 					</div>
 					<div class="panel-body">
@@ -1214,6 +1247,7 @@
 		font-size: 0.8rem;
 	}
 
+	.nav button.on,
 	.tp-actions button.on {
 		border-color: var(--accent);
 		color: var(--accent-2);
