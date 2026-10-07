@@ -720,6 +720,11 @@
 												>⏱ {formatDuration(move.time.spent)}</span
 											>
 										{/if}
+										{#if hidden && notes[tp.ply]?.candidate}
+											<span class="candidate" title="Your candidate move"
+												>✎ {notes[tp.ply].candidate}</span
+											>
+										{/if}
 										<span class="tp-actions">
 											<button onclick={() => select(tp.ply - 1)}>Before</button>
 											{#if !hidden}
@@ -1342,6 +1347,12 @@
 	.time {
 		color: var(--muted);
 		font-size: 0.85rem;
+	}
+
+	.candidate {
+		color: var(--accent-2);
+		font-size: 0.85rem;
+		font-weight: 650;
 	}
 
 	.evals {
