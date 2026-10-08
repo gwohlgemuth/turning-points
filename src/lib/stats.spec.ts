@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { emptyNotes, writeNotes } from './notes.ts';
-import { collectStats, entriesFromPgn } from './stats.ts';
+import { collectStats, entriesFromPgn, savedGames } from './stats.ts';
 
 const game = (white: string, date: string) => `[White "${white}"]
 [Black "B"]
@@ -59,5 +59,41 @@ describe('collectStats', () => {
 		const { summary } = collectStats([{ path: 'both.pgn', text: `${older}\n${newer}` }]);
 		expect(summary.games).toBe(2);
 		expect(summary.turningPoints).toBe(3);
+	});
+});
+
+describe('savedGames', () => {
+	it('lists every saved game newest first with its progress', () => {
+		const plain = game('E', '2026.09.01').replace(
+			'[Result',
+			'[Site "https://lichess.org/abc"]\n[Result'
+		);
+		const games = savedGames([
+			{ path: 'both.pgn', text: `${older}\n${newer}` },
+			{ path: 'plain.pgn', text: plain }
+		]);
+		expect(
+			games.map(({ id, white, url, worked, found, missed }) => [
+				id,
+				white,
+				url,
+				worked,
+				found,
+				missed
+			])
+		).toEqual([
+			['saved:both.pgn:1', 'C', '', 2, 0, 1],
+			['saved:both.pgn:0', 'A', '', 1, 1, 0],
+			['saved:plain.pgn:0', 'E', 'https://lichess.org/abc', 0, 0, 0]
+		]);
+	});
+
+	it('keeps the copy with the most progress when a game is saved twice', () => {
+		const site = '[Site "https://lichess.org/xyz"]\n';
+		const games = savedGames([
+			{ path: 'all.pgn', text: site + game('A', '2026.10.01') },
+			{ path: 'one.pgn', text: site + older }
+		]);
+		expect(games.map((saved) => [saved.file, saved.worked])).toEqual([['one.pgn', 1]]);
 	});
 });

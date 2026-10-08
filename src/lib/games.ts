@@ -32,6 +32,32 @@ export function winner(result: string): Side | 'draw' | null {
 	return null;
 }
 
+export type Outcome = 'win' | 'loss' | 'draw';
+
+export function gameOutcome(game: GameSummary, perspective: string): Outcome | null {
+	const won = winner(game.result);
+	const side = playerSide(game, perspective);
+	if (!won || !side) return null;
+	if (won === 'draw') return 'draw';
+	return won === side ? 'win' : 'loss';
+}
+
+export const formatGameDate = (date: number) => (date ? new Date(date).toLocaleDateString() : '');
+
+export function filterGames<T extends GameSummary>(
+	games: T[],
+	query: string,
+	outcome: Outcome | '',
+	perspective: string
+): T[] {
+	const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+	return games.filter((game) => {
+		if (outcome && gameOutcome(game, perspective) !== outcome) return false;
+		const text = `${game.white} ${game.black} ${formatGameDate(game.date)}`.toLowerCase();
+		return words.every((word) => text.includes(word));
+	});
+}
+
 export function mergeAdjacentComments(pgn: string): string {
 	return pgn.replace(/\}\s*\{/g, ' ');
 }
@@ -40,7 +66,7 @@ export function pgnHeader(pgn: string, name: string): string | undefined {
 	return new RegExp(`\\[${name} "([^"]*)"\\]`).exec(pgn)?.[1];
 }
 
-function gameUrl(pgn: string): string | undefined {
+export function gameUrl(pgn: string): string | undefined {
 	const url = pgnHeader(pgn, 'Link') ?? pgnHeader(pgn, 'Site');
 	return url?.startsWith('http') ? url : undefined;
 }

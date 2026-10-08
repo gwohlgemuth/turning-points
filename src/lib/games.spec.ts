@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
+	filterGames,
+	gameOutcome,
 	gamesToPgn,
 	mergeAdjacentComments,
 	parseRating,
@@ -136,5 +138,30 @@ describe('sameGame', () => {
 	it('never matches a file with several games', () => {
 		const a = '[White "A"]\n[Black "B"]\n\n1. e4 e5 *';
 		expect(sameGame(`${a}\n\n${a}`, a)).toBe(false);
+	});
+});
+
+describe('gameOutcome and filterGames', () => {
+	const make = (white: string, black: string, result: string, date: string) =>
+		summaryFromPgn(
+			`[White "${white}"]\n[Black "${black}"]\n[Result "${result}"]\n[UTCDate "${date}"]\n\n1. e4 *`,
+			0
+		);
+	const games = [
+		make('me', 'Alice', '1-0', '2026.10.01'),
+		make('Bob', 'me', '1-0', '2026.10.02'),
+		make('me', 'Carol', '1/2-1/2', '2026.10.03')
+	];
+
+	it('tells the outcome from a perspective', () => {
+		expect(games.map((game) => gameOutcome(game, 'ME'))).toEqual(['win', 'loss', 'draw']);
+		expect(gameOutcome(games[0], 'nobody')).toBeNull();
+	});
+
+	it('filters by words and outcome', () => {
+		expect(filterGames(games, 'ali', '', 'me').map((game) => game.black)).toEqual(['Alice']);
+		expect(filterGames(games, ' me  bob ', '', 'me').map((game) => game.white)).toEqual(['Bob']);
+		expect(filterGames(games, '', 'loss', 'me').map((game) => game.white)).toEqual(['Bob']);
+		expect(filterGames(games, '', '', 'me')).toHaveLength(3);
 	});
 });

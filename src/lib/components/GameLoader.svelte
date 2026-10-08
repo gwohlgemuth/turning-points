@@ -5,24 +5,30 @@
 	import type { Side } from '#lib/analysis.ts';
 	import {
 		GAME_COUNTS,
+		filterGames,
+		formatGameDate,
+		gameOutcome,
 		gamesToPgn,
 		playerSide,
 		playersByCount,
 		today,
 		winner,
 		type GameSource,
-		type GameSummary
+		type GameSummary,
+		type Outcome
 	} from '#lib/games.ts';
+	import type { SavedGame } from '#lib/stats.ts';
 	import { savePgn } from '#lib/saving.svelte.ts';
 	import { updatePreferences, type Preferences } from '#lib/preferences.ts';
 
 	type Props = {
 		onselect: (game: GameSummary, side: Side) => void;
 		games?: GameSummary[];
+		tab?: 'online' | 'saved';
 		preferences: Preferences;
 	};
 
-	let { onselect, games = $bindable([]), preferences }: Props = $props();
+	let { onselect, games = $bindable([]), tab = $bindable('online'), preferences }: Props = $props();
 
 	const initial = untrack(() => preferences);
 	let source = $state<GameSource>(initial.source);
@@ -32,10 +38,44 @@
 	let message = $state('');
 	let selectedId = $state('');
 	let loadedUser = $state(initial.username);
-	const players = $derived(playersByCount(games));
+	let saved = $state<SavedGame[]>([]);
+	let savedLoaded = $state(false);
+	let query = $state('');
+	let outcomeFilter = $state<Outcome | ''>('');
+	let list = $derived<GameSummary[]>(tab === 'online' ? games : saved);
+	let savedByUrl = $derived(new Map(saved.filter((game) => game.url).map((g) => [g.url, g])));
+	const players = $derived(playersByCount(list));
 	let perspective = $derived(
 		players.find((name) => name.toLowerCase() === loadedUser.toLowerCase()) ?? players[0] ?? ''
 	);
+
+	let shown = $derived(filterGames(list, query, perspective ? outcomeFilter : '', perspective));
+
+	async function loadSaved() {
+		try {
+			const response = await fetch('/api/saved');
+			const body = await response.json();
+			if (!response.ok) throw new Error(body.message ?? `Request failed (${response.status})`);
+			saved = body.games;
+		} catch (err) {
+			if (tab === 'saved') message = (err as Error).message;
+		} finally {
+			savedLoaded = true;
+		}
+	}
+
+	function showTab(next: 'online' | 'saved') {
+		tab = next;
+		message = '';
+		loadSaved();
+	}
+
+	$effect(() => {
+		untrack(loadSaved);
+	});
+
+	const progress = (game: GameSummary): SavedGame | undefined =>
+		'worked' in game ? (game as SavedGame) : savedByUrl.get(game.url);
 
 	async function load(event: SubmitEvent) {
 		event.preventDefault();
@@ -51,6 +91,7 @@
 			if (!response.ok) throw new Error(body.message ?? `Request failed (${response.status})`);
 			games = body.games;
 			if (!games.length) message = 'No games found';
+			loadSaved();
 		} catch (err) {
 			message = (err as Error).message;
 		} finally {
@@ -68,38 +109,63 @@
 	}
 
 	const OUTCOME_LABELS = { win: 'Win', loss: 'Loss', draw: 'Draw' };
-
-	function outcome(game: GameSummary) {
-		const won = winner(game.result);
-		const side = playerSide(game, perspective);
-		if (!won || !side) return null;
-		if (won === 'draw') return 'draw';
-		return won === side ? 'win' : 'loss';
-	}
-	const formatDate = (ms: number) => (ms ? new Date(ms).toLocaleDateString() : '');
 </script>
 
-<form class="loader" onsubmit={load}>
-	<select bind:value={source} aria-label="Source">
-		<option value="lichess">Lichess</option>
-		<option value="chesscom">Chess.com</option>
-	</select>
-	<input bind:value={username} placeholder="Username" aria-label="Username" required />
-	<select bind:value={max} aria-label="Number of games">
-		{#each GAME_COUNTS as count (count)}
-			<option value={count}>{count} games</option>
-		{/each}
-	</select>
-	<button type="submit" disabled={loading || !username.trim()}>
-		{loading ? 'Loading…' : 'Load games'}
-	</button>
-</form>
+<div class="tabs" role="tablist">
+	<button
+		role="tab"
+		aria-selected={tab === 'online'}
+		class:on={tab === 'online'}
+		onclick={() => showTab('online')}>Online</button
+	>
+	<button
+		role="tab"
+		aria-selected={tab === 'saved'}
+		class:on={tab === 'saved'}
+		onclick={() => showTab('saved')}>My games</button
+	>
+</div>
+
+{#if tab === 'online'}
+	<form class="loader" onsubmit={load}>
+		<select bind:value={source} aria-label="Source">
+			<option value="lichess">Lichess</option>
+			<option value="chesscom">Chess.com</option>
+		</select>
+		<input bind:value={username} placeholder="Username" aria-label="Username" required />
+		<select bind:value={max} aria-label="Number of games">
+			{#each GAME_COUNTS as count (count)}
+				<option value={count}>{count} games</option>
+			{/each}
+		</select>
+		<button type="submit" disabled={loading || !username.trim()}>
+			{loading ? 'Loading…' : 'Load games'}
+		</button>
+	</form>
+{/if}
 
 {#if message}
 	<p class="muted">{message}</p>
 {/if}
 
-{#if games.length}
+{#if list.length}
+	<div class="filters">
+		<input
+			type="search"
+			bind:value={query}
+			placeholder="Search players or date"
+			aria-label="Search games"
+		/>
+		{#if perspective}
+			<div class="outcomes" role="group" aria-label="Filter by result">
+				{#each [['', 'All'], ['win', 'Win'], ['draw', 'Draw'], ['loss', 'Loss']] as const as [value, label] (value)}
+					<button class:on={outcomeFilter === value} onclick={() => (outcomeFilter = value)}
+						>{label}</button
+					>
+				{/each}
+			</div>
+		{/if}
+	</div>
 	<label class="perspective">
 		<span class="muted">View as</span>
 		<select bind:value={perspective}>
@@ -110,9 +176,10 @@
 		</select>
 	</label>
 	<ul class="games" transition:slide={{ duration: ms(200) }}>
-		{#each games as game (game.id)}
+		{#each shown as game (game.id)}
 			{@const won = winner(game.result)}
-			{@const mine = outcome(game)}
+			{@const mine = gameOutcome(game, perspective)}
+			{@const info = progress(game)}
 			<li>
 				<button class:selected={selectedId === game.id} onclick={() => choose(game)}>
 					{#if perspective}
@@ -136,20 +203,76 @@
 							</span>
 						{/each}
 					</span>
+					{#if info && (info.worked || tab === 'online')}
+						<span
+							class="badge"
+							title="{info.worked} turning points worked on · {info.found} found · {info.missed} missed"
+							>{info.worked ? `✓ ${info.worked}` : 'Saved'}</span
+						>
+					{/if}
 					<span class="meta">
-						{[game.timeClass, formatDate(game.date)].filter(Boolean).join(' · ')}
+						{[game.timeClass, formatGameDate(game.date)].filter(Boolean).join(' · ')}
 					</span>
 				</button>
 			</li>
 		{/each}
 	</ul>
 	<div class="list-footer">
-		<span class="muted">{games.length} games</span>
-		<button onclick={save}>Save all</button>
+		<span class="muted"
+			>{shown.length === list.length ? '' : `${shown.length} of `}{list.length} games</span
+		>
+		{#if tab === 'online'}
+			<button onclick={save}>Save all</button>
+		{/if}
 	</div>
+{:else if tab === 'saved' && savedLoaded && !message}
+	<p class="muted">No saved games yet. Games you save appear here.</p>
 {/if}
 
 <style>
+	.tabs {
+		display: flex;
+		gap: 4px;
+	}
+
+	.tabs button,
+	.outcomes button {
+		padding: 4px 12px;
+		background: transparent;
+	}
+
+	.tabs button.on,
+	.outcomes button.on {
+		border-color: var(--accent);
+		color: var(--accent-2);
+	}
+
+	.filters {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+
+	.filters input {
+		flex: 1;
+		min-width: 160px;
+	}
+
+	.outcomes {
+		display: flex;
+		gap: 4px;
+	}
+
+	.badge {
+		flex: none;
+		padding: 2px 7px;
+		border-radius: 6px;
+		font-size: 0.75rem;
+		font-weight: 650;
+		color: var(--accent-2);
+		background: rgb(227 179 65 / 0.12);
+	}
+
 	.loader {
 		display: flex;
 		flex-wrap: wrap;

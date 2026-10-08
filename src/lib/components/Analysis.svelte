@@ -87,6 +87,7 @@
 	let revealed = $state<Record<number, boolean>>({});
 	let savedNotes = $state(notesSignature({}));
 	let loadedGames = $state<GameSummary[]>([]);
+	let loaderTab = $state<'online' | 'saved'>('online');
 	let exploration = $state<{
 		base: number;
 		moves: BoardMove[];
@@ -436,8 +437,10 @@
 		if (!file) return;
 		const text = await file.text();
 		const games = splitPgn(text);
-		if (games.length > 1) loadedGames = games.map(summaryFromPgn);
-		else pgn = text;
+		if (games.length > 1) {
+			loadedGames = games.map(summaryFromPgn);
+			loaderTab = 'online';
+		} else pgn = text;
 	}
 </script>
 
@@ -534,7 +537,12 @@
 		<div class="top" transition:slide={{ duration: ms(200) }}>
 			<section class="card load">
 				<h2 class="card-title">Load a game</h2>
-				<GameLoader onselect={loadGame} bind:games={loadedGames} {preferences} />
+				<GameLoader
+					onselect={loadGame}
+					bind:games={loadedGames}
+					bind:tab={loaderTab}
+					{preferences}
+				/>
 				<textarea bind:value={pgn} rows="6" placeholder="…or paste a PGN here"></textarea>
 				<div class="file-row">
 					<input

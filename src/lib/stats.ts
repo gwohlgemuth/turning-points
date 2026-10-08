@@ -1,5 +1,11 @@
 import { Chess, type Move } from 'chess.js';
-import { mergeAdjacentComments, splitPgn, summaryFromPgn } from './games.ts';
+import {
+	gameUrl,
+	mergeAdjacentComments,
+	splitPgn,
+	summaryFromPgn,
+	type GameSummary
+} from './games.ts';
 import { answeredCount, readNotes, type Verdict } from './notes.ts';
 
 export type StatsEntry = {
@@ -71,4 +77,36 @@ export function collectStats(files: { path: string; text: string }[]) {
 		.flatMap(({ path, text }) => splitPgn(text).flatMap((pgn) => entriesFromPgn(path, pgn)))
 		.sort((a, b) => b.date - a.date || a.file.localeCompare(b.file) || a.ply - b.ply);
 	return { entries, summary: summarize(entries) };
+}
+
+export type SavedGame = GameSummary & {
+	file: string;
+	worked: number;
+	found: number;
+	missed: number;
+};
+
+export function savedGames(files: { path: string; text: string }[]): SavedGame[] {
+	const games = files
+		.flatMap(({ path, text }) =>
+			splitPgn(text).map((pgn, index) => {
+				const entries = entriesFromPgn(path, pgn);
+				return {
+					...summaryFromPgn(pgn, index),
+					id: `saved:${path}:${index}`,
+					url: gameUrl(pgn) ?? '',
+					file: path,
+					worked: entries.length,
+					found: entries.filter((entry) => entry.verdict === 'found').length,
+					missed: entries.filter((entry) => entry.verdict === 'missed').length
+				};
+			})
+		)
+		.sort((a, b) => b.date - a.date || a.file.localeCompare(b.file));
+	const byUrl = new Map<string, SavedGame>();
+	for (const game of games) {
+		const other = game.url && byUrl.get(game.url);
+		if (game.url && (!other || game.worked > other.worked)) byUrl.set(game.url, game);
+	}
+	return games.filter((game) => !game.url || byUrl.get(game.url) === game);
 }
