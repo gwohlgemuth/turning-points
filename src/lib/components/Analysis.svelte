@@ -1310,21 +1310,6 @@
 			overflow-y: auto;
 			scrollbar-gutter: stable;
 		}
-
-		.moves-block {
-			flex: 1;
-			min-height: 0;
-			display: flex;
-			flex-direction: column;
-		}
-
-		.moves {
-			flex: 1;
-			min-height: calc(4 * 26px + 3 * 5px);
-			overflow-y: auto;
-			scrollbar-gutter: stable;
-			align-content: flex-start;
-		}
 	}
 
 	@media (max-width: 900px) {
@@ -1630,6 +1615,13 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 5px;
+		height: calc(4 * 26px + 3 * 5px);
+		min-height: calc(2 * 26px + 5px);
+		max-height: fit-content;
+		resize: vertical;
+		overflow-y: auto;
+		scrollbar-gutter: stable;
+		align-content: flex-start;
 	}
 
 	.move {
