@@ -11,6 +11,7 @@
 		type Side
 	} from '#lib/analysis.ts';
 	import { fetchLines, fetchScore } from '#lib/lines.ts';
+	import type { Verdict } from '#lib/notes.ts';
 
 	type Props = {
 		move: Move;
@@ -19,11 +20,12 @@
 		after: PositionEval;
 		depth: number;
 		side: Side;
+		verdict?: Verdict;
 		onverdict?: (found: boolean, best: string | null) => void;
 	};
 	type Result = { san: string; score: Score; winPercent: number };
 
-	let { move, candidate, before, after, depth, side, onverdict }: Props = $props();
+	let { move, candidate, before, after, depth, side, verdict = '', onverdict }: Props = $props();
 
 	let best = $state<string | null>(null);
 	let yours = $state<Result | null>(null);
@@ -81,7 +83,8 @@
 		<span class="muted wide">Calculating…</span>
 	{:else}
 		<span class="score">{formatScore(yours.score)}</span>
-		<span class="verdict" class:found>{found ? '✓ found' : '✗ missed'}</span>
+		{@const shown = verdict ? verdict === 'found' : found}
+		<span class="verdict" class:found={shown}>{shown ? '✓ found' : '✗ missed'}</span>
 	{/if}
 
 	<span class="label">Engine</span>

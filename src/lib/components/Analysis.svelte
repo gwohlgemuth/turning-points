@@ -405,10 +405,9 @@
 	}
 
 	function setVerdict(ply: number, found: boolean) {
-		const verdict = found ? 'found' : 'missed';
-		if (notes[ply].verdict === verdict) return;
-		if (!notes[ply].verdict) (found ? playFound : playMissed)();
-		notes[ply].verdict = verdict;
+		if (notes[ply].verdict) return;
+		(found ? playFound : playMissed)();
+		notes[ply].verdict = found ? 'found' : 'missed';
 	}
 
 	function revealAll() {
@@ -948,6 +947,7 @@
 											{after}
 											{depth}
 											{side}
+											verdict={notes[tp.ply].verdict}
 											onverdict={(found) => setVerdict(tp.ply, found)}
 										/>
 									{/if}
