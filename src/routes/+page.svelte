@@ -126,8 +126,9 @@
 	let graphVisible = $derived(
 		Math.min(Infinity, ...turningPoints.filter((tp) => !revealed[tp.ply]).map((tp) => tp.ply - 1))
 	);
+	let evalHidden = $derived(selected >= graphVisible);
 	let barEval = $derived(
-		playing || hiddenTp ? null : exploration ? explorationEval : (evals[selected] ?? null)
+		playing || evalHidden ? null : exploration ? explorationEval : (evals[selected] ?? null)
 	);
 
 	function positionFen(index: number): string {
@@ -566,7 +567,7 @@
 											</span>
 										{:else if candidateTp}
 											<span class="muted">Candidate: {notes[candidateTp.ply]?.candidate}</span>
-										{:else if hiddenTp}
+										{:else if evalHidden}
 											<span class="muted">Evaluation hidden until you reveal</span>
 										{:else if explorationPending || !explorationEval}
 											<span class="muted">Calculating…</span>
@@ -584,7 +585,7 @@
 									<button onclick={() => select(exploration!.base)}>Back to game</button>
 								</div>
 								{@render playControls()}
-								{#if !playing && !hiddenTp}
+								{#if !playing && !evalHidden}
 									<details bind:open={showEngine}>
 										<summary>Engine lines</summary>
 										<Variations fen={boardFen} {depth} {lines} onresult={handleExplorationResult} />
@@ -596,7 +597,7 @@
 								<strong
 									>{lastMove ? moveLabel(lastMove.ply, lastMove.san) : 'Start position'}</strong
 								>
-								{#if evals[selected] && !hiddenTp}<span class="pill"
+								{#if evals[selected] && !evalHidden}<span class="pill"
 										>{formatScore(evals[selected].score)}</span
 									>{/if}
 								<span class="muted small"
@@ -606,13 +607,15 @@
 											? 'Wait for the analysis to finish'
 											: hiddenTp
 												? 'Reveal the turning point to see the evaluation'
-												: play
-													? 'Make a move to start playing'
-													: 'Move a piece to try your own line'}</span
+												: evalHidden
+													? 'Reveal the earlier turning points to see the evaluation'
+													: play
+														? 'Make a move to start playing'
+														: 'Move a piece to try your own line'}</span
 								>
 							</p>
 							{@render playControls()}
-							{#if !hiddenTp}
+							{#if !evalHidden}
 								<details class="engine" bind:open={showEngine}>
 									<summary>Engine lines</summary>
 									{#if showEngine}
