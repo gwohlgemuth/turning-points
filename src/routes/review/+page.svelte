@@ -12,6 +12,7 @@
 	import CountUp from '#lib/components/CountUp.svelte';
 	import { fetchScore } from '#lib/lines.ts';
 	import { REVIEW_DEPTH } from '#lib/review.ts';
+	import { playFound, playMissed } from '#lib/sound.svelte.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -94,6 +95,7 @@
 		best = bestMove;
 		if (result) found++;
 		else missed++;
+		(result ? playFound : playMissed)();
 		streak = result ? streak + 1 : 0;
 		longestStreak = Math.max(longestStreak, streak);
 		const response = await fetch('/api/review', {

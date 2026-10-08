@@ -7,6 +7,7 @@
 	import { prefersReducedMotion } from 'svelte/motion';
 	import type { Arrow } from '#lib/analysis.ts';
 	import { findSlides, squareOffset, type PieceMap } from '#lib/board-motion.ts';
+	import { playMove } from '#lib/sound.svelte.ts';
 
 	type Props = {
 		fen: string;
@@ -69,8 +70,11 @@
 		previousPieces = next;
 		const skip = skipAnimation;
 		skipAnimation = false;
-		if (!previous || skip || prefersReducedMotion.current) return;
-		for (const { from, to } of findSlides(previous, next)) {
+		if (!previous) return;
+		const slides = findSlides(previous, next);
+		if (slides.length) playMove(Object.keys(next).length < Object.keys(previous).length);
+		if (skip || prefersReducedMotion.current) return;
+		for (const { from, to } of slides) {
 			const piece = boardElement.querySelector<HTMLElement>(`[data-square="${to}"] .piece`);
 			if (!piece) continue;
 			const [dx, dy] = squareOffset(from, to, flipped);

@@ -50,11 +50,21 @@
 		type Notes
 	} from '#lib/notes.ts';
 	import { saving, savePgn } from '#lib/saving.svelte.ts';
-	import type { Preferences } from '#lib/preferences.ts';
+	import { playFound, playMissed, sound } from '#lib/sound.svelte.ts';
+	import { updatePreferences, type Preferences } from '#lib/preferences.ts';
 
 	type Props = { preferences: Preferences; active: boolean };
 
 	let { preferences, active }: Props = $props();
+
+	$effect.pre(() => {
+		sound.enabled = preferences.sound;
+	});
+
+	function toggleSound() {
+		sound.enabled = !sound.enabled;
+		updatePreferences({ sound: sound.enabled });
+	}
 
 	let pgn = $state('');
 	let count = $state(3);
@@ -334,7 +344,9 @@
 
 	function setVerdict(ply: number, found: boolean) {
 		const verdict = found ? 'found' : 'missed';
-		if (notes[ply].verdict !== verdict) notes[ply].verdict = verdict;
+		if (notes[ply].verdict === verdict) return;
+		if (!notes[ply].verdict) (found ? playFound : playMissed)();
+		notes[ply].verdict = verdict;
 	}
 
 	function revealAll() {
@@ -507,6 +519,12 @@
 					{showSetup ? 'Hide' : '⚙ Game & settings'}
 				</button>
 			{/if}
+			<button
+				class="sound"
+				onclick={toggleSound}
+				aria-pressed={sound.enabled}
+				title={sound.enabled ? 'Sound on' : 'Sound off'}>{sound.enabled ? '🔊' : '🔇'}</button
+			>
 			<a class="stats-link" href="/review">Review</a>
 			<a class="stats-link" href="/stats">Stats</a>
 		</div>

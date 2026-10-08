@@ -7,18 +7,26 @@ describe('parsePreferences', () => {
 			source: 'chesscom',
 			username: 'hikaru',
 			max: 50,
-			folder: 'Chess'
+			folder: 'Chess',
+			sound: false
 		});
 		expect(parsePreferences(raw)).toEqual({
 			source: 'chesscom',
 			username: 'hikaru',
 			max: 50,
-			folder: 'Chess'
+			folder: 'Chess',
+			sound: false
 		});
 	});
 
 	it('falls back to defaults for missing, malformed or invalid values', () => {
-		const defaults = { source: 'lichess', username: '', max: 20, folder: DEFAULT_SAVE_FOLDER };
+		const defaults = {
+			source: 'lichess',
+			username: '',
+			max: 20,
+			folder: DEFAULT_SAVE_FOLDER,
+			sound: true
+		};
 		expect(parsePreferences(undefined)).toEqual(defaults);
 		expect(parsePreferences('not json')).toEqual(defaults);
 		expect(parsePreferences('null')).toEqual(defaults);
