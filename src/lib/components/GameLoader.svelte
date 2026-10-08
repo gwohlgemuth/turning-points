@@ -26,6 +26,8 @@
 		games?: GameSummary[];
 		tab?: 'online' | 'saved' | 'recent';
 		recent?: GameSummary[];
+		onforget?: (id: string) => void;
+		onclear?: () => void;
 		preferences: Preferences;
 	};
 
@@ -34,6 +36,8 @@
 		games = $bindable([]),
 		tab = $bindable('online'),
 		recent = [],
+		onforget,
+		onclear,
 		preferences
 	}: Props = $props();
 
@@ -47,9 +51,13 @@
 	let loadedUser = $state(initial.username);
 	let saved = $state<SavedGame[]>([]);
 	let savedLoaded = $state(false);
+	let showAll = $state(false);
+	let worked = $derived(saved.filter((game) => game.worked > 0));
 	let query = $state('');
 	let outcomeFilter = $state<Outcome | ''>('');
-	let list = $derived<GameSummary[]>(tab === 'online' ? games : tab === 'saved' ? saved : recent);
+	let list = $derived<GameSummary[]>(
+		tab === 'online' ? games : tab === 'saved' ? (showAll ? saved : worked) : recent
+	);
 	let savedByUrl = $derived(new Map(saved.filter((game) => game.url).map((g) => [g.url, g])));
 	const players = $derived(playersByCount(list));
 	let perspective = $derived(
@@ -161,6 +169,13 @@
 	<p class="muted">{message}</p>
 {/if}
 
+{#if tab === 'saved' && saved.length > worked.length}
+	<label class="show-all">
+		<input type="checkbox" bind:checked={showAll} />
+		Show games without notes ({saved.length - worked.length})
+	</label>
+{/if}
+
 {#if list.length}
 	<div class="filters">
 		<input
@@ -227,6 +242,14 @@
 						{[game.timeClass, formatGameDate(game.date)].filter(Boolean).join(' · ')}
 					</span>
 				</button>
+				{#if tab === 'recent'}
+					<button
+						class="forget"
+						onclick={() => onforget?.(game.id)}
+						title="Remove from recent"
+						aria-label="Remove from recent">✕</button
+					>
+				{/if}
 			</li>
 		{/each}
 	</ul>
@@ -236,10 +259,16 @@
 		>
 		{#if tab === 'online'}
 			<button onclick={save}>Save all</button>
+		{:else if tab === 'recent'}
+			<button onclick={() => confirm('Remove all games from Recent?') && onclear?.()}
+				>Clear recent</button
+			>
 		{/if}
 	</div>
 {:else if tab === 'saved' && savedLoaded && !message}
-	<p class="muted">No saved games yet. Games you save appear here.</p>
+	<p class="muted">
+		{saved.length ? 'No games with notes yet.' : 'No saved games yet. Games you save appear here.'}
+	</p>
 {:else if tab === 'recent'}
 	<p class="muted">No recent games yet. Games you analyze appear here.</p>
 {/if}
@@ -339,12 +368,34 @@
 		gap: 12px;
 		text-align: left;
 		border: none;
-		border-bottom: 1px solid var(--border);
 		border-radius: 0;
 	}
 
-	.games li:last-child button {
+	.games li {
+		display: flex;
+		border-bottom: 1px solid var(--border);
+	}
+
+	.games li:last-child {
 		border-bottom: none;
+	}
+
+	.games .forget {
+		flex: none;
+		width: auto;
+		color: var(--muted);
+	}
+
+	.games .forget:not(:disabled):hover {
+		color: var(--danger);
+	}
+
+	.show-all {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		color: var(--muted);
+		font-size: 0.9rem;
 	}
 
 	.games button {

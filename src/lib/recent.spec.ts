@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { findAnalysis, remember, updatePgn, type RecentEntry } from './recent.ts';
+import { findAnalysis, forget, remember, updatePgn, type RecentEntry } from './recent.ts';
 
 const entry = (key: string, depth = 16): RecentEntry => ({
 	key,
@@ -34,6 +34,10 @@ describe('findAnalysis and updatePgn', () => {
 		expect(findAnalysis(list, 'a', 16)).toBe(list[0]);
 		expect(findAnalysis(list, 'a', 18)).toBeNull();
 		expect(findAnalysis(list, null, 16)).toBeNull();
+	});
+
+	it('forgets a game', () => {
+		expect(forget([entry('a'), entry('b')], 'a').map((e) => e.key)).toEqual(['b']);
 	});
 
 	it('replaces the stored PGN of a game', () => {

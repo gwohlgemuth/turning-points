@@ -53,6 +53,7 @@
 	} from '#lib/notes.ts';
 	import {
 		findAnalysis,
+		forget,
 		loadRecent,
 		remember,
 		saveRecent,
@@ -602,6 +603,8 @@
 					bind:games={loadedGames}
 					bind:tab={loaderTab}
 					recent={recentGames}
+					onforget={(id) => keepRecent(forget(recent, id.slice('recent:'.length)))}
+					onclear={() => keepRecent([])}
 					{preferences}
 				/>
 				<textarea bind:value={pgn} rows="6" placeholder="…or paste a PGN here"></textarea>

@@ -18,6 +18,9 @@ export function remember(list: RecentEntry[], entry: RecentEntry, max = MAX_RECE
 	return [entry, ...list.filter((other) => other.key !== entry.key)].slice(0, max);
 }
 
+export const forget = (list: RecentEntry[], key: string) =>
+	list.filter((entry) => entry.key !== key);
+
 export const findAnalysis = (list: RecentEntry[], key: string | null, depth: number) =>
 	list.find((entry) => entry.key === key && entry.depth === depth) ?? null;
 
