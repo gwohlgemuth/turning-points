@@ -5,17 +5,19 @@
 <script lang="ts">
 	import { Chess, type Square as ChessSquare } from 'chess.js';
 	import { prefersReducedMotion } from 'svelte/motion';
+	import type { Arrow } from '#lib/analysis.ts';
 	import { findSlides, squareOffset, type PieceMap } from '#lib/board-motion.ts';
 
 	type Props = {
 		fen: string;
 		highlight?: string[];
 		flipped?: boolean;
+		arrows?: Arrow[];
 		onmove?: (move: BoardMove) => void;
 	};
 	type Square = { name: string; piece: string | null; dark: boolean };
 
-	let { fen, highlight = [], flipped = false, onmove }: Props = $props();
+	let { fen, highlight = [], flipped = false, arrows = [], onmove }: Props = $props();
 
 	const files = 'abcdefgh';
 
@@ -85,6 +87,25 @@
 		selectedSquare = null;
 		promotion = null;
 	});
+
+	function center(square: string): [number, number] {
+		const file = square.charCodeAt(0) - 97;
+		const rank = Number(square[1]);
+		return flipped ? [7.5 - file, rank - 0.5] : [file + 0.5, 8.5 - rank];
+	}
+
+	function arrowShape({ from, to }: Arrow) {
+		const [x1, y1] = center(from);
+		const [x2, y2] = center(to);
+		const length = Math.hypot(x2 - x1, y2 - y1);
+		const [ux, uy] = [(x2 - x1) / length, (y2 - y1) / length];
+		const [bx, by] = [x2 - ux * 0.42, y2 - uy * 0.42];
+		const [px, py] = [-uy * 0.22, ux * 0.22];
+		return {
+			line: `M${x1 + ux * 0.2},${y1 + uy * 0.2} L${bx},${by}`,
+			head: `${x2},${y2} ${bx + px},${by + py} ${bx - px},${by - py}`
+		};
+	}
 
 	const canMoveFrom = (square: string) => legalMoves.some((m) => m.from === square);
 
@@ -159,6 +180,18 @@
 			{/if}
 		</div>
 	{/each}
+
+	{#if arrows.length}
+		<svg class="arrows" viewBox="0 0 8 8" aria-hidden="true">
+			{#each arrows as arrow (`${arrow.kind}${arrow.from}${arrow.to}${flipped}`)}
+				{@const shape = arrowShape(arrow)}
+				<g class="arrow {arrow.kind}">
+					<path d={shape.line} pathLength="1" />
+					<polygon points={shape.head} />
+				</g>
+			{/each}
+		</svg>
+	{/if}
 
 	{#if promotion}
 		<div class="promotion" role="dialog" aria-label="Choose promotion piece">
@@ -270,6 +303,83 @@
 	.file {
 		bottom: 3%;
 		right: 5%;
+	}
+
+	.arrows {
+		position: absolute;
+		inset: 0;
+		z-index: 3;
+		width: 100%;
+		height: 100%;
+		pointer-events: none;
+	}
+
+	.arrow {
+		opacity: 0.85;
+		color: #5cc98a;
+	}
+
+	.arrow.candidate {
+		color: #e3b341;
+	}
+
+	.arrow.game {
+		color: #f06a6a;
+	}
+
+	.arrow path {
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 0.17;
+		stroke-linecap: round;
+		stroke-dasharray: 1;
+		animation: draw 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+	}
+
+	.arrow polygon {
+		fill: currentColor;
+		transform-box: fill-box;
+		transform-origin: center;
+		animation: appear 0.2s 0.35s ease-out both;
+	}
+
+	.arrow.candidate path {
+		animation-delay: 0.15s;
+	}
+
+	.arrow.candidate polygon {
+		animation-delay: 0.5s;
+	}
+
+	.arrow.best path {
+		animation-delay: 0.3s;
+	}
+
+	.arrow.best polygon {
+		animation-delay: 0.65s;
+	}
+
+	@keyframes draw {
+		from {
+			stroke-dashoffset: 1;
+		}
+		to {
+			stroke-dashoffset: 0;
+		}
+	}
+
+	@keyframes appear {
+		from {
+			opacity: 0;
+			transform: scale(0.4);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.arrow path,
+		.arrow polygon {
+			animation: none;
+		}
 	}
 
 	.promotion {

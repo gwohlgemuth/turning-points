@@ -19,7 +19,7 @@
 		after: PositionEval;
 		depth: number;
 		side: Side;
-		onverdict?: (found: boolean) => void;
+		onverdict?: (found: boolean, best: string | null) => void;
 	};
 	type Result = { san: string; score: Score; winPercent: number };
 
@@ -58,7 +58,7 @@
 			.then(([[line], score]) => {
 				best = line?.moves[0] ?? null;
 				yours = { san, score, winPercent: winPercent(score, whiteToMove) };
-				onverdict?.(found);
+				onverdict?.(found, best);
 			})
 			.catch((err: Error) => {
 				if (err.name !== 'AbortError') message = err.message;

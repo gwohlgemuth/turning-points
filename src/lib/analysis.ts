@@ -1,3 +1,4 @@
+import { Chess } from 'chess.js';
 import type { MoveTime } from './clock.ts';
 
 export type Score = { type: 'cp' | 'mate'; value: number };
@@ -8,7 +9,10 @@ export type PositionEval = {
 	index: number;
 	score: Score;
 	winPercent: number;
+	best?: string;
 };
+
+export type Arrow = { from: string; to: string; kind: 'best' | 'candidate' | 'game' };
 
 export type Variation = { score: Score; moves: string[] };
 
@@ -89,6 +93,17 @@ export function foundBetterMove(best: number, candidate: number, side: Side): bo
 	const sign = side === 'w' ? 1 : -1;
 	return sign * (best - candidate) <= FOUND_MARGIN;
 }
+
+export function moveSquares(fen: string, san: string): { from: string; to: string } | null {
+	try {
+		const { from, to } = new Chess(fen).move(san);
+		return { from, to };
+	} catch {
+		return null;
+	}
+}
+
+export const uciSquares = (uci: string) => ({ from: uci.slice(0, 2), to: uci.slice(2, 4) });
 
 export function moveLabel(ply: number, san: string): string {
 	const moveNumber = Math.ceil(ply / 2);

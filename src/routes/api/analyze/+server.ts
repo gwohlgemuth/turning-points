@@ -58,7 +58,12 @@ export const POST: RequestHandler = async ({ request }) => {
 					const score = toWhitePerspective(line.score, whiteToMove);
 					emit({
 						type: 'eval',
-						eval: { index, score, winPercent: winPercent(score, whiteToMove) }
+						eval: {
+							index,
+							score,
+							winPercent: winPercent(score, whiteToMove),
+							best: line.pv[0]
+						}
 					});
 				}
 				emit({ type: 'done' });

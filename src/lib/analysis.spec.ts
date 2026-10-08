@@ -7,7 +7,9 @@ import {
 	formatScore,
 	judgeMove,
 	moveLabel,
+	moveSquares,
 	toWhitePerspective,
+	uciSquares,
 	winPercent
 } from './analysis.ts';
 
@@ -109,6 +111,15 @@ describe('foundBetterMove', () => {
 	it('accepts a candidate better than the engine line', () => {
 		expect(foundBetterMove(50, 55, 'w')).toBe(true);
 		expect(foundBetterMove(50, 45, 'b')).toBe(true);
+	});
+});
+
+describe('moveSquares and uciSquares', () => {
+	it('finds the squares of a move', () => {
+		const start = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+		expect(moveSquares(start, 'Nf3')).toEqual({ from: 'g1', to: 'f3' });
+		expect(moveSquares(start, 'Nf6')).toBeNull();
+		expect(uciSquares('e7e8q')).toEqual({ from: 'e7', to: 'e8' });
 	});
 });
 

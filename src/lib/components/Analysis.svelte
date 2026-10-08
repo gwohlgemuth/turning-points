@@ -18,7 +18,10 @@
 		formatScore,
 		judgeMove,
 		moveLabel,
+		moveSquares,
+		uciSquares,
 		type AnalyzeEvent,
+		type Arrow,
 		type Move,
 		type PositionEval,
 		type Score,
@@ -129,6 +132,18 @@
 		Math.min(Infinity, ...turningPoints.filter((tp) => !revealed[tp.ply]).map((tp) => tp.ply - 1))
 	);
 	let evalHidden = $derived(selected >= graphVisible);
+	let arrows = $derived.by((): Arrow[] => {
+		const tp = turningPoints.find((t) => t.ply - 1 === selected && revealed[t.ply]);
+		if (!tp || exploration) return [];
+		const move = moves[tp.ply - 1];
+		const result: Arrow[] = [{ from: move.from, to: move.to, kind: 'game' }];
+		const candidate = notes[tp.ply]?.candidate;
+		const squares = candidate ? moveSquares(move.fenBefore, candidate) : null;
+		if (squares) result.push({ ...squares, kind: 'candidate' });
+		const best = evals[tp.ply - 1]?.best;
+		if (best) result.push({ ...uciSquares(best), kind: 'best' });
+		return result;
+	});
 	let barEval = $derived(
 		playing || evalHidden ? null : exploration ? explorationEval : (evals[selected] ?? null)
 	);
@@ -572,6 +587,7 @@
 							fen={boardFen}
 							{flipped}
 							highlight={boardHighlight}
+							{arrows}
 							onmove={engineThinking ? undefined : handleBoardMove}
 						/>
 					</div>
@@ -650,6 +666,15 @@
 														: 'Move a piece to try your own line'}</span
 								>
 							</p>
+							{#if arrows.length}
+								<p class="legend muted small">
+									<span class="key best">Engine</span>
+									{#if arrows.some((arrow) => arrow.kind === 'candidate')}
+										<span class="key candidate">Your candidate</span>
+									{/if}
+									<span class="key game">Game</span>
+								</p>
+							{/if}
 							{@render playControls()}
 							{#if !evalHidden}
 								<details class="engine" bind:open={showEngine}>
@@ -856,6 +881,31 @@
 </main>
 
 <style>
+	.legend {
+		display: flex;
+		gap: 14px;
+		margin: 0;
+	}
+
+	.key::before {
+		content: '';
+		display: inline-block;
+		width: 14px;
+		height: 3px;
+		margin-right: 6px;
+		vertical-align: middle;
+		border-radius: 2px;
+		background: #5cc98a;
+	}
+
+	.key.candidate::before {
+		background: #e3b341;
+	}
+
+	.key.game::before {
+		background: #f06a6a;
+	}
+
 	main.hidden {
 		display: none;
 	}

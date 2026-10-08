@@ -1,6 +1,12 @@
 <script lang="ts">
 	import { Chess } from 'chess.js';
-	import { winPercent, type Move, type PositionEval } from '#lib/analysis.ts';
+	import {
+		moveSquares,
+		winPercent,
+		type Arrow,
+		type Move,
+		type PositionEval
+	} from '#lib/analysis.ts';
 	import Board, { type BoardMove } from '#lib/components/Board.svelte';
 	import CandidateCheck from '#lib/components/CandidateCheck.svelte';
 	import { fetchScore } from '#lib/lines.ts';
@@ -13,6 +19,7 @@
 	let candidate = $state<{ san: string; fen: string; from: string; to: string } | null>(null);
 	let evals = $state<{ before: PositionEval; after: PositionEval } | null>(null);
 	let recorded = $state(false);
+	let best = $state<string | null>(null);
 	let message = $state('');
 	let found = $state(0);
 	let missed = $state(0);
@@ -65,9 +72,23 @@
 		candidate = { san: played.san, fen: chess.fen(), from: played.from, to: played.to };
 	}
 
-	async function record(result: boolean) {
+	let arrows = $derived.by((): Arrow[] => {
+		if (!card || !candidate || !recorded) return [];
+		const result: Arrow[] = [];
+		const add = (san: string | null, kind: Arrow['kind']) => {
+			const squares = san ? moveSquares(card.fen, san) : null;
+			if (squares) result.push({ ...squares, kind });
+		};
+		add(card.move, 'game');
+		add(candidate.san, 'candidate');
+		add(best, 'best');
+		return result;
+	});
+
+	async function record(result: boolean, bestMove: string | null) {
 		if (!card || recorded) return;
 		recorded = true;
+		best = bestMove;
 		if (result) found++;
 		else missed++;
 		const response = await fetch('/api/review', {
@@ -82,6 +103,7 @@
 		index++;
 		candidate = null;
 		recorded = false;
+		best = null;
 	}
 </script>
 
@@ -121,9 +143,10 @@
 		<section class="card trainer">
 			<div class="board">
 				<Board
-					fen={candidate?.fen ?? card.fen}
+					fen={arrows.length ? card.fen : (candidate?.fen ?? card.fen)}
 					flipped={card.side === 'b'}
-					highlight={candidate ? [candidate.from, candidate.to] : []}
+					highlight={candidate && !arrows.length ? [candidate.from, candidate.to] : []}
+					{arrows}
 					onmove={candidate ? undefined : handleMove}
 				/>
 			</div>
