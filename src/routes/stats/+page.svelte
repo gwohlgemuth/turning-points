@@ -21,6 +21,7 @@
 			<h1>Stats</h1>
 			<p class="muted small">From the games in ~/{data.folder} and its subfolders</p>
 		</div>
+		<a class="back review" href="/review">Review</a>
 		<a class="back" href="/">← Back to analysis</a>
 	</header>
 
@@ -138,8 +139,11 @@
 		margin: 2px 0 0;
 	}
 
-	.back {
+	.back.review {
 		margin-left: auto;
+	}
+
+	.back {
 		color: var(--accent-2);
 		text-decoration: none;
 	}

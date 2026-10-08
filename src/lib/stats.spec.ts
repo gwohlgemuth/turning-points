@@ -27,6 +27,7 @@ describe('entriesFromPgn', () => {
 				black: 'B',
 				ply: 3,
 				move: 'Qh5',
+				fen: 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2',
 				candidate: 'Nf3',
 				verdict: 'found',
 				answered: 1

@@ -10,7 +10,7 @@
 		type Score,
 		type Side
 	} from '#lib/analysis.ts';
-	import { fetchLines } from '#lib/lines.ts';
+	import { fetchLines, fetchScore } from '#lib/lines.ts';
 
 	type Props = {
 		move: Move;
@@ -35,14 +35,6 @@
 		yours ? yours.san === best || foundBetterMove(before.winPercent, yours.winPercent, side) : false
 	);
 
-	async function evaluate(fen: string, signal: AbortSignal): Promise<Score> {
-		const chess = new Chess(fen);
-		if (chess.isCheckmate()) return { type: 'mate', value: 0 };
-		if (chess.isGameOver()) return { type: 'cp', value: 0 };
-		const [line] = await fetchLines(fen, depth, 1, signal);
-		return line.score;
-	}
-
 	$effect(() => {
 		const controller = new AbortController();
 		best = null;
@@ -61,7 +53,7 @@
 		const whiteToMove = fen.split(' ')[1] === 'w';
 		Promise.all([
 			fetchLines(move.fenBefore, depth, 1, controller.signal),
-			evaluate(fen, controller.signal)
+			fetchScore(fen, depth, controller.signal)
 		])
 			.then(([[line], score]) => {
 				best = line?.moves[0] ?? null;

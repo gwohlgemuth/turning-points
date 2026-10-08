@@ -485,6 +485,7 @@
 					{showSetup ? 'Hide' : '⚙ Game & settings'}
 				</button>
 			{/if}
+			<a class="stats-link" href="/review" target="_blank">Review</a>
 			<a class="stats-link" href="/stats" target="_blank">Stats</a>
 		</div>
 	</header>

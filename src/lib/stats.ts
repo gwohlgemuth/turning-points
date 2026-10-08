@@ -1,4 +1,4 @@
-import { Chess } from 'chess.js';
+import { Chess, type Move } from 'chess.js';
 import { mergeAdjacentComments, splitPgn, summaryFromPgn } from './games.ts';
 import { answeredCount, readNotes, type Verdict } from './notes.ts';
 
@@ -9,6 +9,7 @@ export type StatsEntry = {
 	black: string;
 	ply: number;
 	move: string;
+	fen: string;
 	candidate: string;
 	verdict: Verdict;
 	answered: number;
@@ -22,11 +23,11 @@ export type StatsSummary = {
 	unchecked: number;
 };
 
-function history(pgn: string): string[] {
+function history(pgn: string): Move[] {
 	const chess = new Chess();
 	try {
 		chess.loadPgn(mergeAdjacentComments(pgn));
-		return chess.history();
+		return chess.history({ verbose: true });
 	} catch {
 		return [];
 	}
@@ -44,7 +45,8 @@ export function entriesFromPgn(file: string, pgn: string): StatsEntry[] {
 		white,
 		black,
 		ply,
-		move: moves[ply - 1] ?? '',
+		move: moves[ply - 1]?.san ?? '',
+		fen: moves[ply - 1]?.before ?? '',
 		candidate: notes[ply].candidate,
 		verdict: notes[ply].verdict,
 		answered: answeredCount(notes[ply])

@@ -93,6 +93,26 @@ export async function readPgnFiles(root: string, folder: string) {
 	);
 }
 
+const REVIEW_FILE = '.review.json';
+
+export async function readReview(root: string, folder: string): Promise<string> {
+	const absolute = resolveInside(root, folder);
+	try {
+		await checkRealPath(root, absolute);
+		return await readFile(join(absolute, REVIEW_FILE), 'utf8');
+	} catch (err) {
+		if ((err as NodeJS.ErrnoException).code === 'ENOENT') return '{}';
+		throw err;
+	}
+}
+
+export async function writeReview(root: string, folder: string, text: string): Promise<void> {
+	const absolute = resolveInside(root, folder);
+	await mkdir(absolute, { recursive: true });
+	await checkRealPath(root, absolute);
+	await writeFile(join(absolute, REVIEW_FILE), text);
+}
+
 async function holdsSameGame(path: string, text: string): Promise<boolean> {
 	if (!(await lstat(path)).isFile()) return false;
 	return sameGame(await readFile(path, 'utf8'), text);

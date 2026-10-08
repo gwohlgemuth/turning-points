@@ -2,7 +2,15 @@ import { mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeEach, describe, it, expect } from 'vitest';
-import { createFolder, isLocalAddress, listFolders, readPgnFiles, saveFile } from './files.ts';
+import {
+	createFolder,
+	isLocalAddress,
+	listFolders,
+	readPgnFiles,
+	readReview,
+	saveFile,
+	writeReview
+} from './files.ts';
 
 let root: string;
 
@@ -95,6 +103,19 @@ describe('readPgnFiles', () => {
 
 	it('rejects folders outside the root', async () => {
 		await expect(readPgnFiles(root, '../outside')).rejects.toThrow('home folder');
+	});
+});
+
+describe('readReview and writeReview', () => {
+	it('stores the review state in the save folder', async () => {
+		expect(await readReview(root, 'games')).toBe('{}');
+		await writeReview(root, 'games', '{"a":{"learned":true}}');
+		expect(readFileSync(join(root, 'games/.review.json'), 'utf8')).toBe('{"a":{"learned":true}}');
+		expect(await readReview(root, 'games')).toBe('{"a":{"learned":true}}');
+	});
+
+	it('rejects folders outside the root', async () => {
+		await expect(writeReview(root, '../outside', '{}')).rejects.toThrow('home folder');
 	});
 });
 
