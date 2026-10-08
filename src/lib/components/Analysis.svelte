@@ -518,8 +518,12 @@
 						</label>
 					</div>
 				{/if}
-				<button onclick={() => (setupOpen = !showSetup)} aria-expanded={showSetup}>
-					{showSetup ? 'Hide' : '⚙ Game & settings'}
+				<button
+					onclick={() => (setupOpen = !showSetup)}
+					aria-expanded={showSetup}
+					title="{showSetup ? 'Hide' : 'Show'} game loading and analysis settings"
+				>
+					{showSetup ? '⚙ Hide game & settings ▴' : '⚙ Game & settings ▾'}
 				</button>
 			{/if}
 			<button
