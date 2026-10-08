@@ -94,6 +94,7 @@
 	let selected = $state(0);
 	let flipped = $state(false);
 	let opened = $state<Record<number, boolean>>({});
+	let checkedBest = $state<Record<number, string>>({});
 	let notes = $state<Record<number, Notes>>({});
 	let notesOpen = $state<Record<number, boolean>>({});
 	let revealed = $state<Record<number, boolean>>({});
@@ -181,8 +182,9 @@
 		const candidate = notes[tp.ply]?.candidate;
 		const squares = candidate ? moveSquares(move.fenBefore, candidate) : null;
 		if (squares) result.push({ ...squares, kind: 'candidate' });
-		const best = evals[tp.ply - 1]?.best;
-		if (best) result.push({ ...uciSquares(best), kind: 'best' });
+		const checked = checkedBest[tp.ply] ? moveSquares(move.fenBefore, checkedBest[tp.ply]) : null;
+		const best = checked ?? (evals[tp.ply - 1]?.best ? uciSquares(evals[tp.ply - 1].best!) : null);
+		if (best) result.push({ ...best, kind: 'best' });
 		return result;
 	});
 	let barEval = $derived(
@@ -293,6 +295,7 @@
 			headers = event.headers;
 			evals = [];
 			opened = {};
+			checkedBest = {};
 			notes = readNotes(pgn);
 			savedNotes = notesSignature(notes);
 			notesOpen = {};
@@ -948,7 +951,10 @@
 											{depth}
 											{side}
 											verdict={notes[tp.ply].verdict}
-											onverdict={(found) => setVerdict(tp.ply, found)}
+											onverdict={(found, best) => {
+												if (best) checkedBest[tp.ply] = best;
+												setVerdict(tp.ply, found);
+											}}
 										/>
 									{/if}
 									{#if opened[tp.ply] && !hidden}
