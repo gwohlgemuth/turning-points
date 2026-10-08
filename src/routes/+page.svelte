@@ -449,11 +449,37 @@
 					<span class="muted small">{winPercents.length}/{positions}</span>
 					<button onclick={stop}>Stop</button>
 				{:else}
-					<span class="muted small">
-						For {(side === 'w' ? headers.White : headers.Black) ??
-							(side === 'w' ? 'White' : 'Black')}
-						· Depth {depth}
-					</span>
+					<div
+						class="quick-settings muted small"
+						title={unsaved ? 'Save your notes first' : undefined}
+					>
+						<label>
+							For
+							<select
+								bind:value={side}
+								onchange={() => (flipped = side === 'b')}
+								disabled={unsaved}
+							>
+								<option value="w">{headers.White ?? 'White'} (White)</option>
+								<option value="b">{headers.Black ?? 'Black'} (Black)</option>
+							</select>
+						</label>
+						<label>
+							Depth
+							<input
+								type="number"
+								min="6"
+								max="30"
+								bind:value={depth}
+								onchange={analyze}
+								disabled={unsaved}
+							/>
+						</label>
+						<label>
+							Lines
+							<input type="number" min="1" max="5" bind:value={lines} disabled={unsaved} />
+						</label>
+					</div>
 				{/if}
 				<button onclick={() => (setupOpen = !showSetup)} aria-expanded={showSetup}>
 					{showSetup ? 'Hide' : '⚙ Game & settings'}
@@ -870,6 +896,28 @@
 		justify-content: flex-end;
 		gap: 10px;
 		margin-left: auto;
+	}
+
+	.quick-settings {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 10px;
+	}
+
+	.quick-settings label {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+	}
+
+	.quick-settings input,
+	.quick-settings select {
+		padding: 4px 6px;
+	}
+
+	.quick-settings input {
+		width: 4.5em;
 	}
 
 	.stats-link {
