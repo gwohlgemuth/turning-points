@@ -13,16 +13,19 @@
 	});
 </script>
 
-{#if hidden}
-	<div class="bar hidden" title="Evaluation hidden until you reveal">
-		<span class="label">?</span>
-	</div>
-{:else}
-	<div class="bar" class:flipped title="Evaluation">
-		<div class="white" style:height="{winPercent}%"></div>
+<div
+	class="bar"
+	class:flipped
+	class:hidden
+	title={hidden ? 'Evaluation hidden until you reveal' : 'Evaluation'}
+>
+	<div class="white" style:height="{hidden ? 50 : winPercent}%"></div>
+	{#if hidden}
+		<span class="cover">?</span>
+	{:else}
 		<span class="label" class:on-white={whiteAhead}>{label}</span>
-	</div>
-{/if}
+	{/if}
+</div>
 
 <style>
 	.bar {
@@ -43,15 +46,23 @@
 		flex-direction: column;
 	}
 
-	.bar.hidden {
+	.cover {
+		position: absolute;
+		inset: 0;
+		display: flex;
+		align-items: center;
 		justify-content: center;
+		font-size: 14px;
+		font-weight: 700;
+		color: #b5b0a8;
 		background: repeating-linear-gradient(-45deg, #4a4741 0 6px, #3a3833 6px 12px);
+		animation: cover-in 0.25s ease-out;
 	}
 
-	.hidden .label {
-		position: static;
-		font-size: 14px;
-		color: #b5b0a8;
+	@keyframes cover-in {
+		from {
+			opacity: 0;
+		}
 	}
 
 	.white {

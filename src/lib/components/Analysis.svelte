@@ -12,6 +12,7 @@
 	import { describeTime, formatDuration } from '#lib/clock.ts';
 	import Variations from '#lib/components/Variations.svelte';
 	import CandidateCheck from '#lib/components/CandidateCheck.svelte';
+	import CountUp from '#lib/components/CountUp.svelte';
 	import {
 		findTurningPoints,
 		formatLine,
@@ -791,7 +792,7 @@
 												class="evals"
 												title="Winning chances {tp.delta > 0 ? '+' : ''}{tp.delta.toFixed(1)}%"
 											>
-												{formatScore(before.score)} → {formatScore(after.score)}
+												<CountUp score={before.score} /> → <CountUp score={after.score} />
 											</span>
 										{/if}
 										{#if move.time}
@@ -1506,6 +1507,18 @@
 		font-size: 0.9rem;
 	}
 
+	.judgement {
+		display: inline-block;
+		animation: pop-in 0.35s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+	}
+
+	@keyframes pop-in {
+		from {
+			transform: scale(0);
+			opacity: 0;
+		}
+	}
+
 	.judgement.inaccuracy {
 		color: #56b4e9;
 	}
@@ -1516,8 +1529,9 @@
 
 	.judgement.blunder {
 		color: #df5353;
-		display: inline-block;
-		animation: pulse 0.6s ease-out 0.4s 2;
+		animation:
+			pop-in 0.35s cubic-bezier(0.3, 1.6, 0.5, 1) both,
+			pulse 0.6s ease-out 0.4s 2;
 	}
 
 	@keyframes pulse {

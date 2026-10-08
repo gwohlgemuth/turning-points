@@ -7,6 +7,9 @@
 		type PositionEval,
 		type TurningPoint
 	} from '#lib/analysis.ts';
+	import { cubicOut } from 'svelte/easing';
+	import { Tween } from 'svelte/motion';
+	import { ms } from '#lib/motion.ts';
 
 	type Props = {
 		winPercents: number[];
@@ -41,7 +44,17 @@
 	const left = (index: number) => `${((index * step) / width) * 100}%`;
 	const top = (wp: number) => `${(y(wp) / height) * 100}%`;
 
-	let shown = $derived(winPercents.slice(0, visible));
+	const reveal = new Tween(0, { duration: () => ms(900), easing: cubicOut });
+	let lastVisible = Infinity;
+	$effect(() => {
+		const target = Math.min(visible, winPercents.length);
+		const revealed = visible > lastVisible;
+		lastVisible = visible;
+		if (revealed) reveal.target = target;
+		else reveal.set(target, { duration: 0 });
+	});
+
+	let shown = $derived(winPercents.slice(0, Math.round(reveal.current)));
 	let line = $derived(shown.map((wp, i) => `${i * step},${y(wp)}`).join(' '));
 	let area = $derived(
 		shown.length ? `0,${height} ${line} ${(shown.length - 1) * step},${height}` : ''
