@@ -231,11 +231,13 @@
 							</span>
 						{/each}
 					</span>
-					{#if info && (info.worked || tab === 'online')}
+					{#if info && (info.worked || tab !== 'saved')}
 						<span
 							class="badge"
 							title="{info.worked} turning points worked on · {info.found} found · {info.missed} missed"
-							>{info.worked ? `✓ ${info.worked}` : 'Saved'}</span
+							>{info.worked
+								? `✎ ${info.worked} ${info.worked === 1 ? 'note' : 'notes'}`
+								: 'Saved'}</span
 						>
 					{/if}
 					<span class="meta">

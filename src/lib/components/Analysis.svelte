@@ -33,6 +33,7 @@
 	} from '#lib/analysis.ts';
 	import {
 		gameKey,
+		gameUrl,
 		pgnFilename,
 		parseRating,
 		pgnHeader,
@@ -101,7 +102,11 @@
 	let loaderTab = $state<'online' | 'saved' | 'recent'>('online');
 	let recent = $state<RecentEntry[]>([]);
 	let recentGames = $derived(
-		recent.map((entry, i) => ({ ...summaryFromPgn(entry.pgn, i), id: `recent:${entry.key}` }))
+		recent.map((entry, i) => ({
+			...summaryFromPgn(entry.pgn, i),
+			id: `recent:${entry.key}`,
+			url: gameUrl(entry.pgn) ?? ''
+		}))
 	);
 
 	onMount(() => {
