@@ -9,6 +9,7 @@
 	} from '#lib/analysis.ts';
 	import Board, { type BoardMove } from '#lib/components/Board.svelte';
 	import CandidateCheck from '#lib/components/CandidateCheck.svelte';
+	import CountUp from '#lib/components/CountUp.svelte';
 	import { fetchScore } from '#lib/lines.ts';
 	import { REVIEW_DEPTH } from '#lib/review.ts';
 	import type { PageProps } from './$types';
@@ -23,6 +24,8 @@
 	let message = $state('');
 	let found = $state(0);
 	let missed = $state(0);
+	let streak = $state(0);
+	let longestStreak = $state(0);
 
 	let card = $derived(data.due[index] ?? null);
 	let move = $derived.by((): Move | null => {
@@ -91,6 +94,8 @@
 		best = bestMove;
 		if (result) found++;
 		else missed++;
+		streak = result ? streak + 1 : 0;
+		longestStreak = Math.max(longestStreak, streak);
 		const response = await fetch('/api/review', {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
@@ -133,11 +138,22 @@
 			</p>
 		</section>
 	{:else if !card || !move}
-		<section class="card">
+		<section class="card done">
+			{#if found}
+				<div class="burst" aria-hidden="true">
+					{#each { length: 14 }, i (i)}
+						<span style:--angle="{i * (360 / 14)}deg"></span>
+					{/each}
+				</div>
+			{/if}
 			<h2 class="card-title">All done for today</h2>
-			<p>
-				<span class="found">✓ {found} found</span> · <span class="missed">✗ {missed} missed</span>
+			<p class="result">
+				<span class="found">✓ <CountUp value={found} /> found</span> ·
+				<span class="missed">✗ <CountUp value={missed} /> missed</span>
 			</p>
+			{#if longestStreak > 1}
+				<p class="muted">Longest streak: {longestStreak} in a row</p>
+			{/if}
 		</section>
 	{:else}
 		<section class="card trainer">
@@ -151,7 +167,14 @@
 				/>
 			</div>
 			<div class="info">
-				<h2 class="card-title">Card {index + 1} of {data.due.length}</h2>
+				<h2 class="card-title">
+					Card {index + 1} of {data.due.length}
+					{#if streak > 1}
+						{#key streak}
+							<span class="streak">🔥 {streak} in a row</span>
+						{/key}
+					{/if}
+				</h2>
 				<p>
 					<strong>{card.white} – {card.black}</strong>
 					<span class="muted small">{formatDate(card.date)}</span>
@@ -256,6 +279,65 @@
 
 	.found {
 		color: var(--good);
+	}
+
+	.streak {
+		display: inline-block;
+		margin-left: 10px;
+		color: var(--accent-2);
+		letter-spacing: normal;
+		text-transform: none;
+		animation: bump 0.4s cubic-bezier(0.3, 1.6, 0.5, 1);
+	}
+
+	@keyframes bump {
+		from {
+			transform: scale(0.5);
+			opacity: 0;
+		}
+	}
+
+	.done {
+		position: relative;
+		overflow: hidden;
+		text-align: center;
+	}
+
+	.result {
+		font-size: 1.6rem;
+		font-weight: 700;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.burst span {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		width: 8px;
+		height: 8px;
+		border-radius: 2px;
+		background: var(--accent);
+		opacity: 0;
+		animation: fly 1.1s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s;
+	}
+
+	.burst span:nth-child(3n) {
+		background: var(--good);
+	}
+
+	.burst span:nth-child(3n + 1) {
+		background: var(--accent-2);
+	}
+
+	@keyframes fly {
+		from {
+			opacity: 1;
+			transform: rotate(var(--angle)) translateY(0);
+		}
+		to {
+			opacity: 0;
+			transform: rotate(var(--angle)) translateY(-140px) rotate(180deg);
+		}
 	}
 
 	.missed,

@@ -117,11 +117,41 @@
 	}
 
 	.verdict {
+		justify-self: start;
+		display: inline-block;
 		color: var(--danger);
+		animation: shake 0.45s ease-in-out;
 	}
 
 	.verdict.found {
 		color: #6fcf7f;
+		animation:
+			pop 0.45s cubic-bezier(0.3, 1.6, 0.5, 1),
+			glow 1.2s ease-out;
+	}
+
+	@keyframes shake {
+		20%,
+		60% {
+			transform: translateX(-4px);
+		}
+		40%,
+		80% {
+			transform: translateX(4px);
+		}
+	}
+
+	@keyframes pop {
+		from {
+			transform: scale(0.3);
+			opacity: 0;
+		}
+	}
+
+	@keyframes glow {
+		from {
+			text-shadow: 0 0 14px rgb(111 207 127 / 0.9);
+		}
 	}
 
 	.muted {
