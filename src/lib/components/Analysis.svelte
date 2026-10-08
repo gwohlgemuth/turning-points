@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Chess } from 'chess.js';
+	import { onMount } from 'svelte';
 	import { flip } from 'svelte/animate';
 	import { fade, fly, slide } from 'svelte/transition';
 	import { ms } from '#lib/motion.ts';
@@ -31,6 +32,7 @@
 		winPercent
 	} from '#lib/analysis.ts';
 	import {
+		gameKey,
 		pgnFilename,
 		parseRating,
 		pgnHeader,
@@ -49,6 +51,14 @@
 		writeNotes,
 		type Notes
 	} from '#lib/notes.ts';
+	import {
+		findAnalysis,
+		loadRecent,
+		remember,
+		saveRecent,
+		updatePgn,
+		type RecentEntry
+	} from '#lib/recent.ts';
 	import { saving, savePgn } from '#lib/saving.svelte.ts';
 	import { playFound, playMissed, sound } from '#lib/sound.svelte.ts';
 	import { updatePreferences, type Preferences } from '#lib/preferences.ts';
@@ -87,7 +97,20 @@
 	let revealed = $state<Record<number, boolean>>({});
 	let savedNotes = $state(notesSignature({}));
 	let loadedGames = $state<GameSummary[]>([]);
-	let loaderTab = $state<'online' | 'saved'>('online');
+	let loaderTab = $state<'online' | 'saved' | 'recent'>('online');
+	let recent = $state<RecentEntry[]>([]);
+	let recentGames = $derived(
+		recent.map((entry, i) => ({ ...summaryFromPgn(entry.pgn, i), id: `recent:${entry.key}` }))
+	);
+
+	onMount(() => {
+		recent = loadRecent();
+	});
+
+	function keepRecent(list: RecentEntry[]) {
+		recent = list;
+		saveRecent(list);
+	}
 	let exploration = $state<{
 		base: number;
 		moves: BoardMove[];
@@ -284,14 +307,33 @@
 		}
 	}
 
+	function replay(entry: RecentEntry) {
+		handleEvent({
+			type: 'start',
+			startFen: entry.startFen,
+			moves: entry.moves,
+			headers: entry.headers
+		});
+		for (const evaluation of entry.evals) handleEvent({ type: 'eval', eval: evaluation });
+		status = 'done';
+		keepRecent(remember(recent, { ...entry, pgn }));
+	}
+
 	async function analyze() {
 		if (unsaved && !confirm('Your notes are not saved yet. Discard them?')) return;
 		controller?.abort();
 		controller = new AbortController();
-		status = 'running';
 		message = '';
 		setupOpen = false;
 		window.scrollTo({ top: 0 });
+		const key = gameKey(pgn);
+		const cached = findAnalysis(recent, key, depth);
+		if (cached) {
+			replay(cached);
+			return;
+		}
+		const analyzed = { pgn, depth };
+		status = 'running';
 		try {
 			const response = await fetch('/api/analyze', {
 				method: 'POST',
@@ -314,6 +356,19 @@
 				for (const line of lines) if (line.trim()) handleEvent(JSON.parse(line));
 			}
 			if (status === 'running') status = 'done';
+			if (key && status === 'done' && evals.length === positions && evals.every(Boolean)) {
+				keepRecent(
+					remember(recent, {
+						key,
+						...analyzed,
+						startFen,
+						moves,
+						headers,
+						evals,
+						analyzedAt: Date.now()
+					})
+				);
+			}
 		} catch (err) {
 			if ((err as Error).name === 'AbortError') return;
 			status = 'error';
@@ -365,6 +420,7 @@
 		const previous = savedNotes;
 		savedNotes = notesSignature(notes);
 		pgn = writeNotes(pgn, notes);
+		keepRecent(updatePgn(recent, gameKey(pgn), pgn));
 		await savePgn(pgn, pgnFilename(pgn), true);
 		if (saving.failed) savedNotes = previous;
 	}
@@ -545,6 +601,7 @@
 					onselect={loadGame}
 					bind:games={loadedGames}
 					bind:tab={loaderTab}
+					recent={recentGames}
 					{preferences}
 				/>
 				<textarea bind:value={pgn} rows="6" placeholder="…or paste a PGN here"></textarea>

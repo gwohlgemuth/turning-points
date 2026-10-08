@@ -24,11 +24,18 @@
 	type Props = {
 		onselect: (game: GameSummary, side: Side) => void;
 		games?: GameSummary[];
-		tab?: 'online' | 'saved';
+		tab?: 'online' | 'saved' | 'recent';
+		recent?: GameSummary[];
 		preferences: Preferences;
 	};
 
-	let { onselect, games = $bindable([]), tab = $bindable('online'), preferences }: Props = $props();
+	let {
+		onselect,
+		games = $bindable([]),
+		tab = $bindable('online'),
+		recent = [],
+		preferences
+	}: Props = $props();
 
 	const initial = untrack(() => preferences);
 	let source = $state<GameSource>(initial.source);
@@ -42,7 +49,7 @@
 	let savedLoaded = $state(false);
 	let query = $state('');
 	let outcomeFilter = $state<Outcome | ''>('');
-	let list = $derived<GameSummary[]>(tab === 'online' ? games : saved);
+	let list = $derived<GameSummary[]>(tab === 'online' ? games : tab === 'saved' ? saved : recent);
 	let savedByUrl = $derived(new Map(saved.filter((game) => game.url).map((g) => [g.url, g])));
 	const players = $derived(playersByCount(list));
 	let perspective = $derived(
@@ -64,7 +71,7 @@
 		}
 	}
 
-	function showTab(next: 'online' | 'saved') {
+	function showTab(next: 'online' | 'saved' | 'recent') {
 		tab = next;
 		message = '';
 		loadSaved();
@@ -123,6 +130,12 @@
 		aria-selected={tab === 'saved'}
 		class:on={tab === 'saved'}
 		onclick={() => showTab('saved')}>My games</button
+	>
+	<button
+		role="tab"
+		aria-selected={tab === 'recent'}
+		class:on={tab === 'recent'}
+		onclick={() => showTab('recent')}>Recent</button
 	>
 </div>
 
@@ -227,6 +240,8 @@
 	</div>
 {:else if tab === 'saved' && savedLoaded && !message}
 	<p class="muted">No saved games yet. Games you save appear here.</p>
+{:else if tab === 'recent'}
+	<p class="muted">No recent games yet. Games you analyze appear here.</p>
 {/if}
 
 <style>

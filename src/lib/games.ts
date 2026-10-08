@@ -82,6 +82,10 @@ function mainline(pgn: string): string | null {
 	return [...players, ...chess.history()].join(' ');
 }
 
+export function gameKey(pgn: string): string | null {
+	return gameUrl(pgn) ?? mainline(pgn);
+}
+
 export function sameGame(a: string, b: string): boolean {
 	if (splitPgn(a).length !== 1 || splitPgn(b).length !== 1) return false;
 	const [urlA, urlB] = [gameUrl(a), gameUrl(b)];

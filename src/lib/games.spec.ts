@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
 	filterGames,
+	gameKey,
 	gameOutcome,
 	gamesToPgn,
 	mergeAdjacentComments,
@@ -163,5 +164,13 @@ describe('gameOutcome and filterGames', () => {
 		expect(filterGames(games, ' me  bob ', '', 'me').map((game) => game.white)).toEqual(['Bob']);
 		expect(filterGames(games, '', 'loss', 'me').map((game) => game.white)).toEqual(['Bob']);
 		expect(filterGames(games, '', '', 'me')).toHaveLength(3);
+	});
+});
+
+describe('gameKey', () => {
+	it('prefers the game URL and falls back to players and moves', () => {
+		expect(gameKey('[Site "https://lichess.org/abc"]\n\n1. e4 *')).toBe('https://lichess.org/abc');
+		expect(gameKey('[White "A"]\n[Black "B"]\n\n1. e4 e5 *')).toBe('A B e4 e5');
+		expect(gameKey('not a game 1. Kx9')).toBeNull();
 	});
 });
