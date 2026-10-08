@@ -518,25 +518,27 @@
 
 			<section class="card settings">
 				<h2 class="card-title">Analysis</h2>
-				<div class="controls">
-					<label>
-						<span>Analyze for</span>
-						<select bind:value={side} onchange={() => (flipped = side === 'b')}>
-							<option value="w">{pgnHeader(pgn, 'White') ?? 'White'} (White)</option>
-							<option value="b">{pgnHeader(pgn, 'Black') ?? 'Black'} (Black)</option>
-						</select>
-					</label>
-					<div class="pair">
+				{#if !moves.length}
+					<div class="controls">
 						<label>
-							<span>Depth</span>
-							<input type="number" min="6" max="30" bind:value={depth} />
+							<span>Analyze for</span>
+							<select bind:value={side} onchange={() => (flipped = side === 'b')}>
+								<option value="w">{pgnHeader(pgn, 'White') ?? 'White'} (White)</option>
+								<option value="b">{pgnHeader(pgn, 'Black') ?? 'Black'} (Black)</option>
+							</select>
 						</label>
-						<label>
-							<span>Engine lines</span>
-							<input type="number" min="1" max="5" bind:value={lines} />
-						</label>
+						<div class="pair">
+							<label>
+								<span>Depth</span>
+								<input type="number" min="6" max="30" bind:value={depth} />
+							</label>
+							<label>
+								<span>Engine lines</span>
+								<input type="number" min="1" max="5" bind:value={lines} />
+							</label>
+						</div>
 					</div>
-				</div>
+				{/if}
 				{#if status === 'running'}
 					<button class="analyze" onclick={stop}>Stop</button>
 					<div class="progress" role="progressbar" aria-valuenow={progress}>
