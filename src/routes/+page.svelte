@@ -308,6 +308,11 @@
 		select(ply - 1);
 	}
 
+	function clearCandidate(ply: number) {
+		notes[ply].candidate = '';
+		notes[ply].verdict = '';
+	}
+
 	function setVerdict(ply: number, found: boolean) {
 		const verdict = found ? 'found' : 'missed';
 		if (notes[ply].verdict !== verdict) notes[ply].verdict = verdict;
@@ -756,6 +761,11 @@
 											{#if hidden}
 												<button class="reveal" onclick={() => reveal(tp.ply)} disabled={analyzing}
 													>Reveal</button
+												>
+											{:else if notes[tp.ply]?.candidate}
+												<button
+													onclick={() => clearCandidate(tp.ply)}
+													title="Remove the candidate and its result from the stats">Reset</button
 												>
 											{/if}
 										</span>
