@@ -531,6 +531,7 @@
 							score={barEval?.score ?? null}
 							winPercent={barEval?.winPercent ?? 50}
 							{flipped}
+							hidden={evalHidden && !playing}
 						/>
 						<Board
 							fen={boardFen}

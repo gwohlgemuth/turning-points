@@ -1,9 +1,9 @@
 <script lang="ts">
 	import type { Score } from '#lib/analysis.ts';
 
-	type Props = { score: Score | null; winPercent: number; flipped?: boolean };
+	type Props = { score: Score | null; winPercent: number; flipped?: boolean; hidden?: boolean };
 
-	let { score, winPercent, flipped = false }: Props = $props();
+	let { score, winPercent, flipped = false, hidden = false }: Props = $props();
 
 	let whiteAhead = $derived(winPercent >= 50);
 	let label = $derived.by(() => {
@@ -13,10 +13,16 @@
 	});
 </script>
 
-<div class="bar" class:flipped title="Evaluation">
-	<div class="white" style:height="{winPercent}%"></div>
-	<span class="label" class:on-white={whiteAhead}>{label}</span>
-</div>
+{#if hidden}
+	<div class="bar hidden" title="Evaluation hidden until you reveal">
+		<span class="label">?</span>
+	</div>
+{:else}
+	<div class="bar" class:flipped title="Evaluation">
+		<div class="white" style:height="{winPercent}%"></div>
+		<span class="label" class:on-white={whiteAhead}>{label}</span>
+	</div>
+{/if}
 
 <style>
 	.bar {
@@ -35,6 +41,17 @@
 
 	.bar.flipped {
 		flex-direction: column;
+	}
+
+	.bar.hidden {
+		justify-content: center;
+		background: repeating-linear-gradient(-45deg, #4a4741 0 6px, #3a3833 6px 12px);
+	}
+
+	.hidden .label {
+		position: static;
+		font-size: 14px;
+		color: #b5b0a8;
 	}
 
 	.white {
