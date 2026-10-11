@@ -3,12 +3,16 @@
 	import { slide } from 'svelte/transition';
 	import { ms } from '#lib/motion.ts';
 	import type { Side } from '#lib/analysis.ts';
+	import { analyzeGame, markTurningPoints } from '#lib/batch.ts';
+	import type { RecentEntry } from '#lib/recent.ts';
 	import {
 		GAME_COUNTS,
 		filterGames,
 		formatGameDate,
+		gameKey,
 		gameOutcome,
 		gamesToPgn,
+		pgnFilename,
 		playerSide,
 		playersByCount,
 		today,
@@ -18,7 +22,7 @@
 		type Outcome
 	} from '#lib/games.ts';
 	import type { SavedGame } from '#lib/stats.ts';
-	import { savePgn } from '#lib/saving.svelte.ts';
+	import { savePgn, saving } from '#lib/saving.svelte.ts';
 	import { updatePreferences, type Preferences } from '#lib/preferences.ts';
 
 	type Props = {
@@ -28,6 +32,10 @@
 		recent?: GameSummary[];
 		onforget?: (id: string) => void;
 		onclear?: () => void;
+		onanalyzed?: (entry: RecentEntry) => void;
+		onbatch?: (running: boolean) => void;
+		depth: number;
+		count: number;
 		preferences: Preferences;
 	};
 
@@ -38,6 +46,10 @@
 		recent = [],
 		onforget,
 		onclear,
+		onanalyzed,
+		onbatch,
+		depth,
+		count,
 		preferences
 	}: Props = $props();
 
@@ -123,6 +135,38 @@
 		savePgn(gamesToPgn(games), `${username.trim() || 'games'}-${today()}.pgn`);
 	}
 
+	let batch = $state<{ done: number; total: number } | null>(null);
+	let batchController: AbortController | null = null;
+	let unworked = $derived(shown.filter((game) => !progress(game)?.worked));
+
+	async function analyzeAll() {
+		const queue = [...unworked];
+		batchController = new AbortController();
+		batch = { done: 0, total: queue.length };
+		onbatch?.(true);
+		message = '';
+		try {
+			for (const game of queue) {
+				const side = playerSide(game, perspective) ?? 'w';
+				const result = await analyzeGame(game.pgn, depth, batchController.signal);
+				const pgn = markTurningPoints(game.pgn, result.evals, count, side);
+				await savePgn(pgn, pgnFilename(pgn));
+				if (saving.failed) throw new Error(saving.message);
+				const key = gameKey(pgn);
+				if (key) onanalyzed?.({ key, pgn, depth, ...result, analyzedAt: Date.now() });
+				batch.done++;
+			}
+			saving.message = `Analyzed and saved ${queue.length} ${queue.length === 1 ? 'game' : 'games'}`;
+		} catch (err) {
+			if ((err as Error).name !== 'AbortError') message = (err as Error).message;
+		} finally {
+			batch = null;
+			batchController = null;
+			onbatch?.(false);
+			loadSaved();
+		}
+	}
+
 	const OUTCOME_LABELS = { win: 'Win', loss: 'Loss', draw: 'Draw' };
 </script>
 
@@ -131,18 +175,21 @@
 		role="tab"
 		aria-selected={tab === 'online'}
 		class:on={tab === 'online'}
+		disabled={!!batch}
 		onclick={() => showTab('online')}>Online</button
 	>
 	<button
 		role="tab"
 		aria-selected={tab === 'saved'}
 		class:on={tab === 'saved'}
+		disabled={!!batch}
 		onclick={() => showTab('saved')}>My games</button
 	>
 	<button
 		role="tab"
 		aria-selected={tab === 'recent'}
 		class:on={tab === 'recent'}
+		disabled={!!batch}
 		onclick={() => showTab('recent')}>Recent</button
 	>
 </div>
@@ -209,7 +256,11 @@
 			{@const mine = gameOutcome(game, perspective)}
 			{@const info = progress(game)}
 			<li>
-				<button class:selected={selectedId === game.id} onclick={() => choose(game)}>
+				<button
+					class:selected={selectedId === game.id}
+					disabled={!!batch}
+					onclick={() => choose(game)}
+				>
 					{#if perspective}
 						<span class="outcome {mine ?? ''}">{mine ? OUTCOME_LABELS[mine] : ''}</span>
 					{/if}
@@ -260,7 +311,25 @@
 			>{shown.length === list.length ? '' : `${shown.length} of `}{list.length} games</span
 		>
 		{#if tab === 'online'}
-			<button onclick={save}>Save all</button>
+			<div class="actions">
+				{#if batch}
+					<span class="muted">Analyzing {batch.done + 1}/{batch.total}…</span>
+					<button onclick={() => batchController?.abort()}>Stop</button>
+				{:else}
+					{#if !perspective}
+						<span class="muted small">Choose a player under View as</span>
+					{/if}
+					<button
+						class="primary"
+						onclick={analyzeAll}
+						disabled={!perspective || !unworked.length}
+						title="Analyze and save the {count} turning points of {perspective ||
+							'the chosen player'} in each game without notes"
+						>Analyze all ({unworked.length})</button
+					>
+				{/if}
+				<button onclick={save} disabled={!!batch}>Save all</button>
+			</div>
 		{:else if tab === 'recent'}
 			<button onclick={() => confirm('Remove all games from Recent?') && onclear?.()}
 				>Clear recent</button
@@ -346,6 +415,18 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
+		gap: 8px;
+	}
+
+	.small {
+		font-size: 0.85rem;
+	}
+
+	.actions {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: flex-end;
 		gap: 8px;
 	}
 

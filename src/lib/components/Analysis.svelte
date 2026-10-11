@@ -62,6 +62,7 @@
 		type RecentEntry
 	} from '#lib/recent.ts';
 	import { saving, savePgn } from '#lib/saving.svelte.ts';
+	import { streamAnalysis } from '#lib/stream.ts';
 	import { playFound, playMissed, sound } from '#lib/sound.svelte.ts';
 	import { updatePreferences, type Preferences } from '#lib/preferences.ts';
 
@@ -131,6 +132,7 @@
 	let elo = $state(1500);
 	let engineThinking = $state(false);
 	let engineError = $state('');
+	let batchRunning = $state(false);
 	let autoplay = $state(false);
 	let speed = $state(1000);
 	const SPEEDS = [500, 1000, 2000, 3000];
@@ -344,26 +346,7 @@
 		const analyzed = { pgn, depth };
 		status = 'running';
 		try {
-			const response = await fetch('/api/analyze', {
-				method: 'POST',
-				headers: { 'content-type': 'application/json' },
-				body: JSON.stringify({ pgn, depth }),
-				signal: controller.signal
-			});
-			if (!response.ok || !response.body) {
-				const body = await response.json().catch(() => ({}));
-				throw new Error(body.message ?? `Request failed (${response.status})`);
-			}
-			const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
-			let buffer = '';
-			while (true) {
-				const { value, done } = await reader.read();
-				if (done) break;
-				buffer += value;
-				const lines = buffer.split('\n');
-				buffer = lines.pop() ?? '';
-				for (const line of lines) if (line.trim()) handleEvent(JSON.parse(line));
-			}
+			await streamAnalysis(pgn, depth, controller.signal, handleEvent);
 			if (status === 'running') status = 'done';
 			if (key && status === 'done' && evals.length === positions && evals.every(Boolean)) {
 				keepRecent(
@@ -434,7 +417,7 @@
 	}
 
 	function warnUnsaved(event: BeforeUnloadEvent) {
-		if (unsaved) event.preventDefault();
+		if (unsaved || batchRunning) event.preventDefault();
 	}
 
 	function show(index: number) {
@@ -584,6 +567,7 @@
 				{/if}
 				<button
 					onclick={() => (setupOpen = !showSetup)}
+					disabled={batchRunning}
 					aria-expanded={showSetup}
 					title="{showSetup ? 'Hide' : 'Show'} game loading and analysis settings"
 				>
@@ -612,6 +596,10 @@
 					recent={recentGames}
 					onforget={(id) => keepRecent(forget(recent, id.slice('recent:'.length)))}
 					onclear={() => keepRecent([])}
+					onanalyzed={(entry) => keepRecent(remember(recent, entry))}
+					onbatch={(running) => (batchRunning = running)}
+					{depth}
+					{count}
 					{preferences}
 				/>
 				<textarea bind:value={pgn} rows="6" placeholder="…or paste a PGN here"></textarea>
@@ -659,7 +647,7 @@
 					</div>
 					<span class="muted small">Analyzing… {winPercents.length}/{positions} positions</span>
 				{:else}
-					<button class="primary analyze" onclick={analyze} disabled={!pgn.trim()}
+					<button class="primary analyze" onclick={analyze} disabled={!pgn.trim() || batchRunning}
 						>Analyze game</button
 					>
 				{/if}
