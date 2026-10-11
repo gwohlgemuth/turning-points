@@ -162,7 +162,52 @@ details > summary:hover {
 	scrollbar-color: var(--surface-3) transparent;
 }
 
+main > header .logo {
+	view-transition-name: logo;
+}
+
+main > header h1 {
+	view-transition-name: page-title;
+}
+
+::view-transition-old(root) {
+	animation: 90ms ease-in both page-out;
+}
+
+::view-transition-new(root) {
+	animation: 200ms ease-out 80ms both page-in;
+}
+
+::view-transition-group(logo),
+::view-transition-group(page-title) {
+	animation-duration: 220ms;
+	animation-timing-function: ease-out;
+}
+
+@keyframes page-out {
+	to {
+		opacity: 0;
+	}
+}
+
+@keyframes page-in {
+	from {
+		opacity: 0;
+		transform: translateX(var(--page-shift, 8px));
+	}
+}
+
+:root[data-direction='back'] {
+	--page-shift: -8px;
+}
+
 @media (prefers-reduced-motion: reduce) {
+	::view-transition-group(*),
+	::view-transition-old(*),
+	::view-transition-new(*) {
+		animation: none !important;
+	}
+
 	*,
 	*::before,
 	*::after {
