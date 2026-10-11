@@ -20,7 +20,7 @@
 	--graph-black: #1e2430;
 	--radius: 14px;
 	--shadow: 0 12px 32px rgb(0 0 0 / 0.38);
-	font-family: 'Inter Variable', system-ui, sans-serif;
+	font-family: 'Inter Variable', 'Inter Fallback', system-ui, sans-serif;
 	font-feature-settings: 'cv11', 'ss01';
 }
 
