@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Nav from '#lib/components/Nav.svelte';
 	import { replaceState } from '$app/navigation';
 	import { prefersReducedMotion } from 'svelte/motion';
 
@@ -57,9 +58,7 @@
 			<h1>Guide</h1>
 			<p class="muted small">How to use Turning Points, and how to get the most out of it</p>
 		</div>
-		<a class="back first" href="/review">Review</a>
-		<a class="back" href="/stats">Stats</a>
-		<a class="back" href="/">← Back to analysis</a>
+		<div class="site-nav"><Nav /></div>
 	</header>
 
 	<div class="layout">
@@ -223,6 +222,10 @@
 </main>
 
 <style>
+	.site-nav {
+		margin-left: auto;
+	}
+
 	main {
 		max-width: 1180px;
 		margin: 0 auto;
@@ -303,6 +306,7 @@
 
 	header {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		gap: 12px;
 	}
@@ -330,19 +334,6 @@
 
 	header p {
 		margin: 2px 0 0;
-	}
-
-	.back.first {
-		margin-left: auto;
-	}
-
-	.back {
-		color: var(--accent-2);
-		text-decoration: none;
-	}
-
-	.back:hover {
-		text-decoration: underline;
 	}
 
 	.column p,

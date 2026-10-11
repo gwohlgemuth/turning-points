@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Nav from '#lib/components/Nav.svelte';
 	import { moveLabel } from '#lib/analysis.ts';
 	import Board from '#lib/components/Board.svelte';
 	import ProgressChart from '#lib/components/ProgressChart.svelte';
@@ -39,9 +40,7 @@
 			<h1>Stats</h1>
 			<p class="muted small">From the games in ~/{data.folder} and its subfolders</p>
 		</div>
-		<a class="back review" href="/review">Review</a>
-		<a class="back" href="/guide">Guide</a>
-		<a class="back" href="/">← Back to analysis</a>
+		<div class="site-nav"><Nav /></div>
 	</header>
 
 	<section class="tiles">
@@ -235,6 +234,10 @@
 </main>
 
 <style>
+	.site-nav {
+		margin-left: auto;
+	}
+
 	main {
 		max-width: 1180px;
 		margin: 0 auto;
@@ -245,6 +248,7 @@
 
 	header {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		gap: 12px;
 	}
@@ -272,19 +276,6 @@
 
 	header p {
 		margin: 2px 0 0;
-	}
-
-	.back.review {
-		margin-left: auto;
-	}
-
-	.back {
-		color: var(--accent-2);
-		text-decoration: none;
-	}
-
-	.back:hover {
-		text-decoration: underline;
 	}
 
 	.tiles {

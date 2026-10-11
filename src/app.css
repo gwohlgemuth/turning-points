@@ -184,6 +184,19 @@ main > header h1 {
 	animation-timing-function: ease-out;
 }
 
+::view-transition-group(nav-indicator) {
+	animation-duration: 250ms;
+	animation-timing-function: ease-out;
+}
+
+::view-transition-old(page-title),
+::view-transition-new(page-title) {
+	height: 100%;
+	width: auto;
+	object-fit: none;
+	object-position: left center;
+}
+
 @keyframes page-out {
 	to {
 		opacity: 0;

@@ -8,6 +8,7 @@
 	import EvalBar from '#lib/components/EvalBar.svelte';
 	import EvalGraph from '#lib/components/EvalGraph.svelte';
 	import GameLoader from '#lib/components/GameLoader.svelte';
+	import Nav from '#lib/components/Nav.svelte';
 	import SaveFolder from '#lib/components/SaveFolder.svelte';
 	import TimeChart from '#lib/components/TimeChart.svelte';
 	import { describeTime, formatDuration } from '#lib/clock.ts';
@@ -65,7 +66,7 @@
 	import { isFalseAlarm, isSpotted, readSpotFlags, spotScore, writeSpotFlags } from '#lib/spot.ts';
 	import { streamAnalysis } from '#lib/stream.ts';
 	import { playFound, playMissed, sound } from '#lib/sound.svelte.ts';
-	import { updatePreferences, type Preferences } from '#lib/preferences.ts';
+	import type { Preferences } from '#lib/preferences.ts';
 
 	type Props = { preferences: Preferences; active: boolean };
 
@@ -74,11 +75,6 @@
 	$effect.pre(() => {
 		sound.enabled = preferences.sound;
 	});
-
-	function toggleSound() {
-		sound.enabled = !sound.enabled;
-		updatePreferences({ sound: sound.enabled });
-	}
 
 	let pgn = $state('');
 	let count = $state(3);
@@ -627,16 +623,8 @@
 					{showSetup ? '⚙ Hide game & settings ▴' : '⚙ Game & settings ▾'}
 				</button>
 			{/if}
-			<button
-				class="sound"
-				onclick={toggleSound}
-				aria-pressed={sound.enabled}
-				title={sound.enabled ? 'Sound on' : 'Sound off'}>{sound.enabled ? '🔊' : '🔇'}</button
-			>
-			<a class="stats-link" href="/review">Review</a>
-			<a class="stats-link" href="/stats">Stats</a>
-			<a class="stats-link" href="/guide">Guide</a>
 		</div>
+		<Nav />
 	</header>
 
 	{#if showSetup}
@@ -645,7 +633,7 @@
 				<h2 class="card-title">Load a game</h2>
 				{#if !moves.length}
 					<p class="muted small">
-						New here? <a class="stats-link" href="/guide">Read the guide →</a>
+						New here? <a class="guide-link" href="/guide">Read the guide →</a>
 					</p>
 				{/if}
 				<GameLoader
@@ -1144,8 +1132,21 @@
 	}
 
 	.hero.compact {
+		align-items: flex-start;
 		gap: 12px;
 		margin-bottom: 0;
+	}
+
+	.hero.compact .toolbar {
+		min-height: 46px;
+	}
+
+	.hero.compact .logo {
+		margin-top: 3px;
+	}
+
+	.hero.compact .logo + div {
+		margin-top: 1px;
 	}
 
 	.hero.compact .logo {
@@ -1193,7 +1194,7 @@
 	}
 
 	.quick-settings input {
-		width: 4.5em;
+		width: 3.5em;
 	}
 
 	.spot {
@@ -1240,12 +1241,12 @@
 		font-size: 0.85em;
 	}
 
-	.stats-link {
+	.guide-link {
 		color: var(--accent-2);
 		text-decoration: none;
 	}
 
-	.stats-link:hover {
+	.guide-link:hover {
 		text-decoration: underline;
 	}
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Nav from '#lib/components/Nav.svelte';
 	import { Chess } from 'chess.js';
 	import {
 		moveSquares,
@@ -128,9 +129,7 @@
 				· {data.upcoming} upcoming · {data.learned} learned
 			</p>
 		</div>
-		<a class="back" href="/stats">Stats</a>
-		<a class="back" href="/guide">Guide</a>
-		<a class="back" href="/">← Back to analysis</a>
+		<div class="site-nav"><Nav /></div>
 	</header>
 
 	{#if !data.due.length}
@@ -211,6 +210,10 @@
 </main>
 
 <style>
+	.site-nav {
+		margin-left: auto;
+	}
+
 	main {
 		max-width: 1180px;
 		margin: 0 auto;
@@ -221,6 +224,7 @@
 
 	header {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		gap: 12px;
 	}
@@ -248,19 +252,6 @@
 
 	header p {
 		margin: 2px 0 0;
-	}
-
-	.back {
-		color: var(--accent-2);
-		text-decoration: none;
-	}
-
-	.back:first-of-type {
-		margin-left: auto;
-	}
-
-	.back:hover {
-		text-decoration: underline;
 	}
 
 	.trainer {
