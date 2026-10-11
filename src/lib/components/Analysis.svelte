@@ -582,6 +582,7 @@
 			>
 			<a class="stats-link" href="/review">Review</a>
 			<a class="stats-link" href="/stats">Stats</a>
+			<a class="stats-link" href="/guide">Guide</a>
 		</div>
 	</header>
 
@@ -589,6 +590,11 @@
 		<div class="top" transition:slide={{ duration: ms(200) }}>
 			<section class="card load">
 				<h2 class="card-title">Load a game</h2>
+				{#if !moves.length}
+					<p class="muted small">
+						New here? <a class="stats-link" href="/guide">Read the guide →</a>
+					</p>
+				{/if}
 				<GameLoader
 					onselect={loadGame}
 					bind:games={loadedGames}

@@ -39,6 +39,7 @@
 			<p class="muted small">From the games in ~/{data.folder} and its subfolders</p>
 		</div>
 		<a class="back review" href="/review">Review</a>
+		<a class="back" href="/guide">Guide</a>
 		<a class="back" href="/">← Back to analysis</a>
 	</header>
 

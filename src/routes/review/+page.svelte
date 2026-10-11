@@ -129,6 +129,7 @@
 			</p>
 		</div>
 		<a class="back" href="/stats">Stats</a>
+		<a class="back" href="/guide">Guide</a>
 		<a class="back" href="/">← Back to analysis</a>
 	</header>
 
