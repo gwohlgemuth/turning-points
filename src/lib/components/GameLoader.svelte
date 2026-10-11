@@ -58,6 +58,7 @@
 	let username = $state(initial.username);
 	let max = $state(initial.max);
 	let loading = $state(false);
+	let slideList = $state(false);
 	let message = $state('');
 	let selectedId = $state('');
 	let loadedUser = $state(initial.username);
@@ -92,6 +93,7 @@
 	}
 
 	function showTab(next: 'online' | 'saved' | 'recent') {
+		slideList = false;
 		tab = next;
 		message = '';
 		loadSaved();
@@ -106,6 +108,7 @@
 
 	async function load(event: SubmitEvent) {
 		event.preventDefault();
+		slideList = true;
 		loading = true;
 		message = '';
 		games = [];
@@ -194,33 +197,43 @@
 	>
 </div>
 
-{#if tab === 'online'}
-	<form class="loader" onsubmit={load}>
-		<select bind:value={source} aria-label="Source">
-			<option value="lichess">Lichess</option>
-			<option value="chesscom">Chess.com</option>
-		</select>
-		<input bind:value={username} placeholder="Username" aria-label="Username" required />
-		<select bind:value={max} aria-label="Number of games">
-			{#each GAME_COUNTS as count (count)}
-				<option value={count}>{count} games</option>
-			{/each}
-		</select>
-		<button type="submit" disabled={loading || !username.trim()}>
-			{loading ? 'Loading…' : 'Load games'}
-		</button>
-	</form>
-{/if}
+<div class="tab-controls">
+	{#if tab === 'online'}
+		<form class="loader" onsubmit={load}>
+			<select bind:value={source} aria-label="Source">
+				<option value="lichess">Lichess</option>
+				<option value="chesscom">Chess.com</option>
+			</select>
+			<input bind:value={username} placeholder="Username" aria-label="Username" required />
+			<select bind:value={max} aria-label="Number of games">
+				{#each GAME_COUNTS as count (count)}
+					<option value={count}>{count} games</option>
+				{/each}
+			</select>
+			<button type="submit" disabled={loading || !username.trim()}>
+				{loading ? 'Loading…' : 'Load games'}
+			</button>
+		</form>
+	{:else if tab === 'saved'}
+		{#if saved.length > worked.length}
+			<label class="show-all">
+				<input type="checkbox" bind:checked={showAll} />
+				Show games without notes ({saved.length - worked.length})
+			</label>
+		{:else if savedLoaded && !saved.length && !message}
+			<span class="muted">No saved games yet. Games you save appear here.</span>
+		{/if}
+	{:else if recent.length}
+		<button onclick={() => confirm('Remove all games from Recent?') && onclear?.()}
+			>Clear recent</button
+		>
+	{:else}
+		<span class="muted">No recent games yet. Games you analyze appear here.</span>
+	{/if}
+</div>
 
 {#if message}
 	<p class="muted">{message}</p>
-{/if}
-
-{#if tab === 'saved' && saved.length > worked.length}
-	<label class="show-all">
-		<input type="checkbox" bind:checked={showAll} />
-		Show games without notes ({saved.length - worked.length})
-	</label>
 {/if}
 
 {#if list.length}
@@ -250,7 +263,7 @@
 			{/each}
 		</select>
 	</label>
-	<ul class="games" transition:slide={{ duration: ms(200) }}>
+	<ul class="games" in:slide={{ duration: slideList ? ms(200) : 0 }}>
 		{#each shown as game (game.id)}
 			{@const won = winner(game.result)}
 			{@const mine = gameOutcome(game, perspective)}
@@ -330,18 +343,10 @@
 				{/if}
 				<button onclick={save} disabled={!!batch}>Save all</button>
 			</div>
-		{:else if tab === 'recent'}
-			<button onclick={() => confirm('Remove all games from Recent?') && onclear?.()}
-				>Clear recent</button
-			>
 		{/if}
 	</div>
-{:else if tab === 'saved' && savedLoaded && !message}
-	<p class="muted">
-		{saved.length ? 'No games with notes yet.' : 'No saved games yet. Games you save appear here.'}
-	</p>
-{:else if tab === 'recent'}
-	<p class="muted">No recent games yet. Games you analyze appear here.</p>
+{:else if tab === 'saved' && saved.length && !message}
+	<p class="muted">No games with notes yet.</p>
 {/if}
 
 <style>
@@ -388,7 +393,14 @@
 		background: rgb(227 179 65 / 0.12);
 	}
 
+	.tab-controls {
+		display: flex;
+		align-items: center;
+		min-height: 40px;
+	}
+
 	.loader {
+		flex: 1;
 		display: flex;
 		flex-wrap: wrap;
 		gap: 8px;
