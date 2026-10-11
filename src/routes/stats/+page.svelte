@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { moveLabel } from '#lib/analysis.ts';
 	import Board from '#lib/components/Board.svelte';
+	import ProgressChart from '#lib/components/ProgressChart.svelte';
 	import type { Group } from '#lib/profile.ts';
 	import type { PageProps } from './$types';
 
@@ -79,6 +80,15 @@
 	</section>
 
 	{#if data.entries.length}
+		<section class="card">
+			<h2 class="card-title">Progress</h2>
+			{#if data.progress.length >= 2}
+				<ProgressChart points={data.progress} />
+			{:else}
+				<p class="muted">Come back after more weeks of games to see your progress.</p>
+			{/if}
+		</section>
+
 		<section class="card">
 			<h2 class="card-title">Error profile</h2>
 			{#if weakest?.missed}

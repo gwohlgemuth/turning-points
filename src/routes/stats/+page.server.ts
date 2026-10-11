@@ -2,7 +2,7 @@ import { error } from '@sveltejs/kit';
 import { homedir } from 'node:os';
 import { parsePreferences, PREFERENCES_COOKIE } from '#lib/preferences.ts';
 import { FileError, isLocalAddress, readPgnFiles } from '#lib/server/files.ts';
-import { openingLeaks, profile, repeatedPositions } from '#lib/profile.ts';
+import { openingLeaks, profile, progress, repeatedPositions } from '#lib/profile.ts';
 import { collectStats } from '#lib/stats.ts';
 import type { PageServerLoad } from './$types';
 
@@ -15,6 +15,7 @@ export const load: PageServerLoad = async ({ cookies, getClientAddress }) => {
 			folder,
 			...stats,
 			profile: profile(stats.entries),
+			progress: progress(stats.entries),
 			leaks: openingLeaks(stats.entries),
 			repeated: repeatedPositions(stats.entries)
 		};

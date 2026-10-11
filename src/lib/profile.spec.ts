@@ -5,6 +5,7 @@ import {
 	lostMaterial,
 	openingLeaks,
 	profile,
+	progress,
 	repeatedPositions,
 	timeTag
 } from './profile.ts';
@@ -27,6 +28,7 @@ const entry = (patch: Partial<StatsEntry>): StatsEntry => ({
 	time: null,
 	tactical: false,
 	opening: '',
+	spotted: null,
 	...patch
 });
 
@@ -130,5 +132,34 @@ describe('repeatedPositions', () => {
 
 	it('does not count the same game twice', () => {
 		expect(repeatedPositions([entry({}), entry({ ply: 12 })])).toEqual([]);
+	});
+});
+
+describe('progress', () => {
+	const day = (date: string) => Date.parse(date);
+
+	it('groups by week when the games span up to twelve weeks', () => {
+		const points = progress([
+			entry({ date: day('2026-10-06'), verdict: 'missed', spotted: true }),
+			entry({ date: day('2026-10-11'), verdict: 'found', spotted: false, white: 'C' }),
+			entry({ date: day('2026-10-13') }),
+			entry({ date: 0 })
+		]);
+		expect(points).toEqual([
+			{ label: '2026-10-05', games: 2, checked: 2, missed: 1, spotChecked: 2, spotted: 1 },
+			{ label: '2026-10-12', games: 1, checked: 0, missed: 0, spotChecked: 0, spotted: 0 }
+		]);
+	});
+
+	it('groups by month over a longer span', () => {
+		const points = progress([
+			entry({ date: day('2026-01-10') }),
+			entry({ date: day('2026-06-02') })
+		]);
+		expect(points.map((point) => point.label)).toEqual(['2026-01', '2026-06']);
+	});
+
+	it('returns nothing without dated games', () => {
+		expect(progress([entry({ date: 0 })])).toEqual([]);
 	});
 });

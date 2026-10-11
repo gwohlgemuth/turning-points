@@ -10,6 +10,7 @@ import {
 } from './games.ts';
 import { answeredCount, readNotes, type Verdict } from './notes.ts';
 import { gamePhase, lostMaterial, timeTag, type Phase, type TimeTag } from './profile.ts';
+import { isSpotted, readSpotFlags } from './spot.ts';
 
 export type StatsEntry = {
 	file: string;
@@ -26,6 +27,7 @@ export type StatsEntry = {
 	time: TimeTag | null;
 	tactical: boolean;
 	opening: string;
+	spotted: boolean | null;
 };
 
 export type StatsSummary = {
@@ -57,6 +59,7 @@ export function entriesFromPgn(file: string, pgn: string): StatsEntry[] {
 	const clocks = extractClocks(pgn);
 	const times = control && clocks.length === moves.length ? moveTimes(clocks, control) : [];
 	const opening = pgnHeader(pgn, 'Opening') ?? pgnHeader(pgn, 'ECO') ?? '';
+	const flags = readSpotFlags(pgn);
 	return plies.map((ply) => ({
 		file,
 		date,
@@ -71,7 +74,8 @@ export function entriesFromPgn(file: string, pgn: string): StatsEntry[] {
 		phase: gamePhase(moves[ply - 1]?.before ?? ''),
 		time: timeTag(times[ply - 1] ?? null, control),
 		tactical: lostMaterial(moves, ply),
-		opening
+		opening,
+		spotted: flags.length ? isSpotted(ply, flags) : null
 	}));
 }
 

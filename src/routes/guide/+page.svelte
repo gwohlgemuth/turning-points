@@ -42,6 +42,12 @@
 				point on, so it can't give the answer away.
 			</li>
 			<li>
+				Every new game starts with <strong>spotting</strong>: step through it and flag the moves you
+				think decided it (<kbd>Space</kbd>), then press <strong>Check</strong>, or
+				<strong>Skip</strong> if you'd rather not. This trains recognizing critical moments, which is
+				exactly what you need at the board.
+			</li>
+			<li>
 				Press <strong>Next open turning point</strong> (or <kbd>N</kbd>). Think, then play your
 				candidate move on the board. It is marked <span class="found">✓ found</span> if it is about
 				as good as the engine's move, otherwise <span class="missed">✗ missed</span>. Then press
@@ -81,7 +87,9 @@
 			<li>
 				<strong>Once a week</strong>, use <strong>Analyze all</strong> on your recent games, then
 				open
-				<strong>Stats</strong> and pick the one weakness you will work on next.
+				<strong>Stats</strong> and pick the one weakness you will work on next. The
+				<strong>Progress</strong> chart shows whether your missed rate goes down and your spot rate goes
+				up.
 			</li>
 		</ul>
 	</section>

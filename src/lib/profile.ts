@@ -123,3 +123,45 @@ export function repeatedPositions(entries: StatsEntry[]) {
 		.filter((row) => row.games >= 2)
 		.sort((a, b) => b.games - a.games || a.ply - b.ply);
 }
+
+export type ProgressPoint = {
+	label: string;
+	games: number;
+	checked: number;
+	missed: number;
+	spotChecked: number;
+	spotted: number;
+};
+
+const DAY = 86_400_000;
+const WEEKLY_SPAN = 12 * 7 * DAY;
+
+function weekStart(date: number): string {
+	const day = new Date(date);
+	const offset = (day.getUTCDay() + 6) % 7;
+	return new Date(date - offset * DAY).toISOString().slice(0, 10);
+}
+
+export function progress(entries: StatsEntry[]): ProgressPoint[] {
+	const dated = entries.filter((entry) => entry.date > 0);
+	if (!dated.length) return [];
+	const dates = dated.map((entry) => entry.date);
+	const weekly = Math.max(...dates) - Math.min(...dates) <= WEEKLY_SPAN;
+	const bucket = (date: number) =>
+		weekly ? weekStart(date) : new Date(date).toISOString().slice(0, 7);
+	const byBucket = new Map<string, StatsEntry[]>();
+	for (const entry of dated) {
+		const key = bucket(entry.date);
+		byBucket.set(key, [...(byBucket.get(key) ?? []), entry]);
+	}
+	return [...byBucket.entries()]
+		.sort(([a], [b]) => a.localeCompare(b))
+		.map(([label, list]) => ({
+			label,
+			games: new Set(list.map(gameId)).size,
+			checked: list.filter((entry) => entry.verdict).length,
+			missed: list.filter((entry) => entry.verdict === 'missed').length,
+			spotChecked: list.filter((entry) => entry.spotted !== null).length,
+			spotted: list.filter((entry) => entry.spotted).length
+		}));
+}

@@ -34,7 +34,8 @@ describe('entriesFromPgn', () => {
 				phase: 'opening',
 				time: null,
 				tactical: false,
-				opening: ''
+				opening: '',
+				spotted: null
 			}
 		]);
 	});

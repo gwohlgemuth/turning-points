@@ -16,7 +16,8 @@ const entry = (ply: number, verdict: StatsEntry['verdict'], fen = `fen-${ply}`):
 	phase: 'middlegame',
 	time: null,
 	tactical: false,
-	opening: ''
+	opening: '',
+	spotted: null
 });
 
 describe('nextState', () => {
