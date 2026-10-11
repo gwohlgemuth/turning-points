@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Nav from '#lib/components/Nav.svelte';
+	import Header from '#lib/components/Header.svelte';
 	import { replaceState } from '$app/navigation';
 	import { prefersReducedMotion } from 'svelte/motion';
 
@@ -52,14 +52,12 @@
 </svelte:head>
 
 <main>
-	<header>
-		<img class="logo" src="/logo.svg" alt="" />
-		<div>
-			<h1>Guide</h1>
-			<p class="muted small">How to use Turning Points, and how to get the most out of it</p>
-		</div>
-		<div class="site-nav"><Nav /></div>
-	</header>
+	<Header />
+
+	<div class="page-head">
+		<h1>Guide</h1>
+		<p class="muted small">How to use Turning Points, and how to get the most out of it</p>
+	</div>
 
 	<div class="layout">
 		<div class="column">
@@ -189,8 +187,8 @@
 					</li>
 					<li><strong>Autoplay</strong> replays the game and pauses before each turning point.</li>
 					<li>
-						<strong>Recent</strong> reopens analyzed games instantly. <strong>My games</strong> lists
-						the games you saved.
+						The logo always leads back to the analysis. <strong>Recent</strong> reopens analyzed
+						games instantly. <strong>My games</strong> lists the games you saved.
 					</li>
 					<li>
 						The number of turning points and the engine depth can be changed in the toolbar. Higher
@@ -222,10 +220,6 @@
 </main>
 
 <style>
-	.site-nav {
-		margin-left: auto;
-	}
-
 	main {
 		max-width: 1180px;
 		margin: 0 auto;
@@ -304,35 +298,14 @@
 		gap: 22px;
 	}
 
-	header {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: 12px;
-	}
-
-	.logo {
-		width: 40px;
-		height: 40px;
-		padding: 5px;
-		border-radius: 12px;
-		background: radial-gradient(circle at 30% 25%, #3a3220, #191c24 70%);
-		border: 1px solid rgb(227 179 65 / 0.35);
-		box-sizing: border-box;
-	}
-
-	h1 {
+	.page-head h1 {
 		margin: 0;
 		font-size: 1.4rem;
 		font-weight: 750;
 		letter-spacing: -0.02em;
-		width: fit-content;
-		background: linear-gradient(90deg, #fff 0%, var(--accent-2) 55%, var(--accent) 100%);
-		background-clip: text;
-		color: transparent;
 	}
 
-	header p {
+	.page-head p {
 		margin: 2px 0 0;
 	}
 

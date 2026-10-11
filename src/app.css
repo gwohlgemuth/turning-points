@@ -162,12 +162,14 @@ details > summary:hover {
 	scrollbar-color: var(--surface-3) transparent;
 }
 
-main > header .logo {
-	view-transition-name: logo;
-}
-
-main > header h1 {
-	view-transition-name: page-title;
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
 }
 
 ::view-transition-old(root) {
@@ -178,23 +180,9 @@ main > header h1 {
 	animation: 200ms ease-out 80ms both page-in;
 }
 
-::view-transition-group(logo),
-::view-transition-group(page-title) {
-	animation-duration: 220ms;
-	animation-timing-function: ease-out;
-}
-
 ::view-transition-group(nav-indicator) {
 	animation-duration: 250ms;
 	animation-timing-function: ease-out;
-}
-
-::view-transition-old(page-title),
-::view-transition-new(page-title) {
-	height: 100%;
-	width: auto;
-	object-fit: none;
-	object-position: left center;
 }
 
 @keyframes page-out {

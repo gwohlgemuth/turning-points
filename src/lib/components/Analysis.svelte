@@ -8,7 +8,7 @@
 	import EvalBar from '#lib/components/EvalBar.svelte';
 	import EvalGraph from '#lib/components/EvalGraph.svelte';
 	import GameLoader from '#lib/components/GameLoader.svelte';
-	import Nav from '#lib/components/Nav.svelte';
+	import Header from '#lib/components/Header.svelte';
 	import SaveFolder from '#lib/components/SaveFolder.svelte';
 	import TimeChart from '#lib/components/TimeChart.svelte';
 	import { describeTime, formatDuration } from '#lib/clock.ts';
@@ -557,22 +557,8 @@
 	</div>
 {/snippet}
 
-<main class:hidden={!active}>
-	<header class="hero" class:compact={moves.length > 0}>
-		<img class="logo" src="/logo.svg" alt="" />
-		<div>
-			<h1>Turning Points</h1>
-			{#if !moves.length}
-				<p class="lead">
-					Find the moments where your game turned — the moves where the evaluation swung the most.
-					Study those positions first, before looking at the engine. <span class="credit"
-						>Inspired by GM Noël Studer</span
-					>
-				</p>
-			{:else}
-				<p class="credit">Inspired by GM Noël Studer</p>
-			{/if}
-		</div>
+<main class:hidden={!active} class:loaded={moves.length > 0}>
+	<Header>
 		<div class="toolbar">
 			{#if moves.length}
 				{#if status === 'running'}
@@ -626,8 +612,19 @@
 				</button>
 			{/if}
 		</div>
-		<Nav />
-	</header>
+	</Header>
+
+	{#if moves.length}
+		<h1 class="sr-only">Analysis</h1>
+	{:else}
+		<section class="welcome">
+			<h1>Find the moments where your game turned</h1>
+			<p class="lead">
+				The moves where the evaluation swung the most. Study those positions first, before looking
+				at the engine.
+			</p>
+		</section>
+	{/if}
 
 	{#if showSetup}
 		<div class="top" transition:slide={{ duration: ms(200) }}>
@@ -1116,56 +1113,13 @@
 	main {
 		max-width: 1180px;
 		margin: 0 auto;
-		padding: 36px 20px 80px;
+		padding: 16px 20px 80px;
 		display: grid;
 		gap: 22px;
 	}
 
-	main:has(.hero.compact) {
-		padding-top: 16px;
+	main.loaded {
 		padding-bottom: 16px;
-	}
-
-	.hero {
-		display: flex;
-		align-items: center;
-		gap: 18px;
-		margin-bottom: 6px;
-	}
-
-	.hero.compact {
-		align-items: flex-start;
-		gap: 12px;
-		margin-bottom: 0;
-	}
-
-	.hero.compact .toolbar {
-		min-height: 46px;
-	}
-
-	.hero.compact .logo {
-		margin-top: 3px;
-	}
-
-	.hero.compact .logo + div {
-		margin-top: 1px;
-	}
-
-	.hero.compact .logo {
-		width: 40px;
-		height: 40px;
-		padding: 5px;
-		border-radius: 12px;
-		box-shadow: none;
-	}
-
-	.hero.compact h1 {
-		font-size: 1.4rem;
-	}
-
-	.hero.compact .credit {
-		margin: 2px 0 0;
-		font-size: 0.8rem;
 	}
 
 	.toolbar {
@@ -1174,7 +1128,7 @@
 		align-items: center;
 		justify-content: flex-end;
 		gap: 10px;
-		margin-left: auto;
+		min-height: 46px;
 	}
 
 	.setup-toggle.open {
@@ -1288,29 +1242,15 @@
 		width: 110px;
 	}
 
-	.logo {
-		width: 64px;
-		height: 64px;
-		flex-shrink: 0;
-		padding: 8px;
-		border-radius: 18px;
-		background: radial-gradient(circle at 30% 25%, #3a3220, #191c24 70%);
-		border: 1px solid rgb(227 179 65 / 0.35);
-		box-shadow:
-			0 0 0 6px rgb(227 179 65 / 0.06),
-			0 10px 30px rgb(227 179 65 / 0.18);
-		box-sizing: border-box;
+	.welcome {
+		padding: 18px 0 4px;
 	}
 
-	h1 {
+	.welcome h1 {
 		margin: 0;
-		font-size: clamp(1.9rem, 3vw, 2.5rem);
+		font-size: clamp(1.7rem, 3vw, 2.2rem);
 		font-weight: 750;
 		letter-spacing: -0.02em;
-		width: fit-content;
-		background: linear-gradient(90deg, #fff 0%, var(--accent-2) 55%, var(--accent) 100%);
-		background-clip: text;
-		color: transparent;
 	}
 
 	.lead {
@@ -1318,11 +1258,6 @@
 		margin: 6px 0 0;
 		max-width: 70ch;
 		line-height: 1.5;
-	}
-
-	.credit {
-		color: var(--accent);
-		white-space: nowrap;
 	}
 
 	.top {
