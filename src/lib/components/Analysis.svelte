@@ -559,7 +559,7 @@
 
 <main class:hidden={!active}>
 	<header class="hero" class:compact={moves.length > 0}>
-		<img class="logo" src="/pieces/wN.svg" alt="" />
+		<img class="logo" src="/logo.svg" alt="" />
 		<div>
 			<h1>Turning Points</h1>
 			{#if !moves.length}

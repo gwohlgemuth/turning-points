@@ -53,7 +53,7 @@
 
 <main>
 	<header>
-		<img class="logo" src="/pieces/wN.svg" alt="" />
+		<img class="logo" src="/logo.svg" alt="" />
 		<div>
 			<h1>Guide</h1>
 			<p class="muted small">How to use Turning Points, and how to get the most out of it</p>

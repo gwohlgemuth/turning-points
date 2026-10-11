@@ -1,29 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-
-
-
-  <!-- 2. Ein Clip-Path definiert einen perfekten Kreis -->
   <defs>
     <clipPath id="roundClip">
       <circle cx="256" cy="256" r="256" />
     </clipPath>
   </defs>
 
-  <!-- 3. Dein Logo wird nur innerhalb dieses Kreises gezeichnet -->
   <g clip-path="url(#roundClip)">
-    <!-- Hier kommt dein Logo rein.
-         Da es durch den Clip-Pfad beschnitten wird,
-         sind die Ecken des Quadrats leer (weiß vom Hintergrund).
-         Aber der Browser wird das Icon oft trotzdem rund darstellen. -->
-
-    <!-- Beispiel: Einfacher dunkelblauer Kreis als Logo-Silhouette -->
     <circle cx="256" cy="256" r="300" fill="#dddddd" />
-
-    <!-- Oder deine Pfade -->
-    <!-- <path d="..." fill="#0090FF" /> -->
   </g>
-
-
 
 <g transform="translate(0.000000,512.000000) scale(0.100000,-0.100000)"
 fill="#084B80" stroke="none">

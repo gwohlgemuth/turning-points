@@ -121,7 +121,7 @@
 
 <main>
 	<header>
-		<img class="logo" src="/pieces/wN.svg" alt="" />
+		<img class="logo" src="/logo.svg" alt="" />
 		<div>
 			<h1>Review</h1>
 			<p class="muted small">
