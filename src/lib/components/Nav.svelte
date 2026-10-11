@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { browser } from '$app/env';
 	import { page } from '$app/state';
 	import { updatePreferences } from '#lib/preferences.ts';
 	import { sound } from '#lib/sound.svelte.ts';
@@ -9,6 +10,8 @@
 		{ href: '/stats', label: 'Stats' },
 		{ href: '/guide', label: 'Guide' }
 	];
+
+	let soundOn = $derived(browser ? sound.enabled : page.data.preferences?.sound !== false);
 
 	function toggleSound() {
 		sound.enabled = !sound.enabled;
@@ -26,8 +29,8 @@
 	<button
 		class="sound"
 		onclick={toggleSound}
-		aria-pressed={sound.enabled}
-		title={sound.enabled ? 'Sound on' : 'Sound off'}>{sound.enabled ? '🔊' : '🔇'}</button
+		aria-pressed={soundOn}
+		title={soundOn ? 'Sound on' : 'Sound off'}>{soundOn ? '🔊' : '🔇'}</button
 	>
 </nav>
 

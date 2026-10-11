@@ -65,16 +65,12 @@
 	import { saving, savePgn } from '#lib/saving.svelte.ts';
 	import { isFalseAlarm, isSpotted, readSpotFlags, spotScore, writeSpotFlags } from '#lib/spot.ts';
 	import { streamAnalysis } from '#lib/stream.ts';
-	import { playFound, playMissed, sound } from '#lib/sound.svelte.ts';
+	import { playFound, playMissed } from '#lib/sound.svelte.ts';
 	import type { Preferences } from '#lib/preferences.ts';
 
 	type Props = { preferences: Preferences; active: boolean };
 
 	let { preferences, active }: Props = $props();
-
-	$effect.pre(() => {
-		sound.enabled = preferences.sound;
-	});
 
 	let pgn = $state('');
 	let count = $state(3);

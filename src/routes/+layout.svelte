@@ -1,13 +1,18 @@
 <script lang="ts">
 	import '../app.css';
+	import { browser } from '$app/env';
 	import { onNavigate } from '$app/navigation';
 	import { page } from '$app/state';
+	import { untrack } from 'svelte';
 	import { prefersReducedMotion } from 'svelte/motion';
 	import favicon from '#lib/assets/favicon.svg';
 	import Analysis from '#lib/components/Analysis.svelte';
+	import { sound } from '#lib/sound.svelte.ts';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
+
+	if (browser) sound.enabled = untrack(() => data.preferences.sound);
 
 	const ORDER = ['/', '/review', '/stats', '/guide'];
 
