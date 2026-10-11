@@ -615,12 +615,14 @@
 					</div>
 				{/if}
 				<button
+					class="setup-toggle"
+					class:open={showSetup}
 					onclick={() => (setupOpen = !showSetup)}
 					disabled={batchRunning}
 					aria-expanded={showSetup}
 					title="{showSetup ? 'Hide' : 'Show'} game loading and analysis settings"
 				>
-					{showSetup ? '⚙ Hide game & settings ▴' : '⚙ Game & settings ▾'}
+					⚙ Game & settings <span class="chevron" aria-hidden="true">▾</span>
 				</button>
 			{/if}
 		</div>
@@ -1173,6 +1175,20 @@
 		justify-content: flex-end;
 		gap: 10px;
 		margin-left: auto;
+	}
+
+	.setup-toggle.open {
+		border-color: var(--accent);
+		color: var(--accent-2);
+	}
+
+	.chevron {
+		display: inline-block;
+		transition: transform 200ms ease;
+	}
+
+	.setup-toggle.open .chevron {
+		transform: rotate(180deg);
 	}
 
 	.quick-settings {
