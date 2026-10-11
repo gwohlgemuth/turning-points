@@ -84,6 +84,7 @@ export async function fetchLichessGames(username: string, max: number): Promise<
 		pgnInJson: 'true',
 		clocks: 'true',
 		evals: 'false',
+		opening: 'true',
 		perfType: 'ultraBullet,bullet,blitz,rapid,classical,correspondence'
 	});
 	const response = await get(
