@@ -62,6 +62,7 @@
 		type RecentEntry
 	} from '#lib/recent.ts';
 	import { saving, savePgn } from '#lib/saving.svelte.ts';
+	import { isFalseAlarm, isSpotted, readSpotFlags, spotScore, writeSpotFlags } from '#lib/spot.ts';
 	import { streamAnalysis } from '#lib/stream.ts';
 	import { playFound, playMissed, sound } from '#lib/sound.svelte.ts';
 	import { updatePreferences, type Preferences } from '#lib/preferences.ts';
@@ -133,6 +134,9 @@
 	let engineThinking = $state(false);
 	let engineError = $state('');
 	let batchRunning = $state(false);
+	let spotting = $state(false);
+	let spotFlags = $state<number[]>([]);
+	let savedSpot = $state('');
 	let autoplay = $state(false);
 	let speed = $state(1000);
 	const SPEEDS = [500, 1000, 2000, 3000];
@@ -154,6 +158,20 @@
 	let won = $derived(winner(headers.Result ?? '*'));
 	let hasTimes = $derived(moves.some((m) => m.time));
 	let turningPlies = $derived(new Set(turningPoints.map((tp) => tp.ply)));
+	let shownTurningPlies = $derived(spotting ? new Set<number>() : turningPlies);
+	let spotResult = $derived(
+		!spotting && spotFlags.length
+			? spotScore(
+					turningPoints.map((tp) => tp.ply),
+					spotFlags
+				)
+			: null
+	);
+	let spotPly = $derived(
+		spotting && selected < moves.length && (selected % 2 === 0) === (side === 'w')
+			? selected + 1
+			: null
+	);
 	let fen = $derived(positionFen(selected));
 	let lastMove = $derived(selected > 0 ? moves[selected - 1] : null);
 	let boardFen = $derived(exploration?.fens.at(-1) ?? fen);
@@ -165,15 +183,22 @@
 	let gameOver = $derived(new Chess(boardFen).isGameOver());
 	let analyzing = $derived(status === 'running');
 	let hiddenTp = $derived(
-		turningPoints.find(
-			(tp) => !revealed[tp.ply] && (selected === tp.ply - 1 || selected === tp.ply)
-		) ?? null
+		spotting
+			? null
+			: (turningPoints.find(
+					(tp) => !revealed[tp.ply] && (selected === tp.ply - 1 || selected === tp.ply)
+				) ?? null)
 	);
 	let candidateTp = $derived(!analyzing && hiddenTp?.ply === selected + 1 ? hiddenTp : null);
-	let unsaved = $derived(notesSignature(notes) !== savedNotes);
+	let unsaved = $derived(notesSignature(notes) !== savedNotes || spotFlags.join(' ') !== savedSpot);
 	let hasHidden = $derived(turningPoints.some((tp) => !revealed[tp.ply]));
 	let graphVisible = $derived(
-		Math.min(Infinity, ...turningPoints.filter((tp) => !revealed[tp.ply]).map((tp) => tp.ply - 1))
+		spotting
+			? 0
+			: Math.min(
+					Infinity,
+					...turningPoints.filter((tp) => !revealed[tp.ply]).map((tp) => tp.ply - 1)
+				)
 	);
 	let evalHidden = $derived(selected >= graphVisible);
 	let arrows = $derived.by((): Arrow[] => {
@@ -300,6 +325,9 @@
 			checkedBest = {};
 			notes = readNotes(pgn);
 			savedNotes = notesSignature(notes);
+			spotFlags = readSpotFlags(pgn);
+			savedSpot = spotFlags.join(' ');
+			spotting = !spotFlags.length && !Object.values(notes).some(isRevealed);
 			notesOpen = {};
 			revealed = Object.fromEntries(
 				Object.entries(notes).map(([ply, value]) => [ply, isRevealed(value)])
@@ -407,13 +435,34 @@
 		if (next) select(next.ply - 1);
 	}
 
+	function toggleFlag(ply = spotPly) {
+		if (!ply) return;
+		if (spotFlags.includes(ply)) spotFlags = spotFlags.filter((flag) => flag !== ply);
+		else if (spotFlags.length < count) spotFlags = [...spotFlags, ply].sort((a, b) => a - b);
+	}
+
+	function finishSpotting() {
+		autoplay = false;
+		spotting = false;
+	}
+
+	function skipSpotting() {
+		spotFlags = [];
+		finishSpotting();
+	}
+
 	async function saveNotes() {
 		const previous = savedNotes;
 		savedNotes = notesSignature(notes);
-		pgn = writeNotes(pgn, notes);
+		const previousSpot = savedSpot;
+		savedSpot = spotFlags.join(' ');
+		pgn = writeSpotFlags(writeNotes(pgn, notes), spotFlags);
 		keepRecent(updatePgn(recent, gameKey(pgn), pgn));
 		await savePgn(pgn, pgnFilename(pgn), true);
-		if (saving.failed) savedNotes = previous;
+		if (saving.failed) {
+			savedNotes = previous;
+			savedSpot = previousSpot;
+		}
 	}
 
 	function warnUnsaved(event: BeforeUnloadEvent) {
@@ -445,7 +494,7 @@
 		const next = selected + 1;
 		const timer = setTimeout(() => {
 			show(next);
-			if (next >= positions - 1 || turningPlies.has(next + 1)) autoplay = false;
+			if (next >= positions - 1 || shownTurningPlies.has(next + 1)) autoplay = false;
 		}, speed);
 		return () => clearTimeout(timer);
 	});
@@ -463,7 +512,11 @@
 	function handleKey(event: KeyboardEvent) {
 		const tag = (event.target as HTMLElement).tagName;
 		if (!active || !moves.length || ['TEXTAREA', 'INPUT', 'SELECT'].includes(tag)) return;
-		if (event.key === 'n') nextHidden();
+		if (event.key === 'n' && !spotting) nextHidden();
+		if (event.key === ' ' && spotting) {
+			event.preventDefault();
+			toggleFlag();
+		}
 		if (exploration) {
 			if (event.key === 'ArrowLeft') undoExploration();
 			return;
@@ -745,17 +798,19 @@
 										>{formatScore(evals[selected].score)}</span
 									>{/if}
 								<span class="muted small"
-									>{candidateTp
-										? 'Answer question 1, then play the move you would choose now'
-										: hiddenTp && analyzing
-											? 'Wait for the analysis to finish'
-											: hiddenTp
-												? 'Reveal the turning point to see the evaluation'
-												: evalHidden
-													? 'Reveal the earlier turning points to see the evaluation'
-													: play
-														? 'Make a move to start playing'
-														: 'Move a piece to try your own line'}</span
+									>{spotting
+										? 'Spotting: flag the moves you think decided the game'
+										: candidateTp
+											? 'Answer question 1, then play the move you would choose now'
+											: hiddenTp && analyzing
+												? 'Wait for the analysis to finish'
+												: hiddenTp
+													? 'Reveal the turning point to see the evaluation'
+													: evalHidden
+														? 'Reveal the earlier turning points to see the evaluation'
+														: play
+															? 'Make a move to start playing'
+															: 'Move a piece to try your own line'}</span
 								>
 							</p>
 							{#if arrows.length}
@@ -784,7 +839,14 @@
 									<button
 										class="move"
 										class:current={selected === move.ply}
-										class:turning={turningPlies.has(move.ply)}
+										class:turning={shownTurningPlies.has(move.ply)}
+										class:flagged={spotFlags.includes(move.ply)}
+										class:false-alarm={!!spotResult &&
+											spotFlags.includes(move.ply) &&
+											isFalseAlarm(
+												move.ply,
+												turningPoints.map((tp) => tp.ply)
+											)}
 										onclick={() => select(move.ply)}
 										title={move.time ? describeTime(move.time) : undefined}
 									>
@@ -821,13 +883,13 @@
 							{positions}
 							{moves}
 							{evals}
-							{turningPoints}
+							turningPoints={spotting ? [] : turningPoints}
 							{selected}
 							visible={graphVisible}
 							onselect={select}
 						/>
 						{#if hasTimes}
-							<TimeChart {moves} {turningPlies} {selected} onselect={select} />
+							<TimeChart {moves} turningPlies={shownTurningPlies} {selected} onselect={select} />
 						{/if}
 					</section>
 					<section class="card points">
@@ -844,122 +906,177 @@
 								<strong>{count}</strong>
 							</label>
 						</div>
-						{#if hasHidden}
-							<div class="training">
-								<button onclick={nextHidden} disabled={analyzing} title="Shortcut: N"
-									>Next open turning point</button
-								>
-								<button onclick={revealAll} disabled={analyzing}>Reveal all</button>
-								{#if analyzing}<span class="muted small">Wait for the analysis to finish</span>{/if}
+						{#if spotting}
+							<div class="spot" transition:slide={{ duration: ms(200) }}>
+								<p class="small">
+									Step through your game with <kbd>→</kbd> or autoplay. On each of your moves that
+									you think decided the game, press <strong>Flag</strong> or <kbd>Space</kbd>. You
+									can flag up to {count}.
+								</p>
+								<div class="training">
+									<button
+										class="primary"
+										onclick={() => toggleFlag()}
+										disabled={!spotPly ||
+											(!spotFlags.includes(spotPly) && spotFlags.length >= count)}
+										>{spotPly && spotFlags.includes(spotPly) ? 'Unflag' : 'Flag'}
+										{spotPly ? moveLabel(spotPly, moves[spotPly - 1].san) : 'your move'}</button
+									>
+									<button onclick={finishSpotting} disabled={!spotFlags.length || analyzing}
+										>Check</button
+									>
+									<button onclick={skipSpotting}>Skip</button>
+									<span class="muted small"
+										>{spotFlags.length} / {count} flagged{analyzing
+											? ' · Check after the analysis'
+											: ''}</span
+									>
+								</div>
+								{#if spotFlags.length}
+									<p class="flags">
+										{#each spotFlags as flag (flag)}
+											<span class="flag"
+												>⚑ <button class="link" onclick={() => select(flag - 1)}
+													>{moveLabel(flag, moves[flag - 1].san)}</button
+												><button
+													class="link"
+													onclick={() => toggleFlag(flag)}
+													aria-label="Remove flag">✕</button
+												></span
+											>
+										{/each}
+									</p>
+								{/if}
 							</div>
-						{/if}
-						{#if !turningPoints.length}
-							<p class="muted">Waiting for the engine…</p>
-						{/if}
-						<ol>
-							{#each turningPoints as tp, i (tp.ply)}
-								{@const move = moves[tp.ply - 1]}
-								{@const before = evals[tp.ply - 1]}
-								{@const after = evals[tp.ply]}
-								{@const hidden = !revealed[tp.ply]}
-								{@const judgement = hidden ? null : judgeMove(tp.delta)}
-								<li
-									class="tp {judgement?.name ?? ''}"
-									class:active={selected === tp.ply - 1 || selected === tp.ply}
-									animate:flip={{ duration: ms(250) }}
-									in:fly={{ y: 16, duration: ms(300), delay: ms(i * 70) }}
-								>
-									<div class="tp-row">
-										<button class="link" onclick={() => select(tp.ply - 1)}>
-											{moveLabel(tp.ply, move.san)}{#if judgement}<span
-													class="judgement {judgement.name}"
-													title={judgement.name}>{judgement.symbol}</span
-												>{/if}
-										</button>
-										{#if hidden}
-											<span class="evals">? → ?</span>
-										{:else}
-											<span
-												class="evals"
-												title="Winning chances {tp.delta > 0 ? '+' : ''}{tp.delta.toFixed(1)}%"
-											>
-												<CountUp score={before.score} /> → <CountUp score={after.score} />
-											</span>
-										{/if}
-										{#if move.time}
-											<span class="time" title={describeTime(move.time)}
-												>⏱ {formatDuration(move.time.spent)}</span
-											>
-										{/if}
-										{#if hidden && notes[tp.ply]?.candidate}
-											<span class="candidate" title="Your candidate move"
-												>✎ {notes[tp.ply].candidate}</span
-											>
-										{/if}
-										<span class="tp-actions">
-											<button onclick={() => select(tp.ply - 1)}>Before</button>
-											{#if !hidden}
-												<button onclick={() => select(tp.ply)}>After</button>
-												<button
-													class:on={opened[tp.ply]}
-													onclick={() => (opened[tp.ply] = !opened[tp.ply])}
-													aria-expanded={!!opened[tp.ply]}
-													title="Engine suggestion">Engine</button
-												>
-											{/if}
-											<button
-												class:on={notesOpen[tp.ply]}
-												onclick={() => toggleNotes(tp.ply)}
-												aria-expanded={!!notesOpen[tp.ply]}
-												title="Studer's three questions"
-												>Notes {answeredCount(notes[tp.ply])}/3</button
-											>
+						{:else}
+							{#if spotResult}
+								<p class="spot-result small">
+									👁 You spotted <strong>{spotResult.spotted} of {spotResult.total}</strong>
+									{#if spotResult.falseAlarms}· {spotResult.falseAlarms}
+										{spotResult.falseAlarms === 1 ? 'false alarm' : 'false alarms'}{/if}
+								</p>
+							{/if}
+							{#if hasHidden}
+								<div class="training">
+									<button onclick={nextHidden} disabled={analyzing} title="Shortcut: N"
+										>Next open turning point</button
+									>
+									<button onclick={revealAll} disabled={analyzing}>Reveal all</button>
+									{#if analyzing}<span class="muted small">Wait for the analysis to finish</span
+										>{/if}
+								</div>
+							{/if}
+							{#if !turningPoints.length}
+								<p class="muted">Waiting for the engine…</p>
+							{/if}
+							<ol>
+								{#each turningPoints as tp, i (tp.ply)}
+									{@const move = moves[tp.ply - 1]}
+									{@const before = evals[tp.ply - 1]}
+									{@const after = evals[tp.ply]}
+									{@const hidden = !revealed[tp.ply]}
+									{@const judgement = hidden ? null : judgeMove(tp.delta)}
+									<li
+										class="tp {judgement?.name ?? ''}"
+										class:active={selected === tp.ply - 1 || selected === tp.ply}
+										animate:flip={{ duration: ms(250) }}
+										in:fly={{ y: 16, duration: ms(300), delay: ms(i * 70) }}
+									>
+										<div class="tp-row">
+											<button class="link" onclick={() => select(tp.ply - 1)}>
+												{moveLabel(tp.ply, move.san)}{#if judgement}<span
+														class="judgement {judgement.name}"
+														title={judgement.name}>{judgement.symbol}</span
+													>{/if}
+											</button>
 											{#if hidden}
-												<button class="reveal" onclick={() => reveal(tp.ply)} disabled={analyzing}
-													>Reveal</button
+												<span class="evals">? → ?</span>
+											{:else}
+												<span
+													class="evals"
+													title="Winning chances {tp.delta > 0 ? '+' : ''}{tp.delta.toFixed(1)}%"
 												>
-											{:else if notes[tp.ply]?.candidate}
-												<button
-													onclick={() => clearCandidate(tp.ply)}
-													title="Remove the candidate and its result from the stats">Reset</button
+													<CountUp score={before.score} /> → <CountUp score={after.score} />
+												</span>
+											{/if}
+											{#if move.time}
+												<span class="time" title={describeTime(move.time)}
+													>⏱ {formatDuration(move.time.spent)}</span
 												>
 											{/if}
-										</span>
-									</div>
-									{#if notesOpen[tp.ply] && notes[tp.ply]}
-										<div class="notes" transition:slide={{ duration: ms(200) }}>
-											{#each NOTE_QUESTIONS.slice(0, hidden ? 1 : 3) as { question }, q (question)}
-												<label>
-													<span>{q + 1}. {question}</span>
-													<textarea rows="2" bind:value={notes[tp.ply].answers[q]}></textarea>
-												</label>
-											{/each}
+											{#if spotResult && isSpotted(tp.ply, spotFlags)}
+												<span class="spotted" title="You spotted this turning point">👁</span>
+											{/if}
+											{#if hidden && notes[tp.ply]?.candidate}
+												<span class="candidate" title="Your candidate move"
+													>✎ {notes[tp.ply].candidate}</span
+												>
+											{/if}
+											<span class="tp-actions">
+												<button onclick={() => select(tp.ply - 1)}>Before</button>
+												{#if !hidden}
+													<button onclick={() => select(tp.ply)}>After</button>
+													<button
+														class:on={opened[tp.ply]}
+														onclick={() => (opened[tp.ply] = !opened[tp.ply])}
+														aria-expanded={!!opened[tp.ply]}
+														title="Engine suggestion">Engine</button
+													>
+												{/if}
+												<button
+													class:on={notesOpen[tp.ply]}
+													onclick={() => toggleNotes(tp.ply)}
+													aria-expanded={!!notesOpen[tp.ply]}
+													title="Studer's three questions"
+													>Notes {answeredCount(notes[tp.ply])}/3</button
+												>
+												{#if hidden}
+													<button class="reveal" onclick={() => reveal(tp.ply)} disabled={analyzing}
+														>Reveal</button
+													>
+												{:else if notes[tp.ply]?.candidate}
+													<button
+														onclick={() => clearCandidate(tp.ply)}
+														title="Remove the candidate and its result from the stats">Reset</button
+													>
+												{/if}
+											</span>
 										</div>
-									{/if}
-									{#if !hidden && notes[tp.ply]?.candidate}
-										<CandidateCheck
-											{move}
-											candidate={notes[tp.ply].candidate}
-											{before}
-											{after}
-											{depth}
-											{side}
-											verdict={notes[tp.ply].verdict}
-											onverdict={(found, best) => {
-												if (best) checkedBest[tp.ply] = best;
-												setVerdict(tp.ply, found);
-											}}
-										/>
-									{/if}
-									{#if opened[tp.ply] && !hidden}
-										<div transition:slide={{ duration: ms(200) }}>
-											<Variations fen={move.fenBefore} {depth} {lines} />
-										</div>
-									{/if}
-								</li>
-							{/each}
-						</ol>
-						{#if turningPoints.length}
+										{#if notesOpen[tp.ply] && notes[tp.ply]}
+											<div class="notes" transition:slide={{ duration: ms(200) }}>
+												{#each NOTE_QUESTIONS.slice(0, hidden ? 1 : 3) as { question }, q (question)}
+													<label>
+														<span>{q + 1}. {question}</span>
+														<textarea rows="2" bind:value={notes[tp.ply].answers[q]}></textarea>
+													</label>
+												{/each}
+											</div>
+										{/if}
+										{#if !hidden && notes[tp.ply]?.candidate}
+											<CandidateCheck
+												{move}
+												candidate={notes[tp.ply].candidate}
+												{before}
+												{after}
+												{depth}
+												{side}
+												verdict={notes[tp.ply].verdict}
+												onverdict={(found, best) => {
+													if (best) checkedBest[tp.ply] = best;
+													setVerdict(tp.ply, found);
+												}}
+											/>
+										{/if}
+										{#if opened[tp.ply] && !hidden}
+											<div transition:slide={{ duration: ms(200) }}>
+												<Variations fen={move.fenBefore} {depth} {lines} />
+											</div>
+										{/if}
+									</li>
+								{/each}
+							</ol>
+						{/if}
+						{#if turningPoints.length && !spotting}
 							<div class="save-notes">
 								<button onclick={saveNotes} disabled={!pgn.trim()} class:unsaved>Save notes</button>
 								{#if unsaved && !saving.failed}
@@ -1077,6 +1194,50 @@
 
 	.quick-settings input {
 		width: 4.5em;
+	}
+
+	.spot {
+		display: grid;
+		gap: 8px;
+	}
+
+	.spot p {
+		margin: 0;
+	}
+
+	.flags {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px 12px;
+	}
+
+	.flag {
+		color: var(--accent-2);
+	}
+
+	.spot-result {
+		margin: 0 0 8px;
+	}
+
+	.spotted {
+		font-size: 0.85rem;
+	}
+
+	.move.flagged {
+		box-shadow: inset 0 -2px 0 var(--accent-2);
+	}
+
+	.move.flagged.false-alarm {
+		box-shadow: inset 0 -2px 0 var(--muted);
+		color: var(--muted);
+	}
+
+	kbd {
+		padding: 0 5px;
+		border: 1px solid var(--border-strong);
+		border-radius: 4px;
+		font: inherit;
+		font-size: 0.85em;
 	}
 
 	.stats-link {
