@@ -1,12 +1,15 @@
 import { Chess, type Move } from 'chess.js';
+import { extractClocks, moveTimes, parseTimeControl } from './clock.ts';
 import {
 	gameUrl,
 	mergeAdjacentComments,
+	pgnHeader,
 	splitPgn,
 	summaryFromPgn,
 	type GameSummary
 } from './games.ts';
 import { answeredCount, readNotes, type Verdict } from './notes.ts';
+import { gamePhase, lostMaterial, timeTag, type Phase, type TimeTag } from './profile.ts';
 
 export type StatsEntry = {
 	file: string;
@@ -19,11 +22,16 @@ export type StatsEntry = {
 	candidate: string;
 	verdict: Verdict;
 	answered: number;
+	phase: Phase;
+	time: TimeTag | null;
+	tactical: boolean;
+	opening: string;
 };
 
 export type StatsSummary = {
 	games: number;
 	turningPoints: number;
+	worked: number;
 	found: number;
 	missed: number;
 	unchecked: number;
@@ -45,6 +53,10 @@ export function entriesFromPgn(file: string, pgn: string): StatsEntry[] {
 	if (!plies.length) return [];
 	const moves = history(pgn);
 	const { white, black, date } = summaryFromPgn(pgn, 0);
+	const control = parseTimeControl(pgnHeader(pgn, 'TimeControl'));
+	const clocks = extractClocks(pgn);
+	const times = control && clocks.length === moves.length ? moveTimes(clocks, control) : [];
+	const opening = pgnHeader(pgn, 'Opening') ?? pgnHeader(pgn, 'ECO') ?? '';
 	return plies.map((ply) => ({
 		file,
 		date,
@@ -55,7 +67,11 @@ export function entriesFromPgn(file: string, pgn: string): StatsEntry[] {
 		fen: moves[ply - 1]?.before ?? '',
 		candidate: notes[ply].candidate,
 		verdict: notes[ply].verdict,
-		answered: answeredCount(notes[ply])
+		answered: answeredCount(notes[ply]),
+		phase: gamePhase(moves[ply - 1]?.before ?? ''),
+		time: timeTag(times[ply - 1] ?? null, control),
+		tactical: lostMaterial(moves, ply),
+		opening
 	}));
 }
 
@@ -66,6 +82,7 @@ export function summarize(entries: StatsEntry[]): StatsSummary {
 			entries.map((entry) => `${entry.file}|${entry.white}|${entry.black}|${entry.date}`)
 		).size,
 		turningPoints: entries.length,
+		worked: entries.filter((entry) => entry.answered > 0 || entry.candidate).length,
 		found: count('found'),
 		missed: count('missed'),
 		unchecked: count('')

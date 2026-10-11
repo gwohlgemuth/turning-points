@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { moveLabel } from '#lib/analysis.ts';
+	import Board from '#lib/components/Board.svelte';
+	import type { Group } from '#lib/profile.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -8,6 +10,21 @@
 	const share = (count: number, total: number) =>
 		total ? `${Math.round((count / total) * 100)}% · ` : '';
 	const formatDate = (date: number) => (date ? new Date(date).toISOString().slice(0, 10) : '?');
+	const missRate = (row: Group) => row.missed / (row.found + row.missed || 1);
+
+	let weakest = $derived.by(() => {
+		const rows = [...data.profile.phase, ...data.profile.time, ...data.profile.kind];
+		const checkedRows = rows.filter((row) => row.found + row.missed > 0);
+		return checkedRows.reduce<Group | null>(
+			(worst, row) => (!worst || missRate(row) > missRate(worst) ? row : worst),
+			null
+		);
+	});
+	let profileGroups = $derived([
+		{ title: 'Phase', rows: data.profile.phase },
+		{ title: 'Time', rows: data.profile.time },
+		{ title: 'Kind', rows: data.profile.kind }
+	]);
 </script>
 
 <svelte:head>
@@ -27,10 +44,11 @@
 
 	<section class="tiles">
 		<div class="card tile">
-			<span class="label">Turning points worked on</span>
+			<span class="label">Turning points</span>
 			<strong>{data.summary.turningPoints}</strong>
 			<span class="muted small"
-				>in {data.summary.games} {data.summary.games === 1 ? 'game' : 'games'}</span
+				>{data.summary.worked} worked on · in {data.summary.games}
+				{data.summary.games === 1 ? 'game' : 'games'}</span
 			>
 		</div>
 		<div class="card tile found">
@@ -51,9 +69,115 @@
 		<div class="card tile">
 			<span class="label">Not checked yet</span>
 			<strong>{data.summary.unchecked}</strong>
-			<span class="muted small">No candidate move, or not revealed since</span>
+			<span
+				class="muted small term"
+				title="Includes turning points marked by Analyze all that you have not opened yet"
+				>Not worked on yet, or no candidate move</span
+			>
 		</div>
 	</section>
+
+	{#if data.entries.length}
+		<section class="card">
+			<h2 class="card-title">Error profile</h2>
+			{#if weakest?.missed}
+				<p class="muted small">
+					Most missed: <strong class="missed-text">{weakest.label}</strong> ({Math.round(
+						missRate(weakest) * 100
+					)}% of checked turning points missed)
+				</p>
+			{/if}
+			<div class="profile">
+				{#each profileGroups as { title, rows } (title)}
+					{#if rows.length}
+						<table>
+							<thead>
+								<tr>
+									<th>{title}</th>
+									<th class="num">Total</th>
+									<th class="num">Found</th>
+									<th class="num">Missed</th>
+								</tr>
+							</thead>
+							<tbody>
+								{#each rows as row (row.label)}
+									<tr class:weakest={row === weakest && row.missed > 0}>
+										<td><span class="term" title={row.hint}>{row.label}</span></td>
+										<td class="num">{row.total}</td>
+										<td class="num verdict found">{row.found}</td>
+										<td class="num verdict missed">{row.missed}</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					{/if}
+				{/each}
+			</div>
+		</section>
+
+		<section class="card">
+			<h2 class="card-title">Opening leaks</h2>
+			{#if data.leaks.length}
+				<div class="table">
+					<table>
+						<thead>
+							<tr>
+								<th>Opening</th>
+								<th class="num">Games</th>
+								<th class="num">
+									<span class="term" title="Turning points in the first 30 plies of your games"
+										>Turning points by move 15</span
+									>
+								</th>
+								<th class="num">Missed</th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each data.leaks as leak (leak.opening)}
+								<tr>
+									<td>{leak.opening}</td>
+									<td class="num">{leak.games}</td>
+									<td class="num">{leak.turningPoints}</td>
+									<td class="num verdict missed">{leak.missed}</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
+			{:else}
+				<p class="muted">No turning points in the first 15 moves yet.</p>
+			{/if}
+			{#if data.repeated.length}
+				<h3 class="label">Positions that turned in several games</h3>
+				<div class="table">
+					<table>
+						<thead>
+							<tr>
+								<th>Position</th>
+								<th>Moves played</th>
+								<th class="num">Games</th>
+								<th class="num">Missed</th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each data.repeated as row (row.fen)}
+								<tr>
+									<td
+										><div class="mini"><Board fen={row.fen} flipped={row.ply % 2 === 0} /></div></td
+									>
+									<td class="nowrap">
+										{row.moves.map((move) => moveLabel(row.ply, move)).join(', ')}
+									</td>
+									<td class="num">{row.games}</td>
+									<td class="num verdict missed">{row.missed}</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
+			{/if}
+		</section>
+	{/if}
 
 	<section class="card">
 		<h2 class="card-title">Turning points</h2>
@@ -226,6 +350,41 @@
 
 	.verdict.missed {
 		color: var(--danger);
+	}
+
+	.profile {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+		gap: 16px;
+		margin: 10px 0;
+	}
+
+	.num {
+		text-align: right;
+		font-variant-numeric: tabular-nums;
+	}
+
+	tr.weakest td {
+		background: rgb(255 255 255 / 0.04);
+		font-weight: 600;
+	}
+
+	.missed-text {
+		color: var(--danger);
+	}
+
+	h3.label {
+		margin: 18px 0 6px;
+	}
+
+	.term {
+		text-decoration: underline dotted;
+		text-underline-offset: 3px;
+		cursor: help;
+	}
+
+	.mini {
+		width: 140px;
 	}
 
 	.muted {

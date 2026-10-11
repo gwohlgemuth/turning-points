@@ -30,7 +30,11 @@ describe('entriesFromPgn', () => {
 				fen: 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2',
 				candidate: 'Nf3',
 				verdict: 'found',
-				answered: 1
+				answered: 1,
+				phase: 'opening',
+				time: null,
+				tactical: false,
+				opening: ''
 			}
 		]);
 	});
@@ -52,7 +56,23 @@ describe('collectStats', () => {
 			['sub/new.pgn', 3],
 			['old.pgn', 3]
 		]);
-		expect(summary).toEqual({ games: 2, turningPoints: 3, found: 1, missed: 1, unchecked: 1 });
+		expect(summary).toEqual({
+			games: 2,
+			turningPoints: 3,
+			worked: 3,
+			found: 1,
+			missed: 1,
+			unchecked: 1
+		});
+	});
+
+	it('counts bare turning point markers but not as worked on', () => {
+		const marked = writeNotes(game('D', '2026.10.06'), { 1: emptyNotes(), 3: emptyNotes() });
+		const { summary } = collectStats([
+			{ path: 'old.pgn', text: older },
+			{ path: 'marked.pgn', text: marked }
+		]);
+		expect(summary).toMatchObject({ turningPoints: 3, worked: 1, unchecked: 2 });
 	});
 
 	it('reads every game of a file with several games', () => {

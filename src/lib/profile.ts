@@ -1,0 +1,125 @@
+import type { Move } from 'chess.js';
+import type { MoveTime, TimeControl } from './clock.ts';
+import type { StatsEntry } from './stats.ts';
+
+export type Phase = 'opening' | 'middlegame' | 'endgame';
+export type TimeTag = 'trouble' | 'quick' | 'normal';
+export type Group = { label: string; hint: string; total: number; found: number; missed: number };
+type Labels<T extends string> = Record<T, { label: string; hint: string }>;
+
+const VALUES: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9 };
+const OPENING_PLIES = 30;
+
+function pieces(fen: string): string {
+	return fen.split(' ')[0].replace(/[^a-zA-Z]/g, '');
+}
+
+function material(fen: string, color: 'w' | 'b', pawns = true): number {
+	return [...pieces(fen)]
+		.filter((piece) => (piece === piece.toUpperCase()) === (color === 'w'))
+		.filter((piece) => pawns || piece.toLowerCase() !== 'p')
+		.reduce((sum, piece) => sum + (VALUES[piece.toLowerCase()] ?? 0), 0);
+}
+
+export function gamePhase(fen: string): Phase {
+	const board = pieces(fen);
+	const minors = (letters: string) => [...board].filter((piece) => letters.includes(piece)).length;
+	const fullmove = Number(fen.split(' ')[5]) || 1;
+	if (fullmove <= 12 && minors('NB') >= 3 && minors('nb') >= 3) return 'opening';
+	const endgame = material(fen, 'w', false) <= 13 && material(fen, 'b', false) <= 13;
+	return endgame ? 'endgame' : 'middlegame';
+}
+
+export function timeTag(time: MoveTime | null, control: TimeControl | null): TimeTag | null {
+	if (!time || !control) return null;
+	if (time.remaining < control.base * 0.1) return 'trouble';
+	if (time.spent <= Math.max(1, control.base * 0.02)) return 'quick';
+	return 'normal';
+}
+
+export function lostMaterial(history: Move[], ply: number): boolean {
+	const move = history[ply - 1];
+	if (!move) return false;
+	const later = history[Math.min(ply + 3, history.length - 1)];
+	const balance = (fen: string) =>
+		material(fen, move.color) - material(fen, move.color === 'w' ? 'b' : 'w');
+	return balance(move.before) - balance(later.after) >= 2;
+}
+
+function group<T extends string>(
+	entries: StatsEntry[],
+	key: (entry: StatsEntry) => T | null,
+	labels: Labels<T>
+): Group[] {
+	return (Object.keys(labels) as T[])
+		.map((value) => {
+			const matching = entries.filter((entry) => key(entry) === value);
+			return {
+				...labels[value],
+				total: matching.length,
+				found: matching.filter((entry) => entry.verdict === 'found').length,
+				missed: matching.filter((entry) => entry.verdict === 'missed').length
+			};
+		})
+		.filter((row) => row.total > 0);
+}
+
+export function profile(entries: StatsEntry[]) {
+	return {
+		phase: group(entries, (entry) => entry.phase, {
+			opening: { label: 'Opening', hint: 'Up to move 12 with at least 3 minor pieces each' },
+			middlegame: { label: 'Middlegame', hint: 'Neither opening nor endgame' },
+			endgame: { label: 'Endgame', hint: 'Each side has at most 13 points of pieces besides pawns' }
+		}),
+		time: group(entries, (entry) => entry.time, {
+			trouble: { label: 'Time trouble', hint: 'Less than 10% of the base time left' },
+			quick: { label: 'Quick move', hint: 'At most 2% of the base time spent' },
+			normal: { label: 'Normal', hint: 'Neither time trouble nor a quick move' }
+		}),
+		kind: group(entries, (entry) => (entry.tactical ? 'tactical' : 'positional'), {
+			tactical: {
+				label: 'Material lost',
+				hint: 'Down 2 or more points of material four plies later'
+			},
+			positional: { label: 'Positional', hint: 'No material lost in the next four plies' }
+		})
+	};
+}
+
+const gameId = (entry: StatsEntry) => `${entry.file}|${entry.date}|${entry.white}|${entry.black}`;
+
+export function openingLeaks(entries: StatsEntry[]) {
+	const byOpening = new Map<string, StatsEntry[]>();
+	for (const entry of entries) {
+		if (entry.ply > OPENING_PLIES) continue;
+		const name = entry.opening || 'Unknown';
+		byOpening.set(name, [...(byOpening.get(name) ?? []), entry]);
+	}
+	return [...byOpening.entries()]
+		.map(([opening, list]) => ({
+			opening,
+			games: new Set(list.map(gameId)).size,
+			turningPoints: list.length,
+			missed: list.filter((entry) => entry.verdict === 'missed').length
+		}))
+		.sort((a, b) => b.turningPoints - a.turningPoints || a.opening.localeCompare(b.opening));
+}
+
+export function repeatedPositions(entries: StatsEntry[]) {
+	const byPosition = new Map<string, StatsEntry[]>();
+	for (const entry of entries) {
+		if (!entry.fen) continue;
+		const key = entry.fen.split(' ').slice(0, 4).join(' ');
+		byPosition.set(key, [...(byPosition.get(key) ?? []), entry]);
+	}
+	return [...byPosition.values()]
+		.map((list) => ({
+			fen: list[0].fen,
+			ply: list[0].ply,
+			moves: [...new Set(list.map((entry) => entry.move))],
+			games: new Set(list.map(gameId)).size,
+			missed: list.filter((entry) => entry.verdict === 'missed').length
+		}))
+		.filter((row) => row.games >= 2)
+		.sort((a, b) => b.games - a.games || a.ply - b.ply);
+}
