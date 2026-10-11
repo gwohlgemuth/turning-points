@@ -109,10 +109,15 @@ describe('writeNotes and readNotes', () => {
 		expect(readNotes(twice)).toEqual({ 3: answers('Changed', '', '') });
 	});
 
-	it('removes notes that were cleared', () => {
+	it('keeps cleared notes as a bare turning point marker', () => {
 		const written = writeNotes(writeNotes(pgn, { 1: notes }), { 1: emptyNotes() });
+		expect(written).toContain('{[%clk 0:03:00] Turning point.}');
+		expect(readNotes(written)).toEqual({ 1: emptyNotes() });
+	});
+
+	it('removes the marker of a ply that is no longer listed', () => {
+		const written = writeNotes(writeNotes(pgn, { 1: emptyNotes() }), {});
 		expect(written).not.toContain('Turning point');
-		expect(readNotes(written)).toEqual({});
 	});
 
 	it('reads nothing from a game without notes or an invalid PGN', () => {

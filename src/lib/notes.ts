@@ -101,7 +101,7 @@ export function writeNotes(pgn: string, notes: Record<number, Notes>): string {
 	for (const [i, move] of history.entries()) {
 		chess.move(move.san);
 		const { rest } = splitComment(comments.get(move.after) ?? '');
-		const note = notes[i + 1] ? formatNote(notes[i + 1]) : '';
+		const note = notes[i + 1] ? formatNote(notes[i + 1]) || MARKER : '';
 		const comment = [rest, note].filter(Boolean).join(' ');
 		if (comment) chess.setComment(comment);
 	}
