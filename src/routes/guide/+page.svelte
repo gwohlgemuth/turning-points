@@ -82,7 +82,8 @@
 					<li>
 						In the <strong>Online</strong> tab, enter your Lichess or Chess.com username and press
 						<strong>Load games</strong>. Choose yourself under <strong>View as</strong>, then click
-						a game.
+						a game. Got a game from elsewhere? Paste it or open a file in the
+						<strong>PGN</strong> tab.
 					</li>
 					<li>
 						The engine analyzes every position. The evaluation stays hidden from the first open

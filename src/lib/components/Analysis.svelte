@@ -38,7 +38,6 @@
 		pgnFilename,
 		parseRating,
 		pgnHeader,
-		splitPgn,
 		summaryFromPgn,
 		winner,
 		type GameSummary
@@ -94,7 +93,7 @@
 	let revealed = $state<Record<number, boolean>>({});
 	let savedNotes = $state(notesSignature({}));
 	let loadedGames = $state<GameSummary[]>([]);
-	let loaderTab = $state<'online' | 'saved' | 'recent'>('online');
+	let loaderTab = $state<'online' | 'saved' | 'recent' | 'pgn'>('online');
 	let recent = $state<RecentEntry[]>([]);
 	let recentGames = $derived(
 		recent.map((entry, i) => ({
@@ -523,17 +522,6 @@
 		flipped = player === 'b';
 		analyze();
 	}
-
-	async function loadFile(event: Event) {
-		const file = (event.currentTarget as HTMLInputElement).files?.[0];
-		if (!file) return;
-		const text = await file.text();
-		const games = splitPgn(text);
-		if (games.length > 1) {
-			loadedGames = games.map(summaryFromPgn);
-			loaderTab = 'online';
-		} else pgn = text;
-	}
 </script>
 
 <svelte:window onkeydown={handleKey} onbeforeunload={warnUnsaved} />
@@ -635,6 +623,7 @@
 					onselect={loadGame}
 					bind:games={loadedGames}
 					bind:tab={loaderTab}
+					bind:pgn
 					recent={recentGames}
 					onforget={(id) => keepRecent(forget(recent, id.slice('recent:'.length)))}
 					onclear={() => keepRecent([])}
@@ -644,18 +633,6 @@
 					{count}
 					{preferences}
 				/>
-				<textarea bind:value={pgn} rows="6" placeholder="…or paste a PGN here"></textarea>
-				<div class="file-row">
-					<input
-						type="file"
-						accept=".pgn,text/plain"
-						onchange={loadFile}
-						aria-label="Open PGN file"
-					/>
-					<button onclick={() => savePgn(pgn, pgnFilename(pgn))} disabled={!pgn.trim()}>
-						Save
-					</button>
-				</div>
 				<SaveFolder folder={preferences.folder} />
 			</section>
 
@@ -1275,23 +1252,6 @@
 		margin-bottom: 2px;
 	}
 
-	textarea {
-		width: 100%;
-		box-sizing: border-box;
-		resize: vertical;
-		font-family: ui-monospace, 'JetBrains Mono', monospace;
-		font-size: 0.85rem;
-		line-height: 1.5;
-	}
-
-	.file-row {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 10px;
-		align-items: center;
-		justify-content: space-between;
-	}
-
 	.controls {
 		display: grid;
 		gap: 14px;
@@ -1777,7 +1737,12 @@
 	}
 
 	.notes textarea {
+		width: 100%;
+		box-sizing: border-box;
 		resize: vertical;
+		font-family: ui-monospace, 'JetBrains Mono', monospace;
+		font-size: 0.85rem;
+		line-height: 1.5;
 	}
 
 	.save-notes {

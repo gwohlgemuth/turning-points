@@ -15,6 +15,8 @@
 		pgnFilename,
 		playerSide,
 		playersByCount,
+		splitPgn,
+		summaryFromPgn,
 		today,
 		winner,
 		type GameSource,
@@ -28,7 +30,8 @@
 	type Props = {
 		onselect: (game: GameSummary, side: Side) => void;
 		games?: GameSummary[];
-		tab?: 'online' | 'saved' | 'recent';
+		tab?: 'online' | 'saved' | 'recent' | 'pgn';
+		pgn?: string;
 		recent?: GameSummary[];
 		onforget?: (id: string) => void;
 		onclear?: () => void;
@@ -43,6 +46,7 @@
 		onselect,
 		games = $bindable([]),
 		tab = $bindable('online'),
+		pgn = $bindable(''),
 		recent = [],
 		onforget,
 		onclear,
@@ -69,7 +73,15 @@
 	let query = $state('');
 	let outcomeFilter = $state<Outcome | ''>('');
 	let list = $derived<GameSummary[]>(
-		tab === 'online' ? games : tab === 'saved' ? (showAll ? saved : worked) : recent
+		tab === 'online'
+			? games
+			: tab === 'saved'
+				? showAll
+					? saved
+					: worked
+				: tab === 'recent'
+					? recent
+					: []
 	);
 	let savedByUrl = $derived(new Map(saved.filter((game) => game.url).map((g) => [g.url, g])));
 	const players = $derived(playersByCount(list));
@@ -92,7 +104,7 @@
 		}
 	}
 
-	function showTab(next: 'online' | 'saved' | 'recent') {
+	function showTab(next: 'online' | 'saved' | 'recent' | 'pgn') {
 		slideList = false;
 		tab = next;
 		message = '';
@@ -132,6 +144,17 @@
 	function choose(game: GameSummary) {
 		selectedId = game.id;
 		onselect(game, playerSide(game, perspective) ?? 'w');
+	}
+
+	async function loadFile(event: Event) {
+		const file = (event.currentTarget as HTMLInputElement).files?.[0];
+		if (!file) return;
+		const text = await file.text();
+		const found = splitPgn(text);
+		if (found.length > 1) {
+			games = found.map(summaryFromPgn);
+			showTab('online');
+		} else pgn = text;
 	}
 
 	function save() {
@@ -195,6 +218,13 @@
 		disabled={!!batch}
 		onclick={() => showTab('recent')}>Recent</button
 	>
+	<button
+		role="tab"
+		aria-selected={tab === 'pgn'}
+		class:on={tab === 'pgn'}
+		disabled={!!batch}
+		onclick={() => showTab('pgn')}>PGN</button
+	>
 </div>
 
 <div class="tab-controls">
@@ -223,6 +253,11 @@
 		{:else if savedLoaded && !saved.length && !message}
 			<span class="muted">No saved games yet. Games you save appear here.</span>
 		{/if}
+	{:else if tab === 'pgn'}
+		<div class="file-row">
+			<input type="file" accept=".pgn,text/plain" onchange={loadFile} aria-label="Open PGN file" />
+			<button onclick={() => savePgn(pgn, pgnFilename(pgn))} disabled={!pgn.trim()}>Save</button>
+		</div>
 	{:else if recent.length}
 		<button onclick={() => confirm('Remove all games from Recent?') && onclear?.()}
 			>Clear recent</button
@@ -234,6 +269,10 @@
 
 {#if message}
 	<p class="muted">{message}</p>
+{/if}
+
+{#if tab === 'pgn'}
+	<textarea bind:value={pgn} rows="8" placeholder="Paste a PGN here" aria-label="PGN"></textarea>
 {/if}
 
 {#if list.length}
@@ -393,10 +432,28 @@
 		background: rgb(227 179 65 / 0.12);
 	}
 
+	textarea {
+		width: 100%;
+		box-sizing: border-box;
+		resize: vertical;
+		font-family: ui-monospace, 'JetBrains Mono', monospace;
+		font-size: 0.85rem;
+		line-height: 1.5;
+	}
+
+	.file-row {
+		flex: 1;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 10px;
+		align-items: center;
+		justify-content: space-between;
+	}
+
 	.tab-controls {
 		display: flex;
 		align-items: center;
-		min-height: 40px;
+		min-height: 42px;
 	}
 
 	.loader {
