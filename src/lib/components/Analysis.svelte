@@ -500,7 +500,15 @@
 			movesList.scrollTop = bottom - movesList.clientHeight;
 	});
 
+	function closeSetup() {
+		if (!batchRunning) setupOpen = false;
+	}
+
 	function handleKey(event: KeyboardEvent) {
+		if (event.key === 'Escape' && active && moves.length && showSetup) {
+			closeSetup();
+			return;
+		}
 		const tag = (event.target as HTMLElement).tagName;
 		if (!active || !moves.length || ['TEXTAREA', 'INPUT', 'SELECT'].includes(tag)) return;
 		if (event.key === 'n' && !spotting) nextHidden();
@@ -541,62 +549,141 @@
 	</div>
 {/snippet}
 
+{#snippet setupPanel()}
+	<section class="card load">
+		<h2 class="card-title">Load a game</h2>
+		{#if !moves.length}
+			<p class="muted small">
+				New here? <a class="guide-link" href="/guide">Read the guide →</a>
+			</p>
+		{/if}
+		<GameLoader
+			onselect={loadGame}
+			bind:games={loadedGames}
+			bind:tab={loaderTab}
+			bind:pgn
+			recent={recentGames}
+			onforget={(id) => keepRecent(forget(recent, id.slice('recent:'.length)))}
+			onclear={() => keepRecent([])}
+			onanalyzed={(entry) => keepRecent(remember(recent, entry))}
+			onbatch={(running) => (batchRunning = running)}
+			{depth}
+			{count}
+			{preferences}
+		/>
+		<SaveFolder folder={preferences.folder} />
+	</section>
+
+	<section class="card settings">
+		<h2 class="card-title">Analysis</h2>
+		{#if !moves.length}
+			<div class="controls">
+				<label>
+					<span>Analyze for</span>
+					<select bind:value={side} onchange={() => (flipped = side === 'b')}>
+						<option value="w">{pgnHeader(pgn, 'White') ?? 'White'} (White)</option>
+						<option value="b">{pgnHeader(pgn, 'Black') ?? 'Black'} (Black)</option>
+					</select>
+				</label>
+				<div class="pair">
+					<label>
+						<span>Depth</span>
+						<input type="number" min="6" max="30" bind:value={depth} />
+					</label>
+					<label>
+						<span>Engine lines</span>
+						<input type="number" min="1" max="5" bind:value={lines} />
+					</label>
+				</div>
+			</div>
+		{/if}
+		{#if status === 'running'}
+			<button class="analyze" onclick={stop}>Stop</button>
+			<div class="progress" role="progressbar" aria-valuenow={progress}>
+				<div class="progress-fill" style:width="{progress}%"></div>
+			</div>
+			<span class="muted small">Analyzing… {winPercents.length}/{positions} positions</span>
+		{:else}
+			<button class="primary analyze" onclick={analyze} disabled={!pgn.trim() || batchRunning}
+				>Analyze game</button
+			>
+		{/if}
+		{#if status === 'error'}
+			<p class="error">{message}</p>
+		{/if}
+	</section>
+{/snippet}
+
 <main class:hidden={!active} class:loaded={moves.length > 0}>
-	<Header>
-		<div class="toolbar">
-			{#if moves.length}
-				{#if status === 'running'}
-					<div class="progress inline" role="progressbar" aria-valuenow={progress}>
-						<div class="progress-fill" style:width="{progress}%"></div>
-					</div>
-					<span class="muted small">{winPercents.length}/{positions}</span>
-					<button onclick={stop}>Stop</button>
-				{:else}
-					<div
-						class="quick-settings muted small"
-						title={unsaved ? 'Save your notes first' : undefined}
+	<div class="head-area">
+		<Header>
+			<div class="toolbar">
+				{#if moves.length}
+					{#if status === 'running'}
+						<div class="progress inline" role="progressbar" aria-valuenow={progress}>
+							<div class="progress-fill" style:width="{progress}%"></div>
+						</div>
+						<span class="muted small">{winPercents.length}/{positions}</span>
+						<button onclick={stop}>Stop</button>
+					{:else}
+						<div
+							class="quick-settings muted small"
+							title={unsaved ? 'Save your notes first' : undefined}
+						>
+							<label>
+								For
+								<select
+									bind:value={side}
+									onchange={() => (flipped = side === 'b')}
+									disabled={unsaved}
+								>
+									<option value="w">{headers.White ?? 'White'} (White)</option>
+									<option value="b">{headers.Black ?? 'Black'} (Black)</option>
+								</select>
+							</label>
+							<label>
+								Depth
+								<input
+									type="number"
+									min="6"
+									max="30"
+									bind:value={depth}
+									onchange={analyze}
+									disabled={unsaved}
+								/>
+							</label>
+							<label>
+								Lines
+								<input type="number" min="1" max="5" bind:value={lines} disabled={unsaved} />
+							</label>
+						</div>
+					{/if}
+					<button
+						class="setup-toggle"
+						class:open={showSetup}
+						onclick={() => (setupOpen = !showSetup)}
+						disabled={batchRunning}
+						aria-expanded={showSetup}
+						title="{showSetup ? 'Hide' : 'Show'} game loading and analysis settings"
 					>
-						<label>
-							For
-							<select
-								bind:value={side}
-								onchange={() => (flipped = side === 'b')}
-								disabled={unsaved}
-							>
-								<option value="w">{headers.White ?? 'White'} (White)</option>
-								<option value="b">{headers.Black ?? 'Black'} (Black)</option>
-							</select>
-						</label>
-						<label>
-							Depth
-							<input
-								type="number"
-								min="6"
-								max="30"
-								bind:value={depth}
-								onchange={analyze}
-								disabled={unsaved}
-							/>
-						</label>
-						<label>
-							Lines
-							<input type="number" min="1" max="5" bind:value={lines} disabled={unsaved} />
-						</label>
-					</div>
+						⚙ Game & settings <span class="chevron" aria-hidden="true">▾</span>
+					</button>
 				{/if}
-				<button
-					class="setup-toggle"
-					class:open={showSetup}
-					onclick={() => (setupOpen = !showSetup)}
-					disabled={batchRunning}
-					aria-expanded={showSetup}
-					title="{showSetup ? 'Hide' : 'Show'} game loading and analysis settings"
-				>
-					⚙ Game & settings <span class="chevron" aria-hidden="true">▾</span>
-				</button>
-			{/if}
-		</div>
-	</Header>
+			</div>
+		</Header>
+		{#if showSetup && moves.length}
+			<button
+				class="backdrop"
+				aria-label="Close game and settings"
+				tabindex="-1"
+				onclick={closeSetup}
+				transition:fade={{ duration: ms(160) }}
+			></button>
+			<div class="top overlay" transition:fly={{ y: -8, duration: ms(160) }}>
+				{@render setupPanel()}
+			</div>
+		{/if}
+	</div>
 
 	{#if moves.length}
 		<h1 class="sr-only">Analysis</h1>
@@ -610,71 +697,8 @@
 		</section>
 	{/if}
 
-	{#if showSetup}
-		<div class="top" transition:slide={{ duration: ms(200) }}>
-			<section class="card load">
-				<h2 class="card-title">Load a game</h2>
-				{#if !moves.length}
-					<p class="muted small">
-						New here? <a class="guide-link" href="/guide">Read the guide →</a>
-					</p>
-				{/if}
-				<GameLoader
-					onselect={loadGame}
-					bind:games={loadedGames}
-					bind:tab={loaderTab}
-					bind:pgn
-					recent={recentGames}
-					onforget={(id) => keepRecent(forget(recent, id.slice('recent:'.length)))}
-					onclear={() => keepRecent([])}
-					onanalyzed={(entry) => keepRecent(remember(recent, entry))}
-					onbatch={(running) => (batchRunning = running)}
-					{depth}
-					{count}
-					{preferences}
-				/>
-				<SaveFolder folder={preferences.folder} />
-			</section>
-
-			<section class="card settings">
-				<h2 class="card-title">Analysis</h2>
-				{#if !moves.length}
-					<div class="controls">
-						<label>
-							<span>Analyze for</span>
-							<select bind:value={side} onchange={() => (flipped = side === 'b')}>
-								<option value="w">{pgnHeader(pgn, 'White') ?? 'White'} (White)</option>
-								<option value="b">{pgnHeader(pgn, 'Black') ?? 'Black'} (Black)</option>
-							</select>
-						</label>
-						<div class="pair">
-							<label>
-								<span>Depth</span>
-								<input type="number" min="6" max="30" bind:value={depth} />
-							</label>
-							<label>
-								<span>Engine lines</span>
-								<input type="number" min="1" max="5" bind:value={lines} />
-							</label>
-						</div>
-					</div>
-				{/if}
-				{#if status === 'running'}
-					<button class="analyze" onclick={stop}>Stop</button>
-					<div class="progress" role="progressbar" aria-valuenow={progress}>
-						<div class="progress-fill" style:width="{progress}%"></div>
-					</div>
-					<span class="muted small">Analyzing… {winPercents.length}/{positions} positions</span>
-				{:else}
-					<button class="primary analyze" onclick={analyze} disabled={!pgn.trim() || batchRunning}
-						>Analyze game</button
-					>
-				{/if}
-				{#if status === 'error'}
-					<p class="error">{message}</p>
-				{/if}
-			</section>
-		</div>
+	{#if showSetup && !moves.length}
+		<div class="top">{@render setupPanel()}</div>
 	{/if}
 
 	{#if moves.length}
@@ -1231,6 +1255,46 @@
 		margin: 6px 0 0;
 		max-width: 70ch;
 		line-height: 1.5;
+	}
+
+	.head-area {
+		position: relative;
+		z-index: 30;
+	}
+
+	.head-area > :global(header) {
+		position: relative;
+		z-index: 2;
+	}
+
+	.backdrop {
+		position: fixed;
+		inset: 0;
+		z-index: 1;
+		padding: 0;
+		border: 0;
+		border-radius: 0;
+		background: rgb(8 10 14 / 0.5);
+		cursor: default;
+	}
+
+	.backdrop:hover {
+		background: rgb(8 10 14 / 0.5);
+	}
+
+	.overlay {
+		position: absolute;
+		top: calc(100% + 10px);
+		left: 0;
+		right: 0;
+		z-index: 2;
+		max-height: calc(100vh - 110px);
+		overflow: auto;
+		padding: 14px;
+		border: 1px solid var(--border-strong);
+		border-radius: 18px;
+		background: var(--surface);
+		box-shadow: 0 24px 60px rgb(0 0 0 / 0.55);
 	}
 
 	.top {
