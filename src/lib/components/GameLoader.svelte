@@ -229,13 +229,21 @@
 
 <div class="tab-controls">
 	{#if tab === 'online'}
-		<form class="loader" onsubmit={load}>
-			<select bind:value={source} aria-label="Source">
+		<form class="loader" onsubmit={load} autocomplete="off">
+			<select
+				bind:value={source}
+				onchange={() => updatePreferences({ source })}
+				aria-label="Source"
+			>
 				<option value="lichess">Lichess</option>
 				<option value="chesscom">Chess.com</option>
 			</select>
 			<input bind:value={username} placeholder="Username" aria-label="Username" required />
-			<select bind:value={max} aria-label="Number of games">
+			<select
+				bind:value={max}
+				onchange={() => updatePreferences({ max })}
+				aria-label="Number of games"
+			>
 				{#each GAME_COUNTS as count (count)}
 					<option value={count}>{count} games</option>
 				{/each}
