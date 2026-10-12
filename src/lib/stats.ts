@@ -8,7 +8,7 @@ import {
 	summaryFromPgn,
 	type GameSummary
 } from './games.ts';
-import { answeredCount, readNotes, type Verdict } from './notes.ts';
+import { answeredCount, readNotes, type Confidence, type Verdict } from './notes.ts';
 import { gamePhase, lostMaterial, timeTag, type Phase, type TimeTag } from './profile.ts';
 import { isSpotted, readSpotFlags } from './spot.ts';
 
@@ -22,6 +22,8 @@ export type StatsEntry = {
 	fen: string;
 	candidate: string;
 	verdict: Verdict;
+	confidence: Confidence;
+	lesson: string;
 	answered: number;
 	phase: Phase;
 	time: TimeTag | null;
@@ -70,6 +72,8 @@ export function entriesFromPgn(file: string, pgn: string): StatsEntry[] {
 		fen: moves[ply - 1]?.before ?? '',
 		candidate: notes[ply].candidate,
 		verdict: notes[ply].verdict,
+		confidence: notes[ply].confidence,
+		lesson: notes[ply].lesson,
 		answered: answeredCount(notes[ply]),
 		phase: gamePhase(moves[ply - 1]?.before ?? ''),
 		time: timeTag(times[ply - 1] ?? null, control),

@@ -200,6 +200,9 @@
 					{:else}
 						<p class="muted">Calculating…</p>
 					{/if}
+					{#if recorded && card.lesson}
+						<p class="lesson"><span class="muted small">Your rule</span> {card.lesson}</p>
+					{/if}
 					<button class="primary" onclick={next} disabled={!recorded}>Next</button>
 				{/if}
 			</div>
@@ -308,6 +311,13 @@
 	}
 
 	.missed,
+	.lesson {
+		display: grid;
+		gap: 2px;
+		padding-left: 10px;
+		border-left: 2px solid var(--accent);
+	}
+
 	.error {
 		color: var(--danger);
 	}

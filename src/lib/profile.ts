@@ -82,6 +82,11 @@ export function profile(entries: StatsEntry[]) {
 				hint: 'Down 2 or more points of material four plies later'
 			},
 			positional: { label: 'Positional', hint: 'No material lost in the next four plies' }
+		}),
+		confidence: group(entries, (entry) => entry.confidence || null, {
+			sure: { label: 'Sure', hint: 'You were sure of your candidate move' },
+			unsure: { label: 'Unsure', hint: 'You were unsure of your candidate move' },
+			guess: { label: 'Guess', hint: 'Your candidate move was a guess' }
 		})
 	};
 }

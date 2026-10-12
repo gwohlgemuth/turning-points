@@ -3,9 +3,29 @@ import { mergeAdjacentComments } from './games.ts';
 
 export type Verdict = 'found' | 'missed' | '';
 
-export type Notes = { answers: [string, string, string]; candidate: string; verdict: Verdict };
+export type Confidence = 'sure' | 'unsure' | 'guess' | '';
 
-export const emptyNotes = (): Notes => ({ answers: ['', '', ''], candidate: '', verdict: '' });
+export type Notes = {
+	answers: [string, string, string];
+	candidate: string;
+	verdict: Verdict;
+	confidence: Confidence;
+	lesson: string;
+};
+
+export const emptyNotes = (): Notes => ({
+	answers: ['', '', ''],
+	candidate: '',
+	verdict: '',
+	confidence: '',
+	lesson: ''
+});
+
+export const CONFIDENCES = [
+	{ value: 'sure', label: 'Sure' },
+	{ value: 'unsure', label: 'Unsure' },
+	{ value: 'guess', label: 'Guess' }
+] as const;
 
 export const NOTE_QUESTIONS = [
 	{ question: 'Why did I choose that move?', label: 'Why I chose it:' },
@@ -18,8 +38,10 @@ export const NOTE_QUESTIONS = [
 
 const MARKER = 'Turning point.';
 const CANDIDATE = 'Candidate:';
+const CONFIDENCE = 'Confidence:';
+const LESSON = 'Next time:';
 const NOTE_PATTERN = new RegExp(
-	`${escape(MARKER)}(?: ${escape(CANDIDATE)} (\\S+)(?: \\((found|missed)\\))?)?${NOTE_QUESTIONS.map(({ label }) => `(?: ${escape(label)} (.*?))?`).join('')}$`
+	`${escape(MARKER)}(?: ${escape(CANDIDATE)} (\\S+)(?: \\((found|missed)\\))?)?(?: ${escape(CONFIDENCE)} (sure|unsure|guess)\\.)?${NOTE_QUESTIONS.map(({ label }) => `(?: ${escape(label)} (.*?))?`).join('')}(?: ${escape(LESSON)} (.*?))?$`
 );
 
 function escape(text: string): string {
@@ -34,18 +56,26 @@ export const answeredCount = (notes: Notes | undefined) =>
 	notes?.answers.filter((answer) => clean(answer)).length ?? 0;
 
 export const isRevealed = (notes: Notes | undefined) =>
-	!!notes && (!!notes.candidate || !!clean(notes.answers[1]) || !!clean(notes.answers[2]));
+	!!notes &&
+	(!!notes.candidate ||
+		!!clean(notes.answers[1]) ||
+		!!clean(notes.answers[2]) ||
+		!!clean(notes.lesson));
 
 export function formatNote(notes: Notes): string {
 	const candidate = clean(notes.candidate).split(' ')[0];
-	if (!answeredCount(notes) && !candidate) return '';
-	const parts = NOTE_QUESTIONS.flatMap(({ label }, i) =>
-		clean(notes.answers[i]) ? [`${label} ${clean(notes.answers[i])}`] : []
-	);
+	const lesson = clean(notes.lesson);
+	if (!answeredCount(notes) && !candidate && !lesson) return '';
 	const verdict = candidate && notes.verdict ? ` (${notes.verdict})` : '';
-	return [MARKER, ...(candidate ? [`${CANDIDATE} ${candidate}${verdict}`] : []), ...parts].join(
-		' '
-	);
+	return [
+		MARKER,
+		...(candidate ? [`${CANDIDATE} ${candidate}${verdict}`] : []),
+		...(candidate && notes.confidence ? [`${CONFIDENCE} ${notes.confidence}.`] : []),
+		...NOTE_QUESTIONS.flatMap(({ label }, i) =>
+			clean(notes.answers[i]) ? [`${label} ${clean(notes.answers[i])}`] : []
+		),
+		...(lesson ? [`${LESSON} ${lesson}`] : [])
+	].join(' ');
 }
 
 function splitComment(comment: string): { rest: string; notes: Notes | null } {
@@ -53,9 +83,11 @@ function splitComment(comment: string): { rest: string; notes: Notes | null } {
 	if (index < 0) return { rest: comment.trim(), notes: null };
 	const match = NOTE_PATTERN.exec(comment.slice(index).trim());
 	const notes: Notes = {
-		answers: [match?.[3] ?? '', match?.[4] ?? '', match?.[5] ?? ''],
+		answers: [match?.[4] ?? '', match?.[5] ?? '', match?.[6] ?? ''],
 		candidate: match?.[1] ?? '',
-		verdict: (match?.[2] ?? '') as Verdict
+		verdict: (match?.[2] ?? '') as Verdict,
+		confidence: (match?.[3] ?? '') as Confidence,
+		lesson: match?.[7] ?? ''
 	};
 	return { rest: comment.slice(0, index).trim(), notes };
 }

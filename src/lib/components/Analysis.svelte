@@ -44,6 +44,7 @@
 		type GameSummary
 	} from '#lib/games.ts';
 	import {
+		CONFIDENCES,
 		NOTE_QUESTIONS,
 		answeredCount,
 		emptyNotes,
@@ -223,6 +224,7 @@
 				const tpNotes = (notes[candidateTp.ply] ??= emptyNotes());
 				tpNotes.candidate = move.san;
 				tpNotes.verdict = '';
+				tpNotes.confidence = '';
 			}
 		}
 		exploration.moves.push(boardMove);
@@ -407,6 +409,7 @@
 	function clearCandidate(ply: number) {
 		notes[ply].candidate = '';
 		notes[ply].verdict = '';
+		notes[ply].confidence = '';
 	}
 
 	function setVerdict(ply: number, found: boolean) {
@@ -1013,6 +1016,19 @@
 												{/if}
 											</span>
 										</div>
+										{#if hidden && notes[tp.ply]?.candidate}
+											<div class="confidence">
+												<span class="muted small">How sure are you?</span>
+												{#each CONFIDENCES as { value, label } (value)}
+													<button
+														class:on={notes[tp.ply].confidence === value}
+														onclick={() =>
+															(notes[tp.ply].confidence =
+																notes[tp.ply].confidence === value ? '' : value)}>{label}</button
+													>
+												{/each}
+											</div>
+										{/if}
 										{#if notesOpen[tp.ply] && notes[tp.ply]}
 											<div class="notes" transition:slide={{ duration: ms(200) }}>
 												{#each NOTE_QUESTIONS.slice(0, hidden ? 1 : 3) as { question }, q (question)}
@@ -1021,6 +1037,15 @@
 														<textarea rows="2" bind:value={notes[tp.ply].answers[q]}></textarea>
 													</label>
 												{/each}
+												{#if !hidden}
+													<label>
+														<span>Next time, when …, then …</span>
+														<textarea
+															rows="2"
+															placeholder="When my opponent's queen leaves the king, then I look for checks first."
+															bind:value={notes[tp.ply].lesson}></textarea>
+													</label>
+												{/if}
 											</div>
 										{/if}
 										{#if !hidden && notes[tp.ply]?.candidate}
@@ -1751,6 +1776,23 @@
 		font-size: 0.8rem;
 	}
 
+	.confidence {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		padding-top: 6px;
+	}
+
+	.confidence span {
+		margin-right: 4px;
+	}
+
+	.confidence button {
+		padding: 3px 9px;
+		font-size: 0.8rem;
+	}
+
+	.confidence button.on,
 	.tp-actions button.on {
 		border-color: var(--accent);
 		color: var(--accent-2);

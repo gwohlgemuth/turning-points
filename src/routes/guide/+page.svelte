@@ -103,13 +103,13 @@
 					<li>
 						Press <strong>Next open turning point</strong> (or <kbd>N</kbd>). Think, then play your
 						candidate move on the board. It is marked <span class="found">✓ found</span> if it is
-						about as good as the engine's move, otherwise <span class="missed">✗ missed</span>. Then
-						press
-						<strong>Reveal</strong>.
+						about as good as the engine's move, otherwise <span class="missed">✗ missed</span>. Say
+						how sure you are, then press <strong>Reveal</strong>.
 					</li>
 					<li>
 						Answer the three questions in your own words: Why did I choose that move? Why is my move
-						not ideal? Why is the better move better?
+						not ideal? Why is the better move better? Then write one rule for next time: “When …,
+						then …”.
 					</li>
 					<li>
 						Press <strong>Save notes</strong>. The game is saved as a PGN file with your notes, and
@@ -133,6 +133,14 @@
 					<li>
 						<strong>Write the answers.</strong> Putting the reason into words is where the learning happens.
 						One honest sentence is worth more than a long line of moves.
+					</li>
+					<li>
+						<strong>Be honest about how sure you were.</strong> A move you were sure of that turns out
+						wrong is the one you remember best, and Stats shows where your judgment misleads you.
+					</li>
+					<li>
+						<strong>End with a rule.</strong> “When …, then …” turns the analysis into something you can
+						use at the board. It comes back with the position in Review.
 					</li>
 					<li>
 						<strong>Review daily, 5–10 minutes.</strong> Positions you missed come back after 1, 3, 7,

@@ -23,6 +23,8 @@ const entry = (patch: Partial<StatsEntry>): StatsEntry => ({
 	fen: START,
 	candidate: '',
 	verdict: '',
+	confidence: '',
+	lesson: '',
 	answered: 0,
 	phase: 'middlegame',
 	time: null,
@@ -76,6 +78,19 @@ describe('lostMaterial', () => {
 });
 
 describe('profile', () => {
+	it('groups by confidence and leaves out turning points without one', () => {
+		const result = profile([
+			entry({ confidence: 'sure', verdict: 'missed' }),
+			entry({ confidence: 'sure', verdict: 'found' }),
+			entry({ confidence: 'guess', verdict: 'found' }),
+			entry({ verdict: 'missed' })
+		]);
+		expect(result.confidence.map(({ label, total, missed }) => [label, total, missed])).toEqual([
+			['Sure', 2, 1],
+			['Guess', 1, 0]
+		]);
+	});
+
 	it('counts each group and leaves out empty ones', () => {
 		const result = profile([
 			entry({ phase: 'endgame', verdict: 'missed', tactical: true, time: 'trouble' }),

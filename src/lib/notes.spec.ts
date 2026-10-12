@@ -19,7 +19,9 @@ const pgn = `[White "A"]
 const notes: Notes = {
 	answers: ['It attacks f7', 'It ignores {development}', 'Nf3 develops\na piece'],
 	candidate: '',
-	verdict: ''
+	verdict: '',
+	confidence: '',
+	lesson: ''
 };
 
 const answers = (a: string, b: string, c: string): Notes => ({
@@ -100,6 +102,27 @@ describe('writeNotes and readNotes', () => {
 		expect(readNotes(writeNotes(pgn, { 3: found }))).toEqual({ 3: found });
 		const missed: Notes = { ...emptyNotes(), candidate: 'Qxf7+', verdict: 'missed' };
 		expect(readNotes(writeNotes(pgn, { 3: missed }))).toEqual({ 3: missed });
+	});
+
+	it('round-trips the confidence and the lesson', () => {
+		const full: Notes = {
+			...answers('Fast', 'Too slow', ''),
+			candidate: 'Nc3',
+			verdict: 'missed',
+			confidence: 'sure',
+			lesson: 'When my queen is out early, then I check her retreat first'
+		};
+		const written = writeNotes(pgn, { 3: full });
+		expect(written).toContain('Candidate: Nc3 (missed) Confidence: sure. Why I chose it: Fast');
+		expect(written).toContain('Next time: When my queen is out early');
+		expect(readNotes(written)).toEqual({ 3: full });
+		const lessonOnly: Notes = { ...emptyNotes(), lesson: 'Count the attackers' };
+		expect(readNotes(writeNotes(pgn, { 3: lessonOnly }))).toEqual({ 3: lessonOnly });
+	});
+
+	it('drops the confidence without a candidate', () => {
+		const written = writeNotes(pgn, { 3: { ...answers('Fast', '', ''), confidence: 'guess' } });
+		expect(written).not.toContain('Confidence');
 	});
 
 	it('replaces earlier notes instead of adding them again', () => {

@@ -25,8 +25,12 @@
 	let profileGroups = $derived([
 		{ title: 'Phase', rows: data.profile.phase },
 		{ title: 'Time', rows: data.profile.time },
-		{ title: 'Kind', rows: data.profile.kind }
+		{ title: 'Kind', rows: data.profile.kind },
+		{ title: 'Confidence', rows: data.profile.confidence }
 	]);
+	let sureMissed = $derived(
+		data.profile.confidence.find((row) => row.label === 'Sure')?.missed ?? 0
+	);
 </script>
 
 <svelte:head>
@@ -121,6 +125,12 @@
 					{/if}
 				{/each}
 			</div>
+			{#if sureMissed}
+				<p class="muted small">
+					Sure but missed: <strong class="missed-text">{sureMissed}</strong>. These are the
+					positions where your judgment misled you, so they are the most worth reviewing.
+				</p>
+			{/if}
 		</section>
 
 		<section class="card">
