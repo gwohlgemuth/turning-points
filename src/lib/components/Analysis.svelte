@@ -749,8 +749,11 @@
 												{#if gameOver}Game over{:else if engineThinking}Stockfish is thinking…{:else}Playing
 													vs Stockfish · Elo {elo}{/if}
 											</span>
+										{:else if candidateTp && notes[candidateTp.ply]?.candidate}
+											<span class="muted">Candidate: {notes[candidateTp.ply].candidate}</span>
 										{:else if candidateTp}
-											<span class="muted">Candidate: {notes[candidateTp.ply]?.candidate}</span>
+											<span class="your-turn">Your turn: play your candidate move on the board</span
+											>
 										{:else if evalHidden}
 											<span class="muted">Evaluation hidden until you reveal</span>
 										{:else if explorationPending || !explorationEval}
@@ -1006,7 +1009,7 @@
 												>
 												{#if hidden}
 													<button class="reveal" onclick={() => reveal(tp.ply)} disabled={analyzing}
-														>Reveal</button
+														>{notes[tp.ply]?.candidate ? 'Reveal' : 'Reveal without a move'}</button
 													>
 												{:else if notes[tp.ply]?.candidate}
 													<button
@@ -1700,6 +1703,11 @@
 	.time {
 		color: var(--muted);
 		font-size: 0.85rem;
+	}
+
+	.your-turn {
+		color: var(--accent-2);
+		font-weight: 650;
 	}
 
 	.candidate {
