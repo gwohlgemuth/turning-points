@@ -6,6 +6,10 @@ A local chess analysis app that finds the **three moments in a game where the ev
 - Engine: a local [Stockfish](https://stockfishchess.org/) binary, driven over UCI from the SvelteKit server
 - PGN parsing: [chess.js](https://github.com/jhlywa/chess.js)
 
+## Demo
+
+https://github.com/user-attachments/assets/1ca6332b-c436-441b-badc-1c33c2fc94c1
+
 ## How it works
 
 1. Every position of the game is evaluated by Stockfish at a fixed depth.
