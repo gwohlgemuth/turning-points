@@ -12,7 +12,7 @@
 	import CandidateCheck from '#lib/components/CandidateCheck.svelte';
 	import CountUp from '#lib/components/CountUp.svelte';
 	import { fetchScore } from '#lib/lines.ts';
-	import { REVIEW_DEPTH } from '#lib/review.ts';
+	import { addDays, localDay, REVIEW_DEPTH } from '#lib/review.ts';
 	import { playFound, playMissed } from '#lib/sound.svelte.ts';
 	import type { PageProps } from './$types';
 
@@ -28,8 +28,15 @@
 	let missed = $state(0);
 	let streak = $state(0);
 	let longestStreak = $state(0);
+	let scheduled = $state<string[]>([]);
 
 	let card = $derived(data.due[index] ?? null);
+	let nextReview = $derived.by(() => {
+		const days = [...data.upcoming, ...scheduled];
+		if (!days.length) return null;
+		const day = days.reduce((a, b) => (a < b ? a : b));
+		return { day, count: days.filter((other) => other === day).length };
+	});
 	let move = $derived.by((): Move | null => {
 		if (!card) return null;
 		const played = new Chess(card.fen).move(card.move);
@@ -104,7 +111,19 @@
 			headers: { 'content-type': 'application/json' },
 			body: JSON.stringify({ key: card.key, found: result })
 		}).catch(() => null);
-		if (!response?.ok) message = 'Could not save the review';
+		if (!response?.ok) {
+			message = 'Could not save the review';
+			return;
+		}
+		const state = await response.json();
+		if (state.due) scheduled.push(state.due);
+	}
+
+	function when(day: string) {
+		const today = localDay();
+		if (day === addDays(today, 1)) return 'tomorrow';
+		const days = Math.round((Date.parse(day) - Date.parse(today)) / 86_400_000);
+		return `in ${days} days`;
 	}
 
 	function next() {
@@ -126,15 +145,15 @@
 		<h1>Review</h1>
 		<p class="muted small">
 			Missed turning points from ~/{data.folder} · {Math.max(data.due.length - index, 0)} due today ·
-			{data.upcoming} upcoming · {data.learned} learned
+			{data.upcoming.length} upcoming · {data.learned} learned
 		</p>
 	</div>
 
 	{#if !data.due.length}
 		<section class="card">
 			<p class="muted">
-				Nothing to review today. Turning points you missed in the analysis appear here once you
-				saved your notes, and come back after 1, 3, 7, 14 and 30 days until you find them.
+				Nothing to review today. Turning points you missed in the analysis appear here the day after
+				you saved your notes, and come back after 1, 3, 7, 14 and 30 days until you find them.
 			</p>
 		</section>
 	{:else if !card || !move}
@@ -153,6 +172,13 @@
 			</p>
 			{#if longestStreak > 1}
 				<p class="muted">Longest streak: {longestStreak} in a row</p>
+			{/if}
+			{#if nextReview}
+				<p class="muted small">
+					Next: {nextReview.count}
+					{nextReview.count === 1 ? 'card' : 'cards'}
+					{when(nextReview.day)}
+				</p>
 			{/if}
 		</section>
 	{:else}

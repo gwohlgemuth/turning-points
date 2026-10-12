@@ -22,9 +22,15 @@ export async function savePgn(
 		});
 		const body = await response.json();
 		if (!response.ok) throw new Error(body.message ?? `Request failed (${response.status})`);
-		saving.message = `Saved to ~/${body.path}`;
+		saving.message = `Saved to ~/${body.path}${comeBack(body.scheduled)}`;
 	} catch (err) {
 		saving.message = (err as Error).message;
 		saving.failed = true;
 	}
+}
+
+function comeBack(scheduled: number): string {
+	if (!scheduled) return '';
+	const positions = scheduled === 1 ? 'missed position comes' : 'missed positions come';
+	return ` · ${scheduled} ${positions} back in Review tomorrow`;
 }

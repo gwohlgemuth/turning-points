@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { addDays, cardKey, nextState, parseReviewState, reviewDeck } from './review.ts';
+import {
+	addDays,
+	cardKey,
+	nextState,
+	parseReviewState,
+	reviewDeck,
+	scheduleNew
+} from './review.ts';
 import type { StatsEntry } from './stats.ts';
 
 const entry = (ply: number, verdict: StatsEntry['verdict'], fen = `fen-${ply}`): StatsEntry => ({
@@ -64,8 +71,27 @@ describe('reviewDeck', () => {
 			[1, 'w'],
 			[5, 'w']
 		]);
-		expect(deck.upcoming).toBe(1);
+		expect(deck.upcoming).toEqual(['2026-10-09']);
 		expect(deck.learned).toBe(1);
+	});
+});
+
+describe('scheduleNew', () => {
+	it('schedules new missed turning points for tomorrow', () => {
+		const state: Record<string, { box: number; due: string }> = {
+			[cardKey('fen-3', 'e4')]: { box: 2, due: '2026-10-20' }
+		};
+		const entries = [
+			entry(1, 'missed'),
+			entry(2, 'found'),
+			entry(3, 'missed'),
+			entry(5, 'missed', '')
+		];
+		expect(scheduleNew(entries, state, '2026-10-08')).toBe(1);
+		expect(state).toEqual({
+			[cardKey('fen-1', 'e4')]: { box: 0, due: '2026-10-09' },
+			[cardKey('fen-3', 'e4')]: { box: 2, due: '2026-10-20' }
+		});
 	});
 });
 

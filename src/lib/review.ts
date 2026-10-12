@@ -30,7 +30,7 @@ export function nextState(state: CardState | undefined, found: boolean, today: s
 
 export function reviewDeck(entries: StatsEntry[], state: ReviewState, today: string) {
 	const due: Card[] = [];
-	let upcoming = 0;
+	const upcoming: string[] = [];
 	let learned = 0;
 	const seen = new Set<string>();
 	for (const entry of entries) {
@@ -40,11 +40,23 @@ export function reviewDeck(entries: StatsEntry[], state: ReviewState, today: str
 		seen.add(key);
 		const card = state[key];
 		if (card && 'learned' in card) learned++;
-		else if (card && card.due > today) upcoming++;
+		else if (card && card.due > today) upcoming.push(card.due);
 		else due.push({ ...entry, key, side: entry.ply % 2 === 1 ? 'w' : 'b', due: card?.due ?? '' });
 	}
 	due.sort((a, b) => a.due.localeCompare(b.due));
 	return { due, upcoming, learned };
+}
+
+export function scheduleNew(entries: StatsEntry[], state: ReviewState, today: string): number {
+	let scheduled = 0;
+	for (const entry of entries) {
+		if (entry.verdict !== 'missed' || !entry.fen) continue;
+		const key = cardKey(entry.fen, entry.move);
+		if (state[key]) continue;
+		state[key] = { box: 0, due: addDays(today, 1) };
+		scheduled++;
+	}
+	return scheduled;
 }
 
 export function parseReviewState(text: string): ReviewState {
