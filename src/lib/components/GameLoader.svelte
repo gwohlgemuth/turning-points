@@ -2,7 +2,7 @@
 	import { untrack } from 'svelte';
 	import { slide } from 'svelte/transition';
 	import { ms } from '#lib/motion.ts';
-	import type { Side } from '#lib/analysis.ts';
+	import { TURNING_POINTS, type Side } from '#lib/analysis.ts';
 	import { analyzeGame, markTurningPoints } from '#lib/batch.ts';
 	import type { RecentEntry } from '#lib/recent.ts';
 	import {
@@ -38,7 +38,6 @@
 		onanalyzed?: (entry: RecentEntry) => void;
 		onbatch?: (running: boolean) => void;
 		depth: number;
-		count: number;
 		preferences: Preferences;
 	};
 
@@ -53,7 +52,6 @@
 		onanalyzed,
 		onbatch,
 		depth,
-		count,
 		preferences
 	}: Props = $props();
 
@@ -175,7 +173,7 @@
 			for (const game of queue) {
 				const side = playerSide(game, perspective) ?? 'w';
 				const result = await analyzeGame(game.pgn, depth, batchController.signal);
-				const pgn = markTurningPoints(game.pgn, result.evals, count, side);
+				const pgn = markTurningPoints(game.pgn, result.evals, TURNING_POINTS, side);
 				await savePgn(pgn, pgnFilename(pgn));
 				if (saving.failed) throw new Error(saving.message);
 				const key = gameKey(pgn);
@@ -383,7 +381,7 @@
 						class="primary"
 						onclick={analyzeAll}
 						disabled={!perspective || !unworked.length}
-						title="Analyze and save the {count} turning points of {perspective ||
+						title="Analyze and save the {TURNING_POINTS} turning points of {perspective ||
 							'the chosen player'} in each game without notes"
 						>Analyze all ({unworked.length})</button
 					>

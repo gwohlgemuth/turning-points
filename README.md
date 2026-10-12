@@ -1,6 +1,6 @@
 # Turning Points
 
-A local chess analysis app that finds the **n moments in a game where the evaluation changed the most**, so you can study the critical decisions of your own games — inspired by the training method in [this video](https://www.youtube.com/watch?v=shma5hsckww&t=830s): find the turning points, think about those positions yourself first, and only then check the engine.
+A local chess analysis app that finds the **three moments in a game where the evaluation changed the most**, so you can study the critical decisions of your own games — inspired by the training method in [this video](https://www.youtube.com/watch?v=shma5hsckww&t=830s): find the turning points, think about those positions yourself first, and only then check the engine.
 
 - Frontend: SvelteKit + Svelte 5 (runes)
 - Engine: a local [Stockfish](https://stockfishchess.org/) binary, driven over UCI from the SvelteKit server
@@ -10,7 +10,7 @@ A local chess analysis app that finds the **n moments in a game where the evalua
 
 1. Every position of the game is evaluated by Stockfish at a fixed depth.
 2. Each evaluation is converted to White's winning chances (0–100 %) using the same logistic model as Lichess. This keeps a swing from +8 to +6 (still winning) from outranking a swing from +0.5 to −1.5 (the game turned).
-3. For each move, the change in winning chances is computed. The `n` moves with the largest absolute change are the turning points, listed in game order.
+3. For each move, the change in winning chances is computed. The three moves with the largest absolute change are the turning points, listed in game order.
 4. For each turning point you can jump to the position _before_ the move (where the decision was made) and reveal the engine suggestion only when you want to.
 
 Results stream to the browser position by position, so turning points appear while the analysis is still running.

@@ -63,6 +63,8 @@ export function formatScore(score: Score): string {
 	return `${pawns > 0 ? '+' : ''}${pawns.toFixed(2)}`;
 }
 
+export const TURNING_POINTS = 3;
+
 export function findTurningPoints(winPercents: number[], n: number, side: Side): TurningPoint[] {
 	const sign = side === 'w' ? 1 : -1;
 	const swings: TurningPoint[] = [];

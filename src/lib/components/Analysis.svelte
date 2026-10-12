@@ -29,6 +29,7 @@
 		type PositionEval,
 		type Score,
 		type Side,
+		TURNING_POINTS,
 		type Variation,
 		winPercent
 	} from '#lib/analysis.ts';
@@ -72,7 +73,6 @@
 	let { preferences, active }: Props = $props();
 
 	let pgn = $state('');
-	let count = $state(3);
 	let side = $state<Side>('w');
 	let depth = $state(16);
 	let lines = $state(3);
@@ -144,7 +144,7 @@
 		}
 		return result;
 	});
-	let turningPoints = $derived(findTurningPoints(winPercents, count, side));
+	let turningPoints = $derived(findTurningPoints(winPercents, TURNING_POINTS, side));
 	const RESULT_LABELS = { w: 'White wins', b: 'Black wins', draw: 'Draw' };
 	let won = $derived(winner(headers.Result ?? '*'));
 	let hasTimes = $derived(moves.some((m) => m.time));
@@ -429,7 +429,8 @@
 	function toggleFlag(ply = spotPly) {
 		if (!ply) return;
 		if (spotFlags.includes(ply)) spotFlags = spotFlags.filter((flag) => flag !== ply);
-		else if (spotFlags.length < count) spotFlags = [...spotFlags, ply].sort((a, b) => a - b);
+		else if (spotFlags.length < TURNING_POINTS)
+			spotFlags = [...spotFlags, ply].sort((a, b) => a - b);
 	}
 
 	function finishSpotting() {
@@ -568,7 +569,6 @@
 			onanalyzed={(entry) => keepRecent(remember(recent, entry))}
 			onbatch={(running) => (batchRunning = running)}
 			{depth}
-			{count}
 			{preferences}
 		/>
 		<SaveFolder folder={preferences.folder} />
@@ -877,32 +877,20 @@
 						{/if}
 					</section>
 					<section class="card points">
-						<div class="points-head">
-							<h2 class="card-title">Turning points</h2>
-							<label class="count">
-								<input
-									type="range"
-									min="1"
-									max="10"
-									bind:value={count}
-									aria-label="Turning points"
-								/>
-								<strong>{count}</strong>
-							</label>
-						</div>
+						<h2 class="card-title">Turning points</h2>
 						{#if spotting}
 							<div class="spot" transition:slide={{ duration: ms(200) }}>
 								<p class="small">
 									Step through your game with <kbd>→</kbd> or autoplay. On each of your moves that
 									you think decided the game, press <strong>Flag</strong> or <kbd>Space</kbd>. You
-									can flag up to {count}.
+									can flag up to {TURNING_POINTS}.
 								</p>
 								<div class="training">
 									<button
 										class="primary"
 										onclick={() => toggleFlag()}
 										disabled={!spotPly ||
-											(!spotFlags.includes(spotPly) && spotFlags.length >= count)}
+											(!spotFlags.includes(spotPly) && spotFlags.length >= TURNING_POINTS)}
 										>{spotPly && spotFlags.includes(spotPly) ? 'Unflag' : 'Flag'}
 										{spotPly ? moveLabel(spotPly, moves[spotPly - 1].san) : 'your move'}</button
 									>
@@ -911,7 +899,7 @@
 									>
 									<button onclick={skipSpotting}>Skip</button>
 									<span class="muted small"
-										>{spotFlags.length} / {count} flagged{analyzing
+										>{spotFlags.length} / {TURNING_POINTS} flagged{analyzing
 											? ' · Check after the analysis'
 											: ''}</span
 									>
@@ -1218,24 +1206,6 @@
 
 	.progress.inline {
 		width: 140px;
-	}
-
-	.points-head {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 12px;
-	}
-
-	.count {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		color: var(--accent);
-	}
-
-	.count input {
-		width: 110px;
 	}
 
 	.welcome {
