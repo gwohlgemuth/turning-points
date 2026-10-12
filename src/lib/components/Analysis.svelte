@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import { flip } from 'svelte/animate';
 	import { fade, fly, slide } from 'svelte/transition';
+	import backend from '#backend';
 	import { ms } from '#lib/motion.ts';
 	import Board, { type BoardMove } from '#lib/components/Board.svelte';
 	import EvalBar from '#lib/components/EvalBar.svelte';
@@ -65,7 +66,6 @@
 	} from '#lib/recent.ts';
 	import { saving, savePgn } from '#lib/saving.svelte.ts';
 	import { isFalseAlarm, isSpotted, readSpotFlags, spotScore, writeSpotFlags } from '#lib/spot.ts';
-	import { streamAnalysis } from '#lib/stream.ts';
 	import { playFound, playMissed } from '#lib/sound.svelte.ts';
 	import type { Preferences } from '#lib/preferences.ts';
 
@@ -253,16 +253,8 @@
 		engineThinking = true;
 		engineError = '';
 		try {
-			const response = await fetch('/api/move', {
-				method: 'POST',
-				headers: { 'content-type': 'application/json' },
-				body: JSON.stringify({ fen: boardFen, elo }),
-				signal: current.signal
-			});
-			const body = await response.json();
-			if (!response.ok) throw new Error(body.message ?? `Request failed (${response.status})`);
-			if (!body.uci) return;
-			const uci: string = body.uci;
+			const { uci } = await backend.move(boardFen, elo, current.signal);
+			if (!uci) return;
 			pushExplorationMove({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci[4] });
 		} catch (err) {
 			if ((err as Error).name === 'AbortError') return;
@@ -368,7 +360,7 @@
 		const analyzed = { pgn, depth };
 		status = 'running';
 		try {
-			await streamAnalysis(pgn, depth, controller.signal, handleEvent);
+			await backend.analyze(pgn, depth, controller.signal, handleEvent);
 			if (status === 'running') status = 'done';
 			if (key && status === 'done' && evals.length === positions && evals.every(Boolean)) {
 				keepRecent(

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Header from '#lib/components/Header.svelte';
 	import { Chess } from 'chess.js';
+	import backend from '#backend';
 	import {
 		moveSquares,
 		winPercent,
@@ -106,17 +107,12 @@
 		(result ? playFound : playMissed)();
 		streak = result ? streak + 1 : 0;
 		longestStreak = Math.max(longestStreak, streak);
-		const response = await fetch('/api/review', {
-			method: 'POST',
-			headers: { 'content-type': 'application/json' },
-			body: JSON.stringify({ key: card.key, found: result })
-		}).catch(() => null);
-		if (!response?.ok) {
+		const state = await backend.review(data.folder, card.key, result).catch(() => null);
+		if (!state) {
 			message = 'Could not save the review';
 			return;
 		}
-		const state = await response.json();
-		if (state.due) scheduled.push(state.due);
+		if ('due' in state) scheduled.push(state.due);
 	}
 
 	function when(day: string) {
@@ -144,7 +140,10 @@
 	<div class="page-head">
 		<h1>Review</h1>
 		<p class="muted small">
-			Missed turning points from ~/{data.folder} · {Math.max(data.due.length - index, 0)} due today ·
+			Missed turning points from {backend.describe(data.folder)} · {Math.max(
+				data.due.length - index,
+				0
+			)} due today ·
 			{data.upcoming.length} upcoming · {data.learned} learned
 		</p>
 	</div>

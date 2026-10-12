@@ -37,7 +37,8 @@
 	},
 	"imports": {
 		"#lib": "./src/lib/index.js",
-		"#lib/*": "./src/lib/*"
+		"#lib/*": "./src/lib/*",
+		"#backend": "./src/lib/backend/api.ts"
 	},
 	"dependencies": {
 		"chess.js": "^1.4.0"

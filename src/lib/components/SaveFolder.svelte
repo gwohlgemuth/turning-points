@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
+	import backend from '#backend';
 	import { ms } from '#lib/motion.ts';
 	import { DEFAULT_SAVE_FOLDER } from '#lib/preferences.ts';
 	import { saving, setSaveFolder } from '#lib/saving.svelte.ts';
@@ -16,18 +17,10 @@
 	let newName = $state('');
 	let message = $state('');
 
-	async function request(url: string, init?: RequestInit) {
-		const response = await fetch(url, init);
-		const body = await response.json();
-		if (!response.ok) throw new Error(body.message ?? `Request failed (${response.status})`);
-		return body;
-	}
-
 	async function browse(target: string) {
 		message = '';
 		try {
-			const body = await request(`/api/folders?${new URLSearchParams({ path: target })}`);
-			({ path, folders, exists } = body);
+			({ path, folders, exists } = await backend.listFolders!(target));
 		} catch (err) {
 			message = (err as Error).message;
 		}
@@ -37,13 +30,9 @@
 		event.preventDefault();
 		message = '';
 		try {
-			const body = await request('/api/folders', {
-				method: 'POST',
-				headers: { 'content-type': 'application/json' },
-				body: JSON.stringify({ parent: path, name: newName })
-			});
+			const created = await backend.createFolder!(path, newName);
 			newName = '';
-			await browse(body.path);
+			await browse(created);
 		} catch (err) {
 			message = (err as Error).message;
 		}
@@ -60,12 +49,13 @@
 	}
 
 	const up = (folder: string) => folder.split('/').slice(0, -1).join('/');
-	const display = (folder: string) => (folder ? `~/${folder}` : '~');
 </script>
 
 <div class="save-folder">
-	<span>Save folder: <strong>{display(saving.folder)}</strong></span>
-	<button onclick={toggle}>{open ? 'Close' : 'Change'}</button>
+	{#if backend.listFolders}
+		<span>Save folder: <strong>{backend.describe(saving.folder)}</strong></span>
+		<button onclick={toggle}>{open ? 'Close' : 'Change'}</button>
+	{/if}
 	{#if saving.message}
 		{#key saving.message}
 			<span class:error={saving.failed} class="status" in:fade={{ duration: ms(200) }}
@@ -79,7 +69,7 @@
 	<div class="picker" transition:slide={{ duration: ms(200) }}>
 		<div class="current">
 			<button onclick={() => browse(up(path))} disabled={!path} aria-label="Up">↑</button>
-			<strong>{display(path)}</strong>
+			<strong>{backend.describe(path)}</strong>
 			{#if !exists}<span class="muted">(will be created when saving)</span>{/if}
 		</div>
 		<ul>

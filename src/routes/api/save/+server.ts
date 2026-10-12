@@ -1,8 +1,8 @@
 import { error, json } from '@sveltejs/kit';
 import { homedir } from 'node:os';
-import { localDay, parseReviewState, scheduleNew } from '#lib/review.ts';
+import { formatReview, scheduleMissed } from '#lib/backend/shared.ts';
+import { parseReviewState } from '#lib/review.ts';
 import { FileError, isLocalAddress, readReview, saveFile, writeReview } from '#lib/server/files.ts';
-import { collectStats } from '#lib/stats.ts';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
@@ -18,17 +18,12 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 			body.text,
 			body.replaceSameGame === true
 		);
-		return json({ path, scheduled: await scheduleMissed(folder, path, body.text) });
+		const state = parseReviewState(await readReview(homedir(), folder));
+		const scheduled = scheduleMissed(state, { path, text: body.text });
+		if (scheduled) await writeReview(homedir(), folder, formatReview(state));
+		return json({ path, scheduled });
 	} catch (err) {
 		if (err instanceof FileError) error(err.status, err.message);
 		throw err;
 	}
 };
-
-async function scheduleMissed(folder: string, path: string, text: string): Promise<number> {
-	const state = parseReviewState(await readReview(homedir(), folder));
-	const { entries } = collectStats([{ path, text }]);
-	const scheduled = scheduleNew(entries, state, localDay());
-	if (scheduled) await writeReview(homedir(), folder, JSON.stringify(state, null, '\t') + '\n');
-	return scheduled;
-}

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import backend from '#backend';
 	import Header from '#lib/components/Header.svelte';
 	import { moveLabel } from '#lib/analysis.ts';
 	import Board from '#lib/components/Board.svelte';
@@ -42,7 +43,11 @@
 
 	<div class="page-head">
 		<h1>Stats</h1>
-		<p class="muted small">From the games in ~/{data.folder} and its subfolders</p>
+		<p class="muted small">
+			From the games in {backend.describe(data.folder)}{backend.listFolders
+				? ' and its subfolders'
+				: ''}
+		</p>
 	</div>
 
 	<section class="tiles">

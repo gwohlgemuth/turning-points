@@ -1,3 +1,4 @@
+import { resolve } from '$app/paths';
 import { GAME_COUNTS, type GameSource } from './games.ts';
 
 export const DEFAULT_SAVE_FOLDER = 'Documents/Turning Points';
@@ -27,9 +28,13 @@ export function parsePreferences(raw: string | undefined): Preferences {
 	};
 }
 
-export function updatePreferences(patch: Partial<Preferences>): void {
+export function readPreferences(): Preferences {
 	const match = document.cookie.match(new RegExp(`(?:^|; )${PREFERENCES_COOKIE}=([^;]*)`));
-	const current = parsePreferences(match ? decodeURIComponent(match[1]) : undefined);
-	const value = encodeURIComponent(JSON.stringify({ ...current, ...patch }));
-	document.cookie = `${PREFERENCES_COOKIE}=${value}; path=/; max-age=31536000; SameSite=Lax`;
+	return parsePreferences(match ? decodeURIComponent(match[1]) : undefined);
+}
+
+export function updatePreferences(patch: Partial<Preferences>): void {
+	const value = encodeURIComponent(JSON.stringify({ ...readPreferences(), ...patch }));
+	const path = resolve('/').replace(/(.)\/$/, '$1');
+	document.cookie = `${PREFERENCES_COOKIE}=${value}; path=${path}; max-age=31536000; SameSite=Lax`;
 }

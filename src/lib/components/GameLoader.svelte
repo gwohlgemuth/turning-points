@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { slide } from 'svelte/transition';
+	import backend from '#backend';
 	import { ms } from '#lib/motion.ts';
 	import { TURNING_POINTS, type Side } from '#lib/analysis.ts';
 	import { analyzeGame, markTurningPoints } from '#lib/batch.ts';
@@ -91,10 +92,7 @@
 
 	async function loadSaved() {
 		try {
-			const response = await fetch('/api/saved');
-			const body = await response.json();
-			if (!response.ok) throw new Error(body.message ?? `Request failed (${response.status})`);
-			saved = body.games;
+			saved = await backend.saved(saving.folder);
 		} catch (err) {
 			if (tab === 'saved') message = (err as Error).message;
 		} finally {
@@ -125,11 +123,7 @@
 		loadedUser = username.trim();
 		updatePreferences({ source, username: username.trim(), max });
 		try {
-			const params = new URLSearchParams({ source, user: username.trim(), max: String(max) });
-			const response = await fetch(`/api/games?${params}`);
-			const body = await response.json();
-			if (!response.ok) throw new Error(body.message ?? `Request failed (${response.status})`);
-			games = body.games;
+			games = await backend.games(source, username.trim(), max);
 			if (!games.length) message = 'No games found';
 			loadSaved();
 		} catch (err) {

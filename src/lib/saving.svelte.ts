@@ -1,3 +1,4 @@
+import backend from '#backend';
 import { DEFAULT_SAVE_FOLDER, updatePreferences } from './preferences.ts';
 
 export const saving = $state({ folder: DEFAULT_SAVE_FOLDER, message: '', failed: false });
@@ -15,14 +16,8 @@ export async function savePgn(
 	saving.message = 'Saving…';
 	saving.failed = false;
 	try {
-		const response = await fetch('/api/save', {
-			method: 'POST',
-			headers: { 'content-type': 'application/json' },
-			body: JSON.stringify({ folder: saving.folder, filename, text, replaceSameGame })
-		});
-		const body = await response.json();
-		if (!response.ok) throw new Error(body.message ?? `Request failed (${response.status})`);
-		saving.message = `Saved to ~/${body.path}${comeBack(body.scheduled)}`;
+		const { path, scheduled } = await backend.save(saving.folder, text, filename, replaceSameGame);
+		saving.message = `Saved to ${backend.describe(path)}${comeBack(scheduled)}`;
 	} catch (err) {
 		saving.message = (err as Error).message;
 		saving.failed = true;

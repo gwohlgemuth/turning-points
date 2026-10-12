@@ -1,6 +1,6 @@
 import { findTurningPoints, type Move, type PositionEval, type Side } from './analysis.ts';
 import { emptyNotes, writeNotes } from './notes.ts';
-import { streamAnalysis } from './stream.ts';
+import backend from '#backend';
 
 export type GameAnalysis = {
 	startFen: string;
@@ -29,7 +29,7 @@ export async function analyzeGame(
 	signal: AbortSignal
 ): Promise<GameAnalysis> {
 	const result: GameAnalysis = { startFen: '', moves: [], headers: {}, evals: [] };
-	await streamAnalysis(pgn, depth, signal, (event) => {
+	await backend.analyze(pgn, depth, signal, (event) => {
 		if (event.type === 'start') {
 			const { startFen, moves, headers } = event;
 			Object.assign(result, { startFen, moves, headers });

@@ -10,7 +10,8 @@
 		type Score,
 		type Side
 	} from '#lib/analysis.ts';
-	import { fetchLines, fetchScore } from '#lib/lines.ts';
+	import backend from '#backend';
+	import { fetchScore } from '#lib/lines.ts';
 	import type { Verdict } from '#lib/notes.ts';
 
 	type Props = {
@@ -54,7 +55,7 @@
 		}
 		const whiteToMove = fen.split(' ')[1] === 'w';
 		Promise.all([
-			fetchLines(move.fenBefore, depth, 1, controller.signal),
+			backend.lines(move.fenBefore, depth, 1, controller.signal),
 			fetchScore(fen, depth, controller.signal)
 		])
 			.then(([[line], score]) => {

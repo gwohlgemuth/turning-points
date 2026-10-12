@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { formatLine, formatScore, type Variation } from '#lib/analysis.ts';
-	import { fetchLines } from '#lib/lines.ts';
+	import backend from '#backend';
 
 	type Props = {
 		fen: string;
@@ -19,7 +19,8 @@
 		variations = null;
 		message = '';
 		onresult?.(null);
-		fetchLines(fen, depth, lines, controller.signal)
+		backend
+			.lines(fen, depth, lines, controller.signal)
 			.then((result) => {
 				variations = result;
 				onresult?.(result);
