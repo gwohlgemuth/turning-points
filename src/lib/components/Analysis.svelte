@@ -133,6 +133,7 @@
 	let speed = $state(1000);
 	const SPEEDS = [500, 1000, 2000, 3000];
 	let movesList = $state<HTMLElement>();
+	let movesExpanded = $state(false);
 	let controller: AbortController | null = null;
 	let moveController: AbortController | null = null;
 
@@ -498,6 +499,10 @@
 		void selected;
 		const current = movesList?.querySelector<HTMLElement>('.current');
 		if (!movesList || !current) return;
+		if (!movesExpanded) {
+			movesList.scrollLeft = current.offsetLeft - (movesList.clientWidth - current.offsetWidth) / 2;
+			return;
+		}
 		const bottom = current.offsetTop + current.offsetHeight;
 		if (current.offsetTop < movesList.scrollTop) movesList.scrollTop = current.offsetTop;
 		else if (bottom > movesList.scrollTop + movesList.clientHeight)
@@ -708,7 +713,10 @@
 		<div class="results" in:fade={{ duration: ms(300) }}>
 			<div class="layout">
 				<section class="card board-panel">
-					<div class="board-row">
+					<div
+						class="board-row"
+						class:awaiting={!!candidateTp && !notes[candidateTp.ply]?.candidate}
+					>
 						<EvalBar
 							score={barEval?.score ?? null}
 							winPercent={barEval?.winPercent ?? 50}
@@ -738,6 +746,34 @@
 						</select>
 						<button class="flip" onclick={() => (flipped = !flipped)}>⇅ Flip</button>
 					</div>
+					<div class="moves-block">
+						<div class="moves" class:expanded={movesExpanded} bind:this={movesList}>
+							{#each moves as move (move.ply)}
+								<button
+									class="move"
+									class:current={selected === move.ply}
+									class:turning={shownTurningPlies.has(move.ply)}
+									class:flagged={spotFlags.includes(move.ply)}
+									class:false-alarm={!!spotResult &&
+										spotFlags.includes(move.ply) &&
+										isFalseAlarm(
+											move.ply,
+											turningPoints.map((tp) => tp.ply)
+										)}
+									onclick={() => select(move.ply)}
+									title={move.time ? describeTime(move.time) : undefined}
+								>
+									{#if move.ply % 2 === 1}<span class="num">{(move.ply + 1) / 2}.</span
+										>{/if}{move.san}
+								</button>
+							{/each}
+						</div>
+						<button
+							class="moves-toggle"
+							onclick={() => (movesExpanded = !movesExpanded)}
+							aria-expanded={movesExpanded}>{movesExpanded ? 'Less' : 'All moves'}</button
+						>
+					</div>
 					<div class="panel-body">
 						{#if exploration}
 							<div class="exploration" transition:slide={{ duration: ms(200) }}>
@@ -751,9 +787,6 @@
 											</span>
 										{:else if candidateTp && notes[candidateTp.ply]?.candidate}
 											<span class="muted">Candidate: {notes[candidateTp.ply].candidate}</span>
-										{:else if candidateTp}
-											<span class="your-turn">Your turn: play your candidate move on the board</span
-											>
 										{:else if evalHidden}
 											<span class="muted">Evaluation hidden until you reveal</span>
 										{:else if explorationPending || !explorationEval}
@@ -787,21 +820,23 @@
 								{#if evals[selected] && !evalHidden}<span class="pill"
 										>{formatScore(evals[selected].score)}</span
 									>{/if}
-								<span class="muted small"
-									>{spotting
-										? 'Spotting: flag the moves you think decided the game'
-										: candidateTp
-											? 'Answer question 1, then play the move you would choose now'
+								{#if candidateTp && !spotting}
+									<span class="your-turn"
+										>Your move · {boardFen.split(' ')[1] === 'w' ? 'White' : 'Black'}</span
+									>
+								{:else}
+									<span class="muted small"
+										>{spotting
+											? 'Spotting: flag the deciding moves'
 											: hiddenTp && analyzing
 												? 'Wait for the analysis to finish'
-												: hiddenTp
-													? 'Reveal the turning point to see the evaluation'
-													: evalHidden
-														? 'Reveal the earlier turning points to see the evaluation'
-														: play
-															? 'Make a move to start playing'
-															: 'Move a piece to try your own line'}</span
-								>
+												: evalHidden
+													? 'Evaluation hidden until you reveal'
+													: play
+														? 'Make a move to start playing'
+														: 'Move a piece to try your own line'}</span
+									>
+								{/if}
 							</p>
 							{#if arrows.length}
 								<p class="legend muted small">
@@ -822,30 +857,6 @@
 								</details>
 							{/if}
 						{/if}
-						<div class="moves-block">
-							<h2 class="card-title">Moves</h2>
-							<div class="moves" bind:this={movesList}>
-								{#each moves as move (move.ply)}
-									<button
-										class="move"
-										class:current={selected === move.ply}
-										class:turning={shownTurningPlies.has(move.ply)}
-										class:flagged={spotFlags.includes(move.ply)}
-										class:false-alarm={!!spotResult &&
-											spotFlags.includes(move.ply) &&
-											isFalseAlarm(
-												move.ply,
-												turningPoints.map((tp) => tp.ply)
-											)}
-										onclick={() => select(move.ply)}
-										title={move.time ? describeTime(move.time) : undefined}
-									>
-										{#if move.ply % 2 === 1}<span class="num">{(move.ply + 1) / 2}.</span
-											>{/if}{move.san}
-									</button>
-								{/each}
-							</div>
-						</div>
 					</div>
 				</section>
 
@@ -1840,15 +1851,46 @@
 		color: var(--accent-2);
 	}
 
+	.board-row.awaiting {
+		outline: 2px solid var(--accent-2);
+		outline-offset: 3px;
+		border-radius: 6px;
+	}
+
 	.moves-block {
-		margin-top: 14px;
+		display: flex;
+		align-items: flex-start;
+		gap: 8px;
+		width: 0;
+		min-width: 100%;
+		margin-top: 10px;
 	}
 
 	.moves {
 		position: relative;
+		flex: 1;
+		min-width: 0;
 		display: flex;
-		flex-wrap: wrap;
 		gap: 5px;
+		overflow-x: auto;
+		scrollbar-width: none;
+		mask-image: linear-gradient(
+			to right,
+			transparent,
+			#000 16px,
+			#000 calc(100% - 16px),
+			transparent
+		);
+	}
+
+	.moves .move {
+		flex-shrink: 0;
+	}
+
+	.moves.expanded {
+		flex-wrap: wrap;
+		overflow-x: hidden;
+		mask-image: none;
 		height: calc(4 * 26px + 3 * 5px);
 		min-height: calc(2 * 26px + 5px);
 		max-height: fit-content;
@@ -1856,6 +1898,13 @@
 		overflow-y: auto;
 		scrollbar-gutter: stable;
 		align-content: flex-start;
+	}
+
+	.moves-toggle {
+		flex-shrink: 0;
+		padding: 3px 8px;
+		line-height: 18px;
+		font-size: 0.8rem;
 	}
 
 	.move {
