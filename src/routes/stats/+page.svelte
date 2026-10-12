@@ -1,7 +1,9 @@
 <script lang="ts">
+	import { invalidateAll } from '$app/navigation';
 	import backend from '#backend';
 	import Header from '#lib/components/Header.svelte';
 	import { moveLabel } from '#lib/analysis.ts';
+	import { today } from '#lib/games.ts';
 	import Board from '#lib/components/Board.svelte';
 	import ProgressChart from '#lib/components/ProgressChart.svelte';
 	import type { Group } from '#lib/profile.ts';
@@ -32,6 +34,33 @@
 	let sureMissed = $derived(
 		data.profile.confidence.find((row) => row.label === 'Sure')?.missed ?? 0
 	);
+
+	let libraryMessage = $state('');
+	let fileInput = $state<HTMLInputElement>();
+
+	async function exportGames() {
+		const text = await backend.exportPgn!();
+		const link = document.createElement('a');
+		link.href = URL.createObjectURL(new Blob([text], { type: 'application/x-chess-pgn' }));
+		link.download = `turning-points-${today()}.pgn`;
+		link.click();
+		URL.revokeObjectURL(link.href);
+	}
+
+	async function importGames(event: Event) {
+		const input = event.currentTarget as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file) return;
+		try {
+			const count = await backend.importPgn!(await file.text());
+			libraryMessage = `Imported ${count} ${count === 1 ? 'game' : 'games'}`;
+			await invalidateAll();
+		} catch (err) {
+			libraryMessage = (err as Error).message;
+		} finally {
+			input.value = '';
+		}
+	}
 </script>
 
 <svelte:head>
@@ -48,6 +77,21 @@
 				? ' and its subfolders'
 				: ''}
 		</p>
+		{#if backend.exportPgn && backend.importPgn}
+			<div class="library">
+				<button onclick={exportGames}>Export all as PGN</button>
+				<button onclick={() => fileInput?.click()}>Import PGN</button>
+				<input
+					bind:this={fileInput}
+					type="file"
+					accept=".pgn,text/plain"
+					onchange={importGames}
+					aria-label="Import PGN file"
+					hidden
+				/>
+				{#if libraryMessage}<span class="muted small">{libraryMessage}</span>{/if}
+			</div>
+		{/if}
 	</div>
 
 	<section class="tiles">
@@ -264,6 +308,14 @@
 
 	.page-head p {
 		margin: 2px 0 0;
+	}
+
+	.library {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 8px;
+		margin-top: 10px;
 	}
 
 	.tiles {

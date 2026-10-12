@@ -3,6 +3,8 @@
 </script>
 
 <script lang="ts">
+	import { asset } from '$app/paths';
+	import type { AssetPath } from '$app/types';
 	import { Chess, type Square as ChessSquare } from 'chess.js';
 	import { prefersReducedMotion } from 'svelte/motion';
 	import type { Arrow } from '#lib/analysis.ts';
@@ -20,6 +22,7 @@
 
 	let { fen, highlight = [], flipped = false, arrows = [], onmove }: Props = $props();
 
+	const pieceSrc = (piece: string) => asset(`pieces/${piece}.svg` as AssetPath);
 	const files = 'abcdefgh';
 
 	let selectedSquare = $state<string | null>(null);
@@ -176,7 +179,7 @@
 			{#if square.piece}
 				<img
 					class="piece"
-					src="/pieces/{square.piece}.svg"
+					src={pieceSrc(square.piece)}
 					alt={square.piece}
 					draggable={canMoveFrom(square.name)}
 					ondragstart={(event) => handleDragStart(event, square.name)}
@@ -201,7 +204,7 @@
 		<div class="promotion" role="dialog" aria-label="Choose promotion piece">
 			{#each ['q', 'r', 'b', 'n'] as piece (piece)}
 				<button onclick={() => promote(piece)}>
-					<img src="/pieces/{sideToMove}{piece.toUpperCase()}.svg" alt={piece} />
+					<img src={pieceSrc(`${sideToMove}${piece.toUpperCase()}`)} alt={piece} />
 				</button>
 			{/each}
 			<button class="cancel" onclick={() => (promotion = null)} aria-label="Cancel">✕</button>

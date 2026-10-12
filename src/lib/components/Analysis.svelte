@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { Chess } from 'chess.js';
 	import { onMount } from 'svelte';
 	import { flip } from 'svelte/animate';
@@ -555,7 +556,7 @@
 		<h2 class="card-title">Load a game</h2>
 		{#if !moves.length}
 			<p class="muted small">
-				New here? <a class="guide-link" href="/guide">Read the guide →</a>
+				New here? <a class="guide-link" href={resolve('/guide')}>Read the guide →</a>
 			</p>
 		{/if}
 		<GameLoader

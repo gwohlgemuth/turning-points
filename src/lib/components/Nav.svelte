@@ -1,15 +1,16 @@
 <script lang="ts">
 	import { browser } from '$app/env';
+	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { updatePreferences } from '#lib/preferences.ts';
 	import { sound } from '#lib/sound.svelte.ts';
 
 	const LINKS = [
-		{ href: '/', label: 'Analysis' },
-		{ href: '/review', label: 'Review' },
-		{ href: '/stats', label: 'Stats' },
-		{ href: '/guide', label: 'Guide' }
-	];
+		{ route: '/', label: 'Analysis' },
+		{ route: '/review', label: 'Review' },
+		{ route: '/stats', label: 'Stats' },
+		{ route: '/guide', label: 'Guide' }
+	] as const;
 
 	let soundOn = $derived(browser ? sound.enabled : page.data.preferences?.sound !== false);
 
@@ -20,9 +21,9 @@
 </script>
 
 <nav aria-label="Main">
-	{#each LINKS as link (link.href)}
-		{@const current = page.route.id === link.href}
-		<a href={link.href} class:current aria-current={current ? 'page' : undefined}
+	{#each LINKS as link (link.route)}
+		{@const current = page.route.id === link.route}
+		<a href={resolve(link.route)} class:current aria-current={current ? 'page' : undefined}
 			>{link.label}{#if current}<span class="indicator"></span>{/if}</a
 		>
 	{/each}

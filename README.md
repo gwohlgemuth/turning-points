@@ -3,7 +3,7 @@
 A local chess analysis app that finds the **three moments in a game where the evaluation changed the most**, so you can study the critical decisions of your own games — inspired by the training method in [this video](https://www.youtube.com/watch?v=shma5hsckww&t=830s): find the turning points, think about those positions yourself first, and only then check the engine.
 
 - Frontend: SvelteKit + Svelte 5 (runes)
-- Engine: a local [Stockfish](https://stockfishchess.org/) binary, driven over UCI from the SvelteKit server
+- Engine: a local [Stockfish](https://stockfishchess.org/) binary, driven over UCI from the SvelteKit server (or Stockfish WASM in the browser version)
 - PGN parsing: [chess.js](https://github.com/jhlywa/chess.js)
 
 ## Demo
@@ -42,11 +42,21 @@ pnpm dev
 | `STOCKFISH_PATH`    | `stockfish` | Path to the Stockfish binary |
 | `STOCKFISH_THREADS` | `2`         | Engine threads per analysis  |
 
+## Browser version
+
+`pnpm build:static` builds a version that runs entirely in the browser, served from `/turning-points` (e.g. `https://gwohl.de/turning-points`). Copy the `build` folder to that path on any static host. Differences from the local app:
+
+- The engine is [Stockfish.js](https://github.com/nmrugg/stockfish.js) (lite, single-threaded WASM) in a Web Worker: no install, but weaker and slower than a native binary.
+- Saved games and review progress live in the browser's IndexedDB instead of a folder. Use _Export all as PGN_ and _Import PGN_ on the Stats page to back them up or move them.
+- Lichess and Chess.com are queried directly from the browser.
+
 ## Scripts
 
 ```sh
 pnpm dev       # development server
+pnpm dev:static  # development server for the browser version (/turning-points)
 pnpm build     # production build (adapter-node), run with `node build`
+pnpm build:static  # browser-only build (adapter-static) under /turning-points
 pnpm check     # type checking
 pnpm test      # unit tests
 pnpm lint      # prettier + eslint
@@ -56,10 +66,12 @@ pnpm lint      # prettier + eslint
 
 Chess pieces: "cburnett" set by [Colin M.L. Burnett](https://en.wikipedia.org/wiki/User:Cburnett), licensed under GPLv2+/BSD/GFDL, taken from [lichess](https://github.com/lichess-org/lila/tree/master/public/piece/cburnett).
 
+Browser engine: [Stockfish.js](https://github.com/nmrugg/stockfish.js) by Nathan Rugg and Chess.com, based on [Stockfish](https://github.com/official-stockfish/Stockfish), licensed under the GPLv3.
+
 Font: [Inter](https://github.com/rsms/inter) by The Inter Project Authors, licensed under the SIL Open Font License 1.1 (see `static/fonts/OFL.txt`).
 
 Built with the help of [Claude Code](https://claude.com/claude-code) (Anthropic).
 
 ## License
 
-MIT, see `LICENSE`. The chess pieces and the Inter font keep their own licenses (see Credits).
+MIT, see `LICENSE`. The chess pieces, the Inter font and Stockfish.js keep their own licenses (see Credits).

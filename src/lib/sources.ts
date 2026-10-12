@@ -1,3 +1,4 @@
+import { browser } from '$app/env';
 import { pgnHeader, type GameSummary } from './games.ts';
 
 const USER_AGENT = 'turning-points (local chess analysis app)';
@@ -69,7 +70,10 @@ export function fromChessCom(game: ChessComGame & { pgn: string }): GameSummary 
 }
 
 async function get(url: string, accept = 'application/json'): Promise<Response> {
-	const response = await fetch(url, { headers: { 'user-agent': USER_AGENT, accept } });
+	const headers: Record<string, string> = browser
+		? { accept }
+		: { 'user-agent': USER_AGENT, accept };
+	const response = await fetch(url, { headers });
 	if (response.status === 404) throw new SourceError('User not found', 404);
 	if (response.status === 429) {
 		throw new SourceError('Too many requests — please wait a minute and try again', 429);

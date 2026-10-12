@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { asset, resolve } from '$app/paths';
 	import type { Snippet } from 'svelte';
 	import Nav from '#lib/components/Nav.svelte';
 
@@ -7,9 +8,13 @@
 
 <header>
 	<div class="brand">
-		<a href="/" tabindex="-1" aria-hidden="true"><img class="logo" src="/logo.svg" alt="" /></a>
+		<a href={resolve('/')} tabindex="-1" aria-hidden="true"
+			><img class="logo" src={asset('logo.svg')} alt="" /></a
+		>
 		<span class="name">
-			<a class="wordmark" href="/" aria-label="Turning Points – Analysis">Turning Points</a>
+			<a class="wordmark" href={resolve('/')} aria-label="Turning Points – Analysis"
+				>Turning Points</a
+			>
 			<a
 				class="credit"
 				href="https://www.youtube.com/watch?v=shma5hsckww&amp;t=830s"
