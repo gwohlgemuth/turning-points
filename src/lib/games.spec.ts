@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+	candidateNames,
 	filterGames,
 	gameKey,
 	gameOutcome,
@@ -172,5 +173,13 @@ describe('gameKey', () => {
 		expect(gameKey('[Site "https://lichess.org/abc"]\n\n1. e4 *')).toBe('https://lichess.org/abc');
 		expect(gameKey('[White "A"]\n[Black "B"]\n\n1. e4 e5 *')).toBe('A B e4 e5');
 		expect(gameKey('not a game 1. Kx9')).toBeNull();
+	});
+});
+
+describe('candidateNames', () => {
+	it('numbers the file name after the first candidate', () => {
+		const names = candidateNames('A-vs-B.PGN');
+		expect(names.slice(0, 3)).toEqual(['A-vs-B.PGN', 'A-vs-B (2).pgn', 'A-vs-B (3).pgn']);
+		expect(names).toHaveLength(999);
 	});
 });

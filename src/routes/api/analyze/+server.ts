@@ -1,46 +1,21 @@
 import { error } from '@sveltejs/kit';
 import { STOCKFISH_PATH, STOCKFISH_THREADS } from '$app/env/private';
-import { Chess } from 'chess.js';
-import { toWhitePerspective, winPercent, type AnalyzeEvent, type Move } from '#lib/analysis.ts';
-import { extractClocks, moveTimes, parseTimeControl } from '#lib/clock.ts';
-import { mergeAdjacentComments } from '#lib/games.ts';
-import { clampDepth, Stockfish } from '#lib/server/stockfish.ts';
-import { isWhiteToMove } from '#lib/server/variations.ts';
+import { parseGame, type AnalyzeEvent, type ParsedGame } from '#lib/analysis.ts';
+import { analyzeGame, clampDepth } from '#lib/engine.ts';
+import { createStockfish } from '#lib/server/stockfish.ts';
 import type { RequestHandler } from './$types';
-
-function parseGame(pgn: string) {
-	const chess = new Chess();
-	try {
-		chess.loadPgn(mergeAdjacentComments(pgn));
-	} catch (err) {
-		error(400, `Invalid PGN: ${(err as Error).message}`);
-	}
-	const history = chess.history({ verbose: true });
-	if (history.length === 0) error(400, 'The PGN contains no moves');
-	const headers = chess.getHeaders();
-	const timeControl = parseTimeControl(headers.TimeControl);
-	const clocks = extractClocks(pgn);
-	const times =
-		timeControl && clocks.length === history.length ? moveTimes(clocks, timeControl) : null;
-	const moves: Move[] = history.map((m, i) => ({
-		ply: i + 1,
-		san: m.san,
-		from: m.from,
-		to: m.to,
-		fenBefore: m.before,
-		fenAfter: m.after,
-		time: times?.[i] ?? null
-	}));
-	return { startFen: history[0].before, moves, headers };
-}
 
 export const POST: RequestHandler = async ({ request }) => {
 	const body = await request.json().catch(() => error(400, 'Expected a JSON body'));
 	const depth = clampDepth(body.depth);
-	const game = parseGame(String(body.pgn ?? ''));
-	const fens = [game.startFen, ...game.moves.map((m) => m.fenAfter)];
+	let game: ParsedGame;
+	try {
+		game = parseGame(String(body.pgn ?? ''));
+	} catch (err) {
+		error(400, (err as Error).message);
+	}
 
-	const engine = new Stockfish(STOCKFISH_PATH);
+	const engine = createStockfish(STOCKFISH_PATH);
 	const encoder = new TextEncoder();
 	let cancelled = false;
 
@@ -48,31 +23,9 @@ export const POST: RequestHandler = async ({ request }) => {
 		async start(controller) {
 			const emit = (event: AnalyzeEvent) =>
 				controller.enqueue(encoder.encode(JSON.stringify(event) + '\n'));
-			try {
-				emit({ type: 'start', ...game });
-				await engine.init(STOCKFISH_THREADS);
-				for (const [index, fen] of fens.entries()) {
-					if (cancelled) return;
-					const [line] = await engine.analyse(fen, depth);
-					const whiteToMove = isWhiteToMove(fen);
-					const score = toWhitePerspective(line.score, whiteToMove);
-					emit({
-						type: 'eval',
-						eval: {
-							index,
-							score,
-							winPercent: winPercent(score, whiteToMove),
-							best: line.pv[0]
-						}
-					});
-				}
-				emit({ type: 'done' });
-			} catch (err) {
-				emit({ type: 'error', message: (err as Error).message });
-			} finally {
-				engine.quit();
-				if (!cancelled) controller.close();
-			}
+			await analyzeGame(engine, STOCKFISH_THREADS, game, depth, emit, () => cancelled);
+			engine.quit();
+			if (!cancelled) controller.close();
 		},
 		cancel() {
 			cancelled = true;

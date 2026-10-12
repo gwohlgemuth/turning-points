@@ -1,111 +1,23 @@
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
-import type { Score } from '#lib/analysis.ts';
+import { Engine } from '#lib/engine.ts';
 
-export type EngineLine = { score: Score; pv: string[] };
-
-export function clampDepth(value: unknown): number {
-	return Math.min(30, Math.max(6, Number(value) || 16));
-}
-
-export function clampElo(value: unknown): number {
-	return Math.min(3190, Math.max(1320, Number(value) || 1500));
-}
-
-export function parseBestMove(line: string): string | null {
-	const [command, move] = line.split(' ');
-	if (command !== 'bestmove' || !move || move === '(none)') return null;
-	return move;
-}
-
-export function parseInfo(line: string): (EngineLine & { multipv: number }) | null {
-	const tokens = line.split(' ');
-	if (tokens[0] !== 'info') return null;
-	const i = tokens.indexOf('score');
-	if (i < 0) return null;
-	const bound = tokens[i + 3];
-	if (bound === 'lowerbound' || bound === 'upperbound') return null;
-	const type = tokens[i + 1];
-	if (type !== 'cp' && type !== 'mate') return null;
-	const pvIndex = tokens.indexOf('pv');
-	const multipvIndex = tokens.indexOf('multipv');
-	return {
-		multipv: multipvIndex < 0 ? 1 : Number(tokens[multipvIndex + 1]),
-		score: { type, value: Number(tokens[i + 2]) },
-		pv: pvIndex < 0 ? [] : tokens.slice(pvIndex + 1)
-	};
-}
-
-export class Stockfish {
-	#proc: ChildProcessWithoutNullStreams;
-	#listener: ((line: string) => void) | null = null;
-	#exited: Promise<never>;
-	#multiPv = 1;
-	#quit = false;
-
-	constructor(path: string) {
-		this.#proc = spawn(path, [], { stdio: 'pipe' });
-		this.#exited = new Promise((_, reject) => {
-			this.#proc.on('error', (err) =>
-				reject(new Error(`Could not start Stockfish at "${path}": ${err.message}`))
-			);
-			this.#proc.on('exit', (code) => reject(new Error(`Stockfish exited (code ${code})`)));
-		});
-		this.#exited.catch(() => {});
-		this.#proc.stdin.on('error', () => {});
-		createInterface({ input: this.#proc.stdout }).on('line', (line) => this.#listener?.(line));
-	}
-
-	async init(threads: number): Promise<void> {
-		await this.#request('uci', (line) => line === 'uciok');
-		this.#send(`setoption name Threads value ${threads}`);
-		await this.#request('isready', (line) => line === 'readyok');
-	}
-
-	async analyse(fen: string, depth: number, multiPv = 1): Promise<EngineLine[]> {
-		if (multiPv !== this.#multiPv) {
-			this.#send(`setoption name MultiPV value ${multiPv}`);
-			this.#multiPv = multiPv;
-		}
-		this.#send(`position fen ${fen}`);
-		const lines: EngineLine[] = [];
-		await this.#request(`go depth ${depth}`, (line) => {
-			const info = parseInfo(line);
-			if (info) lines[info.multipv - 1] = { score: info.score, pv: info.pv };
-			return line.startsWith('bestmove');
-		});
-		const result = lines.filter(Boolean);
-		return result.length ? result : [{ score: { type: 'cp', value: 0 }, pv: [] }];
-	}
-
-	async bestMove(fen: string, elo: number, movetime: number): Promise<string | null> {
-		this.#send('setoption name UCI_LimitStrength value true');
-		this.#send(`setoption name UCI_Elo value ${elo}`);
-		this.#send(`position fen ${fen}`);
-		const line = await this.#request(`go movetime ${movetime}`, (l) => l.startsWith('bestmove'));
-		return parseBestMove(line);
-	}
-
-	quit(): void {
-		if (this.#quit) return;
-		this.#quit = true;
-		this.#send('quit');
-		setTimeout(() => this.#proc.kill(), 500).unref();
-	}
-
-	#send(command: string): void {
-		if (this.#proc.stdin.writable) this.#proc.stdin.write(command + '\n');
-	}
-
-	#request(command: string, isDone: (line: string) => boolean): Promise<string> {
-		const response = new Promise<string>((resolve) => {
-			this.#listener = (line) => {
-				if (!isDone(line)) return;
-				this.#listener = null;
-				resolve(line);
-			};
-		});
-		this.#send(command);
-		return Promise.race([response, this.#exited]);
-	}
+export function createStockfish(path: string): Engine {
+	const proc = spawn(path, [], { stdio: 'pipe' });
+	const exited = new Promise<never>((_, reject) => {
+		proc.on('error', (err) =>
+			reject(new Error(`Could not start Stockfish at "${path}": ${err.message}`))
+		);
+		proc.on('exit', (code) => reject(new Error(`Stockfish exited (code ${code})`)));
+	});
+	proc.stdin.on('error', () => {});
+	const lines = createInterface({ input: proc.stdout });
+	return new Engine({
+		send: (command) => {
+			if (proc.stdin.writable) proc.stdin.write(command + '\n');
+		},
+		onLine: (listener) => lines.on('line', listener),
+		exited,
+		kill: () => setTimeout(() => proc.kill(), 500).unref()
+	});
 }

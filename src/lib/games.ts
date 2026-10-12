@@ -150,3 +150,8 @@ export function pgnFilename(pgn: string): string {
 	const suffix = /^\d{4}\.\d{2}\.\d{2}$/.test(date) ? `-${date.replaceAll('.', '-')}` : '';
 	return `${white}-vs-${black}${suffix}.pgn`;
 }
+
+export function candidateNames(filename: string): string[] {
+	const stem = filename.replace(/\.pgn$/i, '');
+	return Array.from({ length: 999 }, (_, i) => (i === 0 ? filename : `${stem} (${i + 1}).pgn`));
+}

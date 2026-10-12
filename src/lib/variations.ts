@@ -1,6 +1,6 @@
 import { Chess } from 'chess.js';
-import { toWhitePerspective, type Variation } from '#lib/analysis.ts';
-import type { EngineLine } from './stockfish.ts';
+import { isWhiteToMove, toWhitePerspective, type Variation } from './analysis.ts';
+import type { EngineLine } from './engine.ts';
 
 function uciToSan(fen: string, uci: string[]): string[] {
 	const chess = new Chess(fen);
@@ -15,10 +15,6 @@ function uciToSan(fen: string, uci: string[]): string[] {
 		}
 	}
 	return san;
-}
-
-export function isWhiteToMove(fen: string): boolean {
-	return fen.split(' ')[1] === 'w';
 }
 
 export function toVariation(fen: string, line: EngineLine, maxPlies: number): Variation {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { fromChessCom, fromLichess } from './games.ts';
+import { fromChessCom, fromLichess } from './sources.ts';
 
 const pgn = '[White "A"]\n[Black "B"]\n[Result "0-1"]\n\n1. f3 e5 2. g4 Qh4# 0-1';
 

@@ -1,5 +1,6 @@
 import { Chess } from 'chess.js';
-import type { MoveTime } from './clock.ts';
+import { extractClocks, moveTimes, parseTimeControl, type MoveTime } from './clock.ts';
+import { mergeAdjacentComments } from './games.ts';
 
 export type Score = { type: 'cp' | 'mate'; value: number };
 
@@ -34,10 +35,42 @@ export type TurningPoint = {
 };
 
 export type AnalyzeEvent =
-	| { type: 'start'; startFen: string; moves: Move[]; headers: Record<string, string> }
+	| ({ type: 'start' } & ParsedGame)
 	| { type: 'eval'; eval: PositionEval }
 	| { type: 'done' }
 	| { type: 'error'; message: string };
+
+export type ParsedGame = { startFen: string; moves: Move[]; headers: Record<string, string> };
+
+export function parseGame(pgn: string): ParsedGame {
+	const chess = new Chess();
+	try {
+		chess.loadPgn(mergeAdjacentComments(pgn));
+	} catch (err) {
+		throw new Error(`Invalid PGN: ${(err as Error).message}`, { cause: err });
+	}
+	const history = chess.history({ verbose: true });
+	if (history.length === 0) throw new Error('The PGN contains no moves');
+	const headers = chess.getHeaders();
+	const timeControl = parseTimeControl(headers.TimeControl);
+	const clocks = extractClocks(pgn);
+	const times =
+		timeControl && clocks.length === history.length ? moveTimes(clocks, timeControl) : null;
+	const moves: Move[] = history.map((m, i) => ({
+		ply: i + 1,
+		san: m.san,
+		from: m.from,
+		to: m.to,
+		fenBefore: m.before,
+		fenAfter: m.after,
+		time: times?.[i] ?? null
+	}));
+	return { startFen: history[0].before, moves, headers };
+}
+
+export function isWhiteToMove(fen: string): boolean {
+	return fen.split(' ')[1] === 'w';
+}
 
 export function cpToWinPercent(cp: number): number {
 	return 50 + 50 * (2 / (1 + Math.exp(-0.00368208 * cp)) - 1);

@@ -1,11 +1,9 @@
 import { error, json } from '@sveltejs/kit';
 import { STOCKFISH_PATH, STOCKFISH_THREADS } from '$app/env/private';
 import { Chess } from 'chess.js';
-import { clampDepth, Stockfish } from '#lib/server/stockfish.ts';
-import { toVariation } from '#lib/server/variations.ts';
+import { engineLines } from '#lib/engine.ts';
+import { createStockfish } from '#lib/server/stockfish.ts';
 import type { RequestHandler } from './$types';
-
-const MAX_PLIES = 16;
 
 export const POST: RequestHandler = async ({ request }) => {
 	const body = await request.json().catch(() => error(400, 'Expected a JSON body'));
@@ -15,15 +13,12 @@ export const POST: RequestHandler = async ({ request }) => {
 	} catch (err) {
 		error(400, `Invalid FEN: ${(err as Error).message}`);
 	}
-	const depth = clampDepth(body.depth);
-	const multiPv = Math.min(5, Math.max(1, Number(body.lines) || 3));
 
-	const engine = new Stockfish(STOCKFISH_PATH);
+	const engine = createStockfish(STOCKFISH_PATH);
 	request.signal.addEventListener('abort', () => engine.quit());
 	try {
-		await engine.init(STOCKFISH_THREADS);
-		const lines = await engine.analyse(fen, depth, multiPv);
-		return json({ variations: lines.map((line) => toVariation(fen, line, MAX_PLIES)) });
+		const variations = await engineLines(engine, STOCKFISH_THREADS, fen, body.depth, body.lines);
+		return json({ variations });
 	} catch (err) {
 		error(500, (err as Error).message);
 	} finally {

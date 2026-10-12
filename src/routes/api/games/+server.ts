@@ -1,6 +1,6 @@
 import { error, json } from '@sveltejs/kit';
 import { GAME_COUNTS } from '#lib/games.ts';
-import { fetchChessComGames, fetchLichessGames, SourceError } from '#lib/server/games.ts';
+import { fetchChessComGames, fetchLichessGames, SourceError } from '#lib/sources.ts';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ url }) => {

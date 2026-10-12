@@ -1,5 +1,5 @@
 import { lstat, mkdir, readFile, readdir, realpath, writeFile } from 'node:fs/promises';
-import { sameGame } from '#lib/games.ts';
+import { candidateNames, sameGame } from '#lib/games.ts';
 import { basename, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 
 export class FileError extends Error {
@@ -133,9 +133,8 @@ export async function saveFile(
 	await mkdir(directory, { recursive: true });
 	await checkRealPath(root, directory);
 
-	const stem = name.slice(0, -extname(name).length);
-	for (let n = 1; n < 1000; n++) {
-		const candidate = join(directory, n === 1 ? name : `${stem} (${n}).pgn`);
+	for (const candidateName of candidateNames(name)) {
+		const candidate = join(directory, candidateName);
 		try {
 			await writeFile(candidate, text, { flag: 'wx' });
 			return toRelative(root, candidate);

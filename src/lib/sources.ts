@@ -1,4 +1,4 @@
-import { pgnHeader, type GameSummary } from '#lib/games.ts';
+import { pgnHeader, type GameSummary } from './games.ts';
 
 const USER_AGENT = 'turning-points (local chess analysis app)';
 const MAX_CHESSCOM_ARCHIVES = 6;
