@@ -55,3 +55,7 @@ Chess pieces: "cburnett" set by [Colin M.L. Burnett](https://en.wikipedia.org/wi
 Font: [Inter](https://github.com/rsms/inter) by The Inter Project Authors, licensed under the SIL Open Font License 1.1 (see `static/fonts/OFL.txt`).
 
 Built with the help of [Claude Code](https://claude.com/claude-code) (Anthropic).
+
+## License
+
+MIT, see `LICENSE`. The chess pieces and the Inter font keep their own licenses (see Credits).
