@@ -7,6 +7,7 @@
 		{ id: 'idea', title: 'The idea' },
 		{ id: 'quick-start', title: 'Quick start' },
 		{ id: 'routine', title: 'A routine that makes you stronger' },
+		{ id: 'why', title: 'Why this works' },
 		{ id: 'stats', title: 'Reading your stats' },
 		{ id: 'tools', title: 'More tools' }
 	];
@@ -156,6 +157,33 @@
 				</ul>
 			</section>
 
+			<section class="card" id="why">
+				<h2 class="card-title">{title('why')}</h2>
+				<p>
+					Training that feels harder usually sticks better. That is why the app makes you think
+					before it shows the answer.
+				</p>
+				<ul>
+					<li>
+						<strong>Think first.</strong> A move you came up with yourself sticks better than one you
+						read.
+					</li>
+					<li>
+						<strong>Say how sure you are.</strong> An error you were sure about gets corrected most reliably.
+					</li>
+					<li>
+						<strong>Ask why.</strong> Explaining the reason is what lets it carry over to new positions.
+					</li>
+					<li>
+						<strong>When …, then ….</strong> An if-then rule comes back at the board by itself.
+					</li>
+					<li>
+						<strong>Spaced and mixed.</strong> Coming back after days, with positions from different games,
+						beats reviewing everything at once, even when it feels less productive.
+					</li>
+				</ul>
+			</section>
+
 			<section class="card" id="stats">
 				<h2 class="card-title">{title('stats')}</h2>
 				<ul>
@@ -205,8 +233,8 @@
 						games instantly. <strong>My games</strong> lists the games you saved.
 					</li>
 					<li>
-						The number of turning points and the engine depth can be changed in the toolbar. Higher
-						depth is more accurate but slower.
+						The engine depth can be changed in the toolbar. Higher depth is more accurate but
+						slower.
 					</li>
 					<li>
 						Shortcuts: <kbd>←</kbd> <kbd>→</kbd> to step through the moves, <kbd>N</kbd> for the next
