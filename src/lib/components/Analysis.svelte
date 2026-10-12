@@ -1011,8 +1011,7 @@
 													class:on={notesOpen[tp.ply]}
 													onclick={() => toggleNotes(tp.ply)}
 													aria-expanded={!!notesOpen[tp.ply]}
-													title="Studer's three questions"
-													>Notes {answeredCount(notes[tp.ply])}/3</button
+													title="Three questions">Notes {answeredCount(notes[tp.ply])}/3</button
 												>
 												{#if hidden}
 													<button class="reveal" onclick={() => reveal(tp.ply)} disabled={analyzing}

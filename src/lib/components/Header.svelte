@@ -6,13 +6,18 @@
 </script>
 
 <header>
-	<a class="brand" href="/" aria-label="Turning Points – Analysis">
-		<img class="logo" src="/logo.svg" alt="" />
+	<div class="brand">
+		<a href="/" tabindex="-1" aria-hidden="true"><img class="logo" src="/logo.svg" alt="" /></a>
 		<span class="name">
-			<span class="wordmark">Turning Points</span>
-			<span class="credit">Inspired by GM Noël Studer</span>
+			<a class="wordmark" href="/" aria-label="Turning Points – Analysis">Turning Points</a>
+			<a
+				class="credit"
+				href="https://www.youtube.com/watch?v=shma5hsckww&amp;t=830s"
+				target="_blank"
+				rel="noopener noreferrer">Inspired by this video</a
+			>
 		</span>
-	</a>
+	</div>
 	{@render children?.()}
 	<Nav />
 </header>
@@ -31,7 +36,6 @@
 		gap: 12px;
 		min-height: 46px;
 		margin-right: auto;
-		text-decoration: none;
 		view-transition-name: brand;
 	}
 
@@ -63,12 +67,15 @@
 		width: fit-content;
 		background: linear-gradient(90deg, #fff 0%, var(--accent-2) 55%, var(--accent) 100%);
 		background-clip: text;
+		text-decoration: none;
 		color: transparent;
 	}
 
 	.credit {
 		margin-top: 2px;
 		font-size: 0.8rem;
+		width: fit-content;
+		text-decoration: none;
 		color: var(--accent);
 		white-space: nowrap;
 	}

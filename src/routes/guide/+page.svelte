@@ -69,8 +69,13 @@
 					swing in centipawns, because +8 to +6 is still winning, while +0.5 to −1.5 turns the game.
 				</p>
 				<p>
-					The training, inspired by GM Noël Studer: look at each of these positions yourself first,
-					as if you were at the board, and only then check the engine. The engine tells you
+					The training, inspired by
+					<a
+						href="https://www.youtube.com/watch?v=shma5hsckww&amp;t=830s"
+						target="_blank"
+						rel="noopener noreferrer">this video</a
+					>: look at each of these positions yourself first, as if you were at the board, and only
+					then check the engine. The engine tells you
 					<em>what</em> was better. Thinking first teaches you <em>why</em>, and only that carries
 					over to your next game.
 				</p>

@@ -1,6 +1,6 @@
 # Turning Points
 
-A local chess analysis app that finds the **n moments in a game where the evaluation changed the most**, so you can study the critical decisions of your own games — inspired by a training method of GM Noël Studer: find the turning points, think about those positions yourself first, and only then check the engine.
+A local chess analysis app that finds the **n moments in a game where the evaluation changed the most**, so you can study the critical decisions of your own games — inspired by the training method in [this video](https://www.youtube.com/watch?v=shma5hsckww&t=830s): find the turning points, think about those positions yourself first, and only then check the engine.
 
 - Frontend: SvelteKit + Svelte 5 (runes)
 - Engine: a local [Stockfish](https://stockfishchess.org/) binary, driven over UCI from the SvelteKit server
