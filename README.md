@@ -49,6 +49,7 @@ pnpm dev
 - The engine is [Stockfish.js](https://github.com/nmrugg/stockfish.js) (lite, single-threaded WASM) in a Web Worker: no install, but weaker and slower than a native binary.
 - Saved games and review progress live in the browser's IndexedDB instead of a folder. Use _Export all as PGN_ and _Import PGN_ on the Stats page to back them up or move them.
 - Lichess and Chess.com are queried directly from the browser.
+- It can be installed as an app (_Install app_ on Android, _Add to Home Screen_ on iOS) and works offline, except for loading games. On iOS the installed app has its own storage, separate from Safari: use PGN export/import to move saved games.
 
 ## Scripts
 

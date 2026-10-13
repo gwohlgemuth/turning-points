@@ -14,7 +14,8 @@ export default defineConfig({
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
 			adapter: isStatic ? staticAdapter({ strict: false }) : nodeAdapter(),
-			paths: isStatic ? { base: '/turning-points', relative: false } : {}
+			paths: isStatic ? { base: '/turning-points', relative: false } : {},
+			serviceWorker: isStatic ? { register: true } : { register: false }
 		})
 	],
 	define: { 'import.meta.env.STATIC': JSON.stringify(isStatic) },

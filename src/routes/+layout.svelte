@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import { browser } from '$app/env';
+	import { asset } from '$app/paths';
 	import { onNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import { untrack } from 'svelte';
@@ -34,6 +35,12 @@
 <svelte:head>
 	<title>Turning Points</title>
 	<meta name="theme-color" content="#0c0e13" />
+	{#if import.meta.env.STATIC}
+		<link rel="manifest" href={asset('manifest.webmanifest')} />
+		<link rel="apple-touch-icon" href={asset('apple-touch-icon.png')} />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black" />
+	{/if}
 </svelte:head>
 
 <Analysis preferences={data.preferences} active={page.route.id === '/'} />
