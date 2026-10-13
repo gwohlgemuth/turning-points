@@ -35,7 +35,8 @@ async function respond(request: Request): Promise<Response> {
 	const { pathname } = new URL(request.url);
 	if (ASSETS.has(pathname)) {
 		const cached = await cache.match(pathname);
-		if (cached) return cached;
+		// A fresh Response keeps the request URL, including the #wasm path the Stockfish worker reads
+		if (cached) return new Response(cached.body, cached);
 	}
 	try {
 		return await fetch(request);
