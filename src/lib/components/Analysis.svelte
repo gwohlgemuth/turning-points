@@ -732,8 +732,16 @@
 						<button
 							class:on={autoplay}
 							onclick={toggleAutoplay}
-							aria-label={autoplay ? 'Pause' : 'Autoplay'}>{autoplay ? '⏸' : '⏵'}</button
+							aria-label={autoplay ? 'Pause' : 'Autoplay'}
 						>
+							<svg viewBox="0 0 16 16" aria-hidden="true">
+								{#if autoplay}
+									<path d="M3.5 2.5h3v11h-3zM9.5 2.5h3v11h-3z" />
+								{:else}
+									<path d="M4 2.5v11l9-5.5z" />
+								{/if}
+							</svg>
+						</button>
 						<select bind:value={speed} aria-label="Autoplay speed">
 							{#each SPEEDS as s (s)}<option value={s}>{s / 1000} s</option>{/each}
 						</select>
@@ -1543,6 +1551,13 @@
 
 	.nav button {
 		min-width: 42px;
+	}
+
+	.nav svg {
+		width: 0.9em;
+		height: 0.9em;
+		fill: currentColor;
+		vertical-align: -0.1em;
 	}
 
 	.nav .flip {
