@@ -57,7 +57,7 @@
 	}: Props = $props();
 
 	const initial = untrack(() => preferences);
-	let source = $state<GameSource>(initial.source);
+	let source = $state<GameSource>(import.meta.env.STATIC ? 'lichess' : initial.source);
 	let username = $state(initial.username);
 	let max = $state(initial.max);
 	let loading = $state(false);
@@ -222,15 +222,22 @@
 <div class="tab-controls">
 	{#if tab === 'online'}
 		<form class="loader" onsubmit={load} autocomplete="off">
-			<select
-				bind:value={source}
-				onchange={() => updatePreferences({ source })}
-				aria-label="Source"
-			>
-				<option value="lichess">Lichess</option>
-				<option value="chesscom">Chess.com</option>
-			</select>
-			<input bind:value={username} placeholder="Username" aria-label="Username" required />
+			{#if !import.meta.env.STATIC}
+				<select
+					bind:value={source}
+					onchange={() => updatePreferences({ source })}
+					aria-label="Source"
+				>
+					<option value="lichess">Lichess</option>
+					<option value="chesscom">Chess.com</option>
+				</select>
+			{/if}
+			<input
+				bind:value={username}
+				placeholder={import.meta.env.STATIC ? 'Lichess username' : 'Username'}
+				aria-label="Username"
+				required
+			/>
 			<select
 				bind:value={max}
 				onchange={() => updatePreferences({ max })}
@@ -266,6 +273,13 @@
 		<span class="muted">No recent games yet. Games you analyze appear here.</span>
 	{/if}
 </div>
+
+{#if import.meta.env.STATIC && tab === 'online' && !games.length}
+	<p class="muted">
+		Chess.com games: open a game, choose Share → PGN and paste it in the <strong>PGN</strong> tab, or
+		download several from your game archive and open the file there.
+	</p>
+{/if}
 
 {#if message}
 	<p class="muted">{message}</p>

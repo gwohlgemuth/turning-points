@@ -4,7 +4,7 @@ import { parseGame } from '../analysis.ts';
 import { analyzeGame, clampDepth, Engine, engineLines, engineMove } from '../engine.ts';
 import { candidateNames, pgnFilename, sameGame, splitPgn } from '../games.ts';
 import { parseReviewState } from '../review.ts';
-import { fetchChessComGames, fetchLichessGames } from '../sources.ts';
+import { fetchLichessGames } from '../sources.ts';
 import { savedGames } from '../stats.ts';
 import { formatReview, recordReview, reviewData, scheduleMissed, statsData } from './shared.ts';
 import type { Backend, PgnFile } from './types.ts';
@@ -108,8 +108,7 @@ const backend: Backend = {
 
 	move: (fen, elo, signal) => withEngine(signal, (engine) => engineMove(engine, THREADS, fen, elo)),
 
-	games: (source, user, max) =>
-		source === 'lichess' ? fetchLichessGames(user, max) : fetchChessComGames(user, max),
+	games: (_source, user, max) => fetchLichessGames(user, max),
 
 	saved: async () => savedGames(await readFiles()),
 

@@ -86,10 +86,12 @@
 				<h2 class="card-title">{title('quick-start')}</h2>
 				<ol>
 					<li>
-						In the <strong>Online</strong> tab, enter your Lichess or Chess.com username and press
+						In the <strong>Online</strong> tab, enter your {import.meta.env.STATIC
+							? 'Lichess'
+							: 'Lichess or Chess.com'} username and press
 						<strong>Load games</strong>. Choose yourself under <strong>View as</strong>, then click
-						a game. Got a game from elsewhere? Paste it or open a file in the
-						<strong>PGN</strong> tab.
+						a game. Got a game from elsewhere{import.meta.env.STATIC ? ', like Chess.com' : ''}?
+						Paste it or open a file in the <strong>PGN</strong> tab.
 					</li>
 					<li>
 						The engine analyzes every position. The evaluation stays hidden from the first open
