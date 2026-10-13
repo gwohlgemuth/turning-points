@@ -1,3 +1,4 @@
+import { execSync } from 'node:child_process';
 import { defineConfig } from 'vitest/config';
 import nodeAdapter from '@sveltejs/adapter-node';
 import staticAdapter from '@sveltejs/adapter-static';
@@ -15,7 +16,8 @@ export default defineConfig({
 			},
 			adapter: isStatic ? staticAdapter({ strict: false }) : nodeAdapter(),
 			paths: isStatic ? { base: '/turning-points', relative: false } : {},
-			serviceWorker: isStatic ? { register: true } : { register: false }
+			serviceWorker: isStatic ? { register: true } : { register: false },
+			version: isStatic ? { name: execSync('git rev-parse --short HEAD').toString().trim() } : {}
 		})
 	],
 	define: { 'import.meta.env.STATIC': JSON.stringify(isStatic) },

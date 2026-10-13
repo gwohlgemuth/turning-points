@@ -58,6 +58,7 @@ pnpm dev       # development server
 pnpm dev:static  # development server for the browser version (/turning-points)
 pnpm build     # production build (adapter-node), run with `node build`
 pnpm build:static  # browser-only build (adapter-static) under /turning-points
+pnpm update:homepage  # build the browser version and commit it to ../homepage (push there to deploy)
 pnpm check     # type checking
 pnpm test      # unit tests
 pnpm lint      # prettier + eslint

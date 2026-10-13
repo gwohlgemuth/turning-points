@@ -9,6 +9,7 @@
 		"dev:static": "BUILD_TARGET=static vite dev",
 		"build": "vite build",
 		"build:static": "BUILD_TARGET=static vite build",
+		"update:homepage": "sh scripts/update-homepage.sh",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && tsc -p src/service-worker",
