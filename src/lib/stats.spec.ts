@@ -36,10 +36,18 @@ describe('entriesFromPgn', () => {
 				phase: 'opening',
 				time: null,
 				tactical: false,
+				missedWin: false,
 				opening: '',
 				spotted: null
 			}
 		]);
+	});
+
+	it('marks a missed win from the stored best line', () => {
+		const pgn = writeNotes(game('A', '2026.10.01'), {
+			4: { ...emptyNotes(), candidate: 'Nf6', verdict: 'missed', best: 'd6 Qxf7+ Kxf7' }
+		});
+		expect(entriesFromPgn('a.pgn', pgn)[0]).toMatchObject({ tactical: false, missedWin: true });
 	});
 
 	it('returns nothing for games without notes or invalid PGN', () => {

@@ -226,6 +226,7 @@
 				const tpNotes = (notes[candidateTp.ply] ??= emptyNotes());
 				tpNotes.candidate = move.san;
 				tpNotes.verdict = '';
+				tpNotes.best = '';
 				tpNotes.confidence = '';
 			}
 		}
@@ -403,6 +404,7 @@
 	function clearCandidate(ply: number) {
 		notes[ply].candidate = '';
 		notes[ply].verdict = '';
+		notes[ply].best = '';
 		notes[ply].confidence = '';
 	}
 
@@ -1074,8 +1076,9 @@
 												{depth}
 												{side}
 												verdict={notes[tp.ply].verdict}
-												onverdict={(found, best) => {
+												onverdict={(found, best, line) => {
 													if (best) checkedBest[tp.ply] = best;
+													if (!notes[tp.ply].best) notes[tp.ply].best = line.slice(0, 4).join(' ');
 													setVerdict(tp.ply, found);
 												}}
 											/>

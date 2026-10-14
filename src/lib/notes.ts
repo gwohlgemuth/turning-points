@@ -9,6 +9,7 @@ export type Notes = {
 	answers: [string, string, string];
 	candidate: string;
 	verdict: Verdict;
+	best: string;
 	confidence: Confidence;
 	lesson: string;
 };
@@ -17,6 +18,7 @@ export const emptyNotes = (): Notes => ({
 	answers: ['', '', ''],
 	candidate: '',
 	verdict: '',
+	best: '',
 	confidence: '',
 	lesson: ''
 });
@@ -38,10 +40,11 @@ export const NOTE_QUESTIONS = [
 
 const MARKER = 'Turning point.';
 const CANDIDATE = 'Candidate:';
+const BEST = 'Best:';
 const CONFIDENCE = 'Confidence:';
 const LESSON = 'Next time:';
 const NOTE_PATTERN = new RegExp(
-	`${escape(MARKER)}(?: ${escape(CANDIDATE)} (\\S+)(?: \\((found|missed)\\))?)?(?: ${escape(CONFIDENCE)} (sure|unsure|guess)\\.)?${NOTE_QUESTIONS.map(({ label }) => `(?: ${escape(label)} (.*?))?`).join('')}(?: ${escape(LESSON)} (.*?))?$`
+	`${escape(MARKER)}(?: ${escape(CANDIDATE)} (\\S+)(?: \\((found|missed)\\))?)?(?: ${escape(BEST)} (.*?)\\.)?(?: ${escape(CONFIDENCE)} (sure|unsure|guess)\\.)?${NOTE_QUESTIONS.map(({ label }) => `(?: ${escape(label)} (.*?))?`).join('')}(?: ${escape(LESSON)} (.*?))?$`
 );
 
 function escape(text: string): string {
@@ -67,9 +70,11 @@ export function formatNote(notes: Notes): string {
 	const lesson = clean(notes.lesson);
 	if (!answeredCount(notes) && !candidate && !lesson) return '';
 	const verdict = candidate && notes.verdict ? ` (${notes.verdict})` : '';
+	const best = candidate ? clean(notes.best) : '';
 	return [
 		MARKER,
 		...(candidate ? [`${CANDIDATE} ${candidate}${verdict}`] : []),
+		...(best ? [`${BEST} ${best}.`] : []),
 		...(candidate && notes.confidence ? [`${CONFIDENCE} ${notes.confidence}.`] : []),
 		...NOTE_QUESTIONS.flatMap(({ label }, i) =>
 			clean(notes.answers[i]) ? [`${label} ${clean(notes.answers[i])}`] : []
@@ -83,11 +88,12 @@ function splitComment(comment: string): { rest: string; notes: Notes | null } {
 	if (index < 0) return { rest: comment.trim(), notes: null };
 	const match = NOTE_PATTERN.exec(comment.slice(index).trim());
 	const notes: Notes = {
-		answers: [match?.[4] ?? '', match?.[5] ?? '', match?.[6] ?? ''],
+		answers: [match?.[5] ?? '', match?.[6] ?? '', match?.[7] ?? ''],
 		candidate: match?.[1] ?? '',
 		verdict: (match?.[2] ?? '') as Verdict,
-		confidence: (match?.[3] ?? '') as Confidence,
-		lesson: match?.[7] ?? ''
+		best: match?.[3] ?? '',
+		confidence: (match?.[4] ?? '') as Confidence,
+		lesson: match?.[8] ?? ''
 	};
 	return { rest: comment.slice(0, index).trim(), notes };
 }

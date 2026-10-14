@@ -9,7 +9,14 @@ import {
 	type GameSummary
 } from './games.ts';
 import { answeredCount, readNotes, type Confidence, type Verdict } from './notes.ts';
-import { gamePhase, lostMaterial, timeTag, type Phase, type TimeTag } from './profile.ts';
+import {
+	gamePhase,
+	lostMaterial,
+	timeTag,
+	winsMaterial,
+	type Phase,
+	type TimeTag
+} from './profile.ts';
 import { isSpotted, readSpotFlags } from './spot.ts';
 
 export type StatsEntry = {
@@ -28,6 +35,7 @@ export type StatsEntry = {
 	phase: Phase;
 	time: TimeTag | null;
 	tactical: boolean;
+	missedWin: boolean;
 	opening: string;
 	spotted: boolean | null;
 };
@@ -62,25 +70,30 @@ export function entriesFromPgn(file: string, pgn: string): StatsEntry[] {
 	const times = control && clocks.length === moves.length ? moveTimes(clocks, control) : [];
 	const opening = pgnHeader(pgn, 'Opening') ?? pgnHeader(pgn, 'ECO') ?? '';
 	const flags = readSpotFlags(pgn);
-	return plies.map((ply) => ({
-		file,
-		date,
-		white,
-		black,
-		ply,
-		move: moves[ply - 1]?.san ?? '',
-		fen: moves[ply - 1]?.before ?? '',
-		candidate: notes[ply].candidate,
-		verdict: notes[ply].verdict,
-		confidence: notes[ply].confidence,
-		lesson: notes[ply].lesson,
-		answered: answeredCount(notes[ply]),
-		phase: gamePhase(moves[ply - 1]?.before ?? ''),
-		time: timeTag(times[ply - 1] ?? null, control),
-		tactical: lostMaterial(moves, ply),
-		opening,
-		spotted: flags.length ? isSpotted(ply, flags) : null
-	}));
+	return plies.map((ply) => {
+		const fen = moves[ply - 1]?.before ?? '';
+		const tactical = lostMaterial(moves, ply);
+		return {
+			file,
+			date,
+			white,
+			black,
+			ply,
+			move: moves[ply - 1]?.san ?? '',
+			fen,
+			candidate: notes[ply].candidate,
+			verdict: notes[ply].verdict,
+			confidence: notes[ply].confidence,
+			lesson: notes[ply].lesson,
+			answered: answeredCount(notes[ply]),
+			phase: gamePhase(fen),
+			time: timeTag(times[ply - 1] ?? null, control),
+			tactical,
+			missedWin: !tactical && winsMaterial(fen, notes[ply].best.split(' ').filter(Boolean)),
+			opening,
+			spotted: flags.length ? isSpotted(ply, flags) : null
+		};
+	});
 }
 
 export function summarize(entries: StatsEntry[]): StatsSummary {

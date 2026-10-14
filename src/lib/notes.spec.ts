@@ -20,6 +20,7 @@ const notes: Notes = {
 	answers: ['It attacks f7', 'It ignores {development}', 'Nf3 develops\na piece'],
 	candidate: '',
 	verdict: '',
+	best: '',
 	confidence: '',
 	lesson: ''
 };
@@ -118,6 +119,21 @@ describe('writeNotes and readNotes', () => {
 		expect(readNotes(written)).toEqual({ 3: full });
 		const lessonOnly: Notes = { ...emptyNotes(), lesson: 'Count the attackers' };
 		expect(readNotes(writeNotes(pgn, { 3: lessonOnly }))).toEqual({ 3: lessonOnly });
+	});
+
+	it('round-trips the best line and reads notes without it', () => {
+		const checked: Notes = {
+			...emptyNotes(),
+			candidate: 'Nc3',
+			verdict: 'missed',
+			best: 'Qxf7+ Kd7 Qd5',
+			confidence: 'sure'
+		};
+		const written = writeNotes(pgn, { 3: checked });
+		expect(written).toContain('Candidate: Nc3 (missed) Best: Qxf7+ Kd7 Qd5. Confidence: sure.');
+		expect(readNotes(written)).toEqual({ 3: checked });
+		const old = written.replace(' Best: Qxf7+ Kd7 Qd5.', '');
+		expect(readNotes(old)).toEqual({ 3: { ...checked, best: '' } });
 	});
 
 	it('drops the confidence without a candidate', () => {

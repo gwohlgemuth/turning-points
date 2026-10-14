@@ -207,6 +207,10 @@
 							<li><strong>Time trouble</strong>: spend your time earlier and more evenly.</li>
 							<li><strong>Endgame</strong>: study basic and practical endgames.</li>
 							<li><strong>Material lost</strong>: train tactics every day.</li>
+							<li>
+								<strong>Missed win</strong>: solve tactics puzzles daily so patterns become
+								automatic. In tense positions, check the forcing moves for both sides.
+							</li>
 							<li><strong>Positional</strong>: study plans and annotated games.</li>
 						</ul>
 					</li>

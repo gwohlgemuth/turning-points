@@ -7,7 +7,8 @@ import {
 	profile,
 	progress,
 	repeatedPositions,
-	timeTag
+	timeTag,
+	winsMaterial
 } from './profile.ts';
 import type { StatsEntry } from './stats.ts';
 
@@ -29,6 +30,7 @@ const entry = (patch: Partial<StatsEntry>): StatsEntry => ({
 	phase: 'middlegame',
 	time: null,
 	tactical: false,
+	missedWin: false,
 	opening: '',
 	spotted: null,
 	...patch
@@ -116,6 +118,21 @@ describe('profile', () => {
 			['Material lost', 1],
 			['Positional', 2]
 		]);
+	});
+});
+
+describe('winsMaterial', () => {
+	it('sees a line that wins material', () => {
+		const fork = 'q3k3/8/8/1N6/8/8/8/4K3 w - - 0 1';
+		expect(winsMaterial(fork, ['Nc7+', 'Kd7', 'Nxa8'])).toBe(true);
+		expect(winsMaterial(fork, ['Kd2', 'Qa2+'])).toBe(false);
+	});
+
+	it('ignores an exchange and an illegal line', () => {
+		const exchange = 'rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2';
+		expect(winsMaterial(exchange, ['exd5', 'Qxd5'])).toBe(false);
+		expect(winsMaterial(START, ['Ke2', 'e5'])).toBe(false);
+		expect(winsMaterial(START, [])).toBe(false);
 	});
 });
 

@@ -1,4 +1,4 @@
-import type { Move } from 'chess.js';
+import { Chess, type Move } from 'chess.js';
 import type { MoveTime, TimeControl } from './clock.ts';
 import type { StatsEntry } from './stats.ts';
 
@@ -46,6 +46,22 @@ export function lostMaterial(history: Move[], ply: number): boolean {
 	return balance(move.before) - balance(later.after) >= 2;
 }
 
+export function winsMaterial(fen: string, sans: string[]): boolean {
+	if (!fen || !sans.length) return false;
+	const color = fen.split(' ')[1] === 'b' ? 'b' : 'w';
+	const balance = (position: string) =>
+		material(position, color) - material(position, color === 'w' ? 'b' : 'w');
+	const chess = new Chess(fen);
+	for (const san of sans) {
+		try {
+			chess.move(san);
+		} catch {
+			break;
+		}
+	}
+	return balance(chess.fen()) - balance(fen) >= 2;
+}
+
 function group<T extends string>(
 	entries: StatsEntry[],
 	key: (entry: StatsEntry) => T | null,
@@ -64,6 +80,9 @@ function group<T extends string>(
 		.filter((row) => row.total > 0);
 }
 
+const kindOf = (entry: StatsEntry) =>
+	entry.tactical ? 'tactical' : entry.missedWin ? 'missedWin' : 'positional';
+
 export function profile(entries: StatsEntry[]) {
 	return {
 		phase: group(entries, (entry) => entry.phase, {
@@ -76,12 +95,16 @@ export function profile(entries: StatsEntry[]) {
 			quick: { label: 'Quick move', hint: 'At most 2% of the base time spent' },
 			normal: { label: 'Normal', hint: 'Neither time trouble nor a quick move' }
 		}),
-		kind: group(entries, (entry) => (entry.tactical ? 'tactical' : 'positional'), {
+		kind: group(entries, kindOf, {
 			tactical: {
 				label: 'Material lost',
 				hint: 'Down 2 or more points of material four plies later'
 			},
-			positional: { label: 'Positional', hint: 'No material lost in the next four plies' }
+			missedWin: {
+				label: 'Missed win',
+				hint: 'The best move won 2 or more points of material'
+			},
+			positional: { label: 'Positional', hint: 'No material lost or missed' }
 		}),
 		confidence: group(entries, (entry) => entry.confidence || null, {
 			sure: { label: 'Sure', hint: 'You were sure of your candidate move' },
