@@ -140,6 +140,15 @@ const backend: Backend = {
 		const games = splitPgn(text);
 		for (const game of games) await backend.save('', game + '\n', pgnFilename(game), true);
 		return games.length;
+	},
+
+	async deleteGame(file) {
+		await request((await store('files', 'readwrite')).delete(file));
+	},
+
+	async deleteAll() {
+		await request((await store('files', 'readwrite')).clear());
+		await request((await store('meta', 'readwrite')).clear());
 	}
 };
 

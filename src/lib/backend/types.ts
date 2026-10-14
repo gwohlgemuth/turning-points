@@ -34,4 +34,6 @@ export type Backend = {
 	createFolder?(parent: string, name: string): Promise<string>;
 	exportPgn?(): Promise<string>;
 	importPgn?(text: string): Promise<number>;
+	deleteGame?(file: string): Promise<void>;
+	deleteAll?(): Promise<void>;
 };

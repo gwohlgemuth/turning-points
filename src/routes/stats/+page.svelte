@@ -47,6 +47,18 @@
 		URL.revokeObjectURL(link.href);
 	}
 
+	async function deleteAll() {
+		if (!confirm('Delete all saved games and review progress? Export them first to keep them.'))
+			return;
+		try {
+			await backend.deleteAll!();
+			libraryMessage = 'Deleted all games';
+			await invalidateAll();
+		} catch (err) {
+			libraryMessage = (err as Error).message;
+		}
+	}
+
 	async function importGames(event: Event) {
 		const input = event.currentTarget as HTMLInputElement;
 		const file = input.files?.[0];
@@ -81,6 +93,7 @@
 			<div class="library">
 				<button onclick={exportGames}>Export all as PGN</button>
 				<button onclick={() => fileInput?.click()}>Import PGN</button>
+				{#if backend.deleteAll}<button onclick={deleteAll}>Delete all</button>{/if}
 				<input
 					bind:this={fileInput}
 					type="file"

@@ -231,7 +231,10 @@
 					<li><strong>Autoplay</strong> replays the game and pauses before each turning point.</li>
 					<li>
 						The logo always leads back to the analysis. <strong>Recent</strong> reopens analyzed
-						games instantly. <strong>My games</strong> lists the games you saved.
+						games instantly. <strong>My games</strong> lists the games you saved{import.meta.env
+							.STATIC
+							? '; ✕ deletes one, and Delete all on the Stats page removes them all'
+							: ''}.
 					</li>
 					<li>
 						The engine depth can be changed in the toolbar. Higher depth is more accurate but

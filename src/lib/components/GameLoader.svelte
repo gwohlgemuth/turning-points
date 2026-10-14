@@ -111,6 +111,16 @@
 		untrack(loadSaved);
 	});
 
+	async function deleteSaved(game: SavedGame) {
+		if (!confirm('Delete this game and its notes?')) return;
+		try {
+			await backend.deleteGame!(game.file);
+		} catch (err) {
+			message = (err as Error).message;
+		}
+		loadSaved();
+	}
+
 	const progress = (game: GameSummary): SavedGame | undefined =>
 		'worked' in game ? (game as SavedGame) : savedByUrl.get(game.url);
 
@@ -360,6 +370,13 @@
 						onclick={() => onforget?.(game.id)}
 						title="Remove from recent"
 						aria-label="Remove from recent">✕</button
+					>
+				{:else if tab === 'saved' && backend.deleteGame}
+					<button
+						class="forget"
+						onclick={() => deleteSaved(game as SavedGame)}
+						title="Delete game"
+						aria-label="Delete game">✕</button
 					>
 				{/if}
 			</li>

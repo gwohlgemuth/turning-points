@@ -47,7 +47,7 @@ pnpm dev
 `pnpm build:static` builds a version that runs entirely in the browser, served from `/turning-points` (e.g. `https://gwohl.de/turning-points`). Copy the `build` folder to that path on any static host. Differences from the local app:
 
 - The engine is [Stockfish.js](https://github.com/nmrugg/stockfish.js) (lite, single-threaded WASM) in a Web Worker: no install, but weaker and slower than a native binary.
-- Saved games and review progress live in the browser's IndexedDB instead of a folder. Use _Export all as PGN_ and _Import PGN_ on the Stats page to back them up or move them.
+- Saved games and review progress live in the browser's IndexedDB instead of a folder. Use _Export all as PGN_ and _Import PGN_ on the Stats page to back them up or move them. Delete single games with ✕ in _My games_, or all of them with _Delete all_ on the Stats page.
 - Games are loaded by username from Lichess only, queried directly from the browser. Other games can be pasted or opened as PGN.
 - It can be installed as an app (_Install app_ on Android, _Add to Home Screen_ on iOS) and works offline, except for loading games. On iOS the installed app has its own storage, separate from Safari: use PGN export/import to move saved games.
 
