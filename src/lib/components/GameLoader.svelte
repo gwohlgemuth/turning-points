@@ -40,6 +40,7 @@
 		onbatch?: (running: boolean) => void;
 		depth: number;
 		preferences: Preferences;
+		active?: boolean;
 	};
 
 	let {
@@ -53,7 +54,8 @@
 		onanalyzed,
 		onbatch,
 		depth,
-		preferences
+		preferences,
+		active = true
 	}: Props = $props();
 
 	const initial = untrack(() => preferences);
@@ -108,7 +110,7 @@
 	}
 
 	$effect(() => {
-		untrack(loadSaved);
+		if (active) untrack(loadSaved);
 	});
 
 	async function deleteSaved(game: SavedGame) {

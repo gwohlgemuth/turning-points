@@ -571,6 +571,7 @@
 			onbatch={(running) => (batchRunning = running)}
 			{depth}
 			{preferences}
+			{active}
 		/>
 		<SaveFolder folder={preferences.folder} />
 	</section>
