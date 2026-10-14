@@ -274,13 +274,6 @@
 	{/if}
 </div>
 
-{#if import.meta.env.STATIC && tab === 'online' && !games.length}
-	<p class="muted">
-		Chess.com games: open a game, choose Share → PGN and paste it in the <strong>PGN</strong> tab, or
-		download several from your game archive and open the file there.
-	</p>
-{/if}
-
 {#if message}
 	<p class="muted">{message}</p>
 {/if}

@@ -90,8 +90,7 @@
 							? 'Lichess'
 							: 'Lichess or Chess.com'} username and press
 						<strong>Load games</strong>. Choose yourself under <strong>View as</strong>, then click
-						a game. Got a game from elsewhere{import.meta.env.STATIC ? ', like Chess.com' : ''}?
-						Paste it or open a file in the <strong>PGN</strong> tab.
+						a game. Got a game from elsewhere? Paste it or open a file in the <strong>PGN</strong> tab.
 					</li>
 					<li>
 						The engine analyzes every position. The evaluation stays hidden from the first open
