@@ -826,6 +826,7 @@
 									<span class="your-turn"
 										>Your move · {boardFen.split(' ')[1] === 'w' ? 'White' : 'Black'}</span
 									>
+									<span class="muted small">First: what does your opponent want?</span>
 								{:else}
 									<span class="muted small"
 										>{spotting

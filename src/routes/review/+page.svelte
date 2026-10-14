@@ -206,7 +206,8 @@
 				</p>
 				<p class="muted">
 					{card.side === 'w' ? 'White' : 'Black'} to move (move {Math.ceil(card.ply / 2)}). You
-					missed this turning point before. Play the move you would choose now.
+					missed this turning point before. First ask what your opponent wants, then play the move
+					you would choose now.
 				</p>
 				{#if message}
 					<p class="error">{message}</p>

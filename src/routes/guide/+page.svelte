@@ -100,13 +100,16 @@
 						Every new game starts with <strong>spotting</strong>: step through it and flag the moves
 						you think decided it (<kbd>Space</kbd>), then press <strong>Check</strong>, or
 						<strong>Skip</strong> if you'd rather not. This trains recognizing critical moments, which
-						is exactly what you need at the board.
+						is exactly what you need at the board: they are the moves worth a full check of the forcing
+						moves, while quiet moves can be played quickly.
 					</li>
 					<li>
-						Press <strong>Next open turning point</strong> (or <kbd>N</kbd>). Think, then play your
-						candidate move on the board. It is marked <span class="found">✓ found</span> if it is
-						about as good as the engine's move, otherwise <span class="missed">✗ missed</span>. Say
-						how sure you are, then press <strong>Reveal</strong>.
+						Press <strong>Next open turning point</strong> (or <kbd>N</kbd>). First ask what your
+						opponent wants, then think and play your candidate move on the board. It is marked
+						<span class="found">✓ found</span>
+						if it is about as good as the engine's move, otherwise
+						<span class="missed">✗ missed</span>. Say how sure you are, then press
+						<strong>Reveal</strong>.
 					</li>
 					<li>
 						Answer the three questions in your own words: Why did I choose that move? Why is my move
