@@ -2,6 +2,7 @@
 	import { Chess } from 'chess.js';
 	import {
 		formatScore,
+		formatLine,
 		foundBetterMove,
 		judgeMove,
 		winPercent,
@@ -30,6 +31,7 @@
 
 	let best = $state<string | null>(null);
 	let yours = $state<Result | null>(null);
+	let refutation = $state('');
 	let message = $state('');
 
 	let sign = $derived(side === 'w' ? 1 : -1);
@@ -42,6 +44,7 @@
 		const controller = new AbortController();
 		best = null;
 		yours = null;
+		refutation = '';
 		message = '';
 		const chess = new Chess(move.fenBefore);
 		let fen: string;
@@ -66,6 +69,14 @@
 			.catch((err: Error) => {
 				if (err.name !== 'AbortError') message = err.message;
 			});
+		if (judgement && !new Chess(move.fenAfter).isGameOver()) {
+			backend
+				.lines(move.fenAfter, depth, 1, controller.signal)
+				.then(([line]) => {
+					if (line?.moves.length) refutation = formatLine(move.fenAfter, line.moves.slice(0, 3));
+				})
+				.catch(() => {});
+		}
 		return () => controller.abort();
 	});
 </script>
@@ -75,6 +86,11 @@
 	<span class="san">{move.san}{judgement?.symbol ?? ''}</span>
 	<span class="score">{formatScore(after.score)}</span>
 	<span></span>
+
+	{#if refutation}
+		<span class="label">Refutation</span>
+		<span class="san line">{refutation}</span>
+	{/if}
 
 	<span class="label">Your move</span>
 	<span class="san">{candidate}</span>
@@ -118,6 +134,11 @@
 
 	.wide {
 		grid-column: span 2;
+	}
+
+	.line {
+		grid-column: span 3;
+		font-weight: 500;
 	}
 
 	.verdict {
