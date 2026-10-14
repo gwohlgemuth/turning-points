@@ -29,7 +29,7 @@ export type Backend = {
 	): Promise<{ path: string; scheduled: number }>;
 	review(folder: string, key: string, found: boolean): Promise<CardState>;
 	stats(folder: string): Promise<StatsData>;
-	reviewDeck(folder: string): Promise<ReviewData>;
+	reviewDeck(folder: string, today?: string): Promise<ReviewData>;
 	listFolders?(path: string): Promise<FolderListing>;
 	createFolder?(parent: string, name: string): Promise<string>;
 	exportPgn?(): Promise<string>;

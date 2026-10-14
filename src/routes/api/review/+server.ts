@@ -27,7 +27,7 @@ export const GET: RequestHandler = async ({ url, getClientAddress }) => {
 	const [files, review] = await handle(() =>
 		Promise.all([readPgnFiles(homedir(), folder), readReview(homedir(), folder)])
 	);
-	return json(reviewData(files, review));
+	return json(reviewData(files, review, url.searchParams.get('today') ?? undefined));
 };
 
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {

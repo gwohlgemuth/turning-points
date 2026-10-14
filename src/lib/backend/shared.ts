@@ -33,9 +33,9 @@ export function statsData(files: PgnFile[]) {
 
 export type StatsData = ReturnType<typeof statsData>;
 
-export function reviewData(files: PgnFile[], reviewText: string) {
+export function reviewData(files: PgnFile[], reviewText: string, today = localDay()) {
 	const { entries } = collectStats(files);
-	return reviewDeck(entries, parseReviewState(reviewText), localDay());
+	return reviewDeck(entries, parseReviewState(reviewText), today);
 }
 
 export type ReviewData = ReturnType<typeof reviewData>;

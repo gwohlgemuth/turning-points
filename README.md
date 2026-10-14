@@ -64,6 +64,8 @@ pnpm test      # unit tests
 pnpm lint      # prettier + eslint
 ```
 
+In development, `/review?due=all` makes every card that is not yet learned due today, so the review can be tried without waiting a day.
+
 ## Credits
 
 Chess pieces: "cburnett" set by [Colin M.L. Burnett](https://en.wikipedia.org/wiki/User:Cburnett), licensed under GPLv2+/BSD/GFDL, taken from [lichess](https://github.com/lichess-org/lila/tree/master/public/piece/cburnett).

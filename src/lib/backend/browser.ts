@@ -129,7 +129,7 @@ const backend: Backend = {
 
 	stats: async () => statsData(await readFiles()),
 
-	reviewDeck: async () => reviewData(await readFiles(), await readReview()),
+	reviewDeck: async (_folder, today) => reviewData(await readFiles(), await readReview(), today),
 
 	async exportPgn() {
 		const files = (await readFiles()).sort((a, b) => a.path.localeCompare(b.path));

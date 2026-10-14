@@ -67,7 +67,8 @@ const backend: Backend = {
 
 	stats: (folder) => request(`/api/stats?${query({ folder })}`),
 
-	reviewDeck: (folder) => request(`/api/review?${query({ folder })}`),
+	reviewDeck: (folder, today) =>
+		request(`/api/review?${query(today ? { folder, today } : { folder })}`),
 
 	listFolders: (path) => request(`/api/folders?${query({ path })}`),
 
