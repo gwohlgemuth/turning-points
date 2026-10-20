@@ -130,6 +130,12 @@ export function foundBetterMove(best: number, candidate: number, side: Side): bo
 	return sign * (best - candidate) <= FOUND_MARGIN;
 }
 
+export function isOnlyMove(variations: Variation[], side: Side): boolean {
+	if (variations.length < 2) return false;
+	const [best, second] = variations.map((variation) => winPercent(variation.score, side === 'w'));
+	return (side === 'w' ? 1 : -1) * (best - second) >= MIN_SWING;
+}
+
 export function moveSquares(fen: string, san: string): { from: string; to: string } | null {
 	try {
 		const { from, to } = new Chess(fen).move(san);

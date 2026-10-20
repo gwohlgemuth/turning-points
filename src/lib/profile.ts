@@ -136,7 +136,8 @@ export function rulebook(entries: StatsEntry[]) {
 	].filter(({ rules }) => rules.length);
 }
 
-const gameId = (entry: StatsEntry) => `${entry.file}|${entry.date}|${entry.white}|${entry.black}`;
+export const gameId = (entry: StatsEntry) =>
+	`${entry.file}|${entry.date}|${entry.white}|${entry.black}`;
 
 export function openingLeaks(entries: StatsEntry[]) {
 	const byOpening = new Map<string, StatsEntry[]>();

@@ -1,5 +1,5 @@
 import { Chess, type Move } from 'chess.js';
-import { extractClocks, moveTimes, parseTimeControl } from './clock.ts';
+import { extractClocks, moveTimes, parseTimeControl, speedOf, type Speed } from './clock.ts';
 import {
 	gameUrl,
 	mergeAdjacentComments,
@@ -38,6 +38,7 @@ export type StatsEntry = {
 	tactical: boolean;
 	missedWin: boolean;
 	opening: string;
+	speed: Speed | null;
 	spotted: boolean | null;
 };
 
@@ -93,6 +94,7 @@ export function entriesFromPgn(file: string, pgn: string): StatsEntry[] {
 			tactical,
 			missedWin: !tactical && winsMaterial(fen, notes[ply].best.split(' ').filter(Boolean)),
 			opening,
+			speed: speedOf(control),
 			spotted: flags.length ? isSpotted(ply, flags) : null
 		};
 	});

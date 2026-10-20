@@ -110,8 +110,10 @@
 						opponent wants, then think and play your candidate move on the board. It is marked
 						<span class="found">✓ found</span>
 						if it is about as good as the engine's move, otherwise
-						<span class="missed">✗ missed</span>. Say how sure you are, then press
-						<strong>Reveal</strong>.
+						<span class="missed">✗ missed</span>. Say how sure you are and note the other moves you
+						considered, then press <strong>Reveal</strong>. If you missed it, the app tells you
+						whether the engine's move was among them, and marks an <strong>only move</strong>, where
+						every other move gives the advantage away.
 					</li>
 					<li>
 						Answer the three questions in your own words: Why did I choose that move? Why is my move
@@ -134,8 +136,9 @@
 						look at any other engine.
 					</li>
 					<li>
-						<strong>Think like at the board.</strong> Take 3–5 minutes per turning point and commit to
-						a candidate before you reveal. Peeking turns training into reading.
+						<strong>Think like at the board.</strong> Take 3–5 minutes per turning point, the clock shows
+						how long you've been thinking, and commit to a candidate before you reveal. Peeking turns
+						training into reading.
 					</li>
 					<li>
 						<strong>Write the answers.</strong> Putting the reason into words is where the learning happens.
@@ -156,7 +159,8 @@
 					</li>
 					<li>
 						<strong>Review daily, 5–10 minutes.</strong> Positions you missed come back after 1, 3, 7,
-						14 and 30 days, until you find them.
+						14 and 30 days, until you find them, mixed across games. After each one, recall your rule
+						before you show it: the rule, not the move, is what carries over to new positions.
 					</li>
 					<li>
 						<strong>Once a week</strong>, use <strong>Analyze all</strong> on your recent games,
@@ -250,8 +254,13 @@
 						</ul>
 					</li>
 					<li>
-						<strong>Opening leaks</strong> and positions that turned in several games show the lines that
-						keep costing you. Fix that line in your repertoire.
+						<strong>Opening leaks</strong> and positions that turned in several games show the lines
+						that keep costing you. Fix that line in your repertoire: <strong>Explorer</strong> opens the
+						position on Lichess.
+					</li>
+					<li>
+						Filter by <strong>time control</strong>: mistakes in blitz and in classical games have
+						different causes.
 					</li>
 					<li>
 						Work on <strong>one</strong> weakness at a time, then check Stats again after a few weeks.

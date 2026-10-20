@@ -28,6 +28,7 @@ const entry = (ply: number, verdict: StatsEntry['verdict'], fen = `fen-${ply}`):
 	tactical: false,
 	missedWin: false,
 	opening: '',
+	speed: null,
 	spotted: null
 });
 
@@ -75,6 +76,15 @@ describe('reviewDeck', () => {
 		]);
 		expect(deck.upcoming).toEqual(['2026-10-09']);
 		expect(deck.learned).toBe(1);
+	});
+
+	it('mixes the cards of different games', () => {
+		const entries = [
+			entry(1, 'missed'),
+			entry(3, 'missed'),
+			{ ...entry(2, 'missed'), file: 'b.pgn' }
+		];
+		expect(reviewDeck(entries, {}, '2026-10-08').due.map((card) => card.ply)).toEqual([1, 2, 3]);
 	});
 });
 

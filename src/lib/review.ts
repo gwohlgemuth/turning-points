@@ -1,4 +1,5 @@
 import type { Side } from './analysis.ts';
+import { gameId } from './profile.ts';
 import type { StatsEntry } from './stats.ts';
 
 export const INTERVALS = [1, 3, 7, 14, 30];
@@ -44,7 +45,17 @@ export function reviewDeck(entries: StatsEntry[], state: ReviewState, today: str
 		else due.push({ ...entry, key, side: entry.ply % 2 === 1 ? 'w' : 'b', due: card?.due ?? '' });
 	}
 	due.sort((a, b) => a.due.localeCompare(b.due));
-	return { due, upcoming, learned };
+	return { due: mixGames(due), upcoming, learned };
+}
+
+function mixGames(cards: Card[]): Card[] {
+	const byGame = new Map<string, Card[]>();
+	for (const card of cards) byGame.set(gameId(card), [...(byGame.get(gameId(card)) ?? []), card]);
+	const games = [...byGame.values()];
+	const rounds = Math.max(0, ...games.map((game) => game.length));
+	return Array.from({ length: rounds }, (_, round) =>
+		games.flatMap((game) => game[round] ?? [])
+	).flat();
 }
 
 export function scheduleNew(entries: StatsEntry[], state: ReviewState, today: string): number {

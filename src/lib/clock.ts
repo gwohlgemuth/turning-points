@@ -22,6 +22,17 @@ export function parseTimeControl(value: string | undefined): TimeControl | null 
 	return { base: Number(match[1]), increment: Number(match[2] ?? 0) };
 }
 
+export type Speed = 'bullet' | 'blitz' | 'rapid' | 'classical';
+
+export function speedOf(control: TimeControl | null): Speed | null {
+	if (!control) return null;
+	const estimate = control.base + 40 * control.increment;
+	if (estimate < 180) return 'bullet';
+	if (estimate < 480) return 'blitz';
+	if (estimate < 1500) return 'rapid';
+	return 'classical';
+}
+
 export function moveTimes(clocks: number[], timeControl: TimeControl): MoveTime[] {
 	return clocks.map((remaining, i) => {
 		const previous = i >= 2 ? clocks[i - 2] : timeControl.base;

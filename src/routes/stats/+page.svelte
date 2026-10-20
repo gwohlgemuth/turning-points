@@ -3,6 +3,8 @@
 	import backend from '#backend';
 	import Header from '#lib/components/Header.svelte';
 	import { moveLabel } from '#lib/analysis.ts';
+	import { statsView } from '#lib/backend/shared.ts';
+	import type { Speed } from '#lib/clock.ts';
 	import { today } from '#lib/games.ts';
 	import Board from '#lib/components/Board.svelte';
 	import ProgressChart from '#lib/components/ProgressChart.svelte';
@@ -11,14 +13,27 @@
 
 	let { data }: PageProps = $props();
 
-	let checked = $derived(data.summary.found + data.summary.missed);
+	const SPEEDS: { value: Speed; label: string }[] = [
+		{ value: 'bullet', label: 'Bullet' },
+		{ value: 'blitz', label: 'Blitz' },
+		{ value: 'rapid', label: 'Rapid' },
+		{ value: 'classical', label: 'Classical' }
+	];
+	let speed = $state<Speed | null>(null);
+	let speeds = $derived(SPEEDS.filter(({ value }) => data.entries.some((e) => e.speed === value)));
+	let entries = $derived(
+		speed ? data.entries.filter((entry) => entry.speed === speed) : data.entries
+	);
+	let view = $derived(statsView(entries));
+
+	let checked = $derived(view.summary.found + view.summary.missed);
 	const share = (count: number, total: number) =>
 		total ? `${Math.round((count / total) * 100)}% · ` : '';
 	const formatDate = (date: number) => (date ? new Date(date).toISOString().slice(0, 10) : '?');
 	const missRate = (row: Group) => row.missed / (row.found + row.missed || 1);
 
 	let weakest = $derived.by(() => {
-		const rows = [...data.profile.phase, ...data.profile.time, ...data.profile.kind];
+		const rows = [...view.profile.phase, ...view.profile.time, ...view.profile.kind];
 		const checkedRows = rows.filter((row) => row.found + row.missed > 0);
 		return checkedRows.reduce<Group | null>(
 			(worst, row) => (!worst || missRate(row) > missRate(worst) ? row : worst),
@@ -26,14 +41,14 @@
 		);
 	});
 	let profileGroups = $derived([
-		{ title: 'Phase', rows: data.profile.phase },
-		{ title: 'Time', rows: data.profile.time },
-		{ title: 'Kind', rows: data.profile.kind },
-		{ title: 'Confidence', rows: data.profile.confidence },
-		{ title: 'Cause', rows: data.profile.cause }
+		{ title: 'Phase', rows: view.profile.phase },
+		{ title: 'Time', rows: view.profile.time },
+		{ title: 'Kind', rows: view.profile.kind },
+		{ title: 'Confidence', rows: view.profile.confidence },
+		{ title: 'Cause', rows: view.profile.cause }
 	]);
 	let sureMissed = $derived(
-		data.profile.confidence.find((row) => row.label === 'Sure')?.missed ?? 0
+		view.profile.confidence.find((row) => row.label === 'Sure')?.missed ?? 0
 	);
 
 	let libraryMessage = $state('');
@@ -108,33 +123,42 @@
 		{/if}
 	</div>
 
+	{#if speeds.length > 1}
+		<div class="speeds" role="group" aria-label="Time control">
+			<button class:on={!speed} onclick={() => (speed = null)}>All</button>
+			{#each speeds as { value, label } (value)}
+				<button class:on={speed === value} onclick={() => (speed = value)}>{label}</button>
+			{/each}
+		</div>
+	{/if}
+
 	<section class="tiles">
 		<div class="card tile">
 			<span class="label">Turning points</span>
-			<strong>{data.summary.turningPoints}</strong>
+			<strong>{view.summary.turningPoints}</strong>
 			<span class="muted small"
-				>{data.summary.worked} worked on · in {data.summary.games}
-				{data.summary.games === 1 ? 'game' : 'games'}</span
+				>{view.summary.worked} worked on · in {view.summary.games}
+				{view.summary.games === 1 ? 'game' : 'games'}</span
 			>
 		</div>
 		<div class="card tile found">
 			<span class="label">Found</span>
-			<strong>{data.summary.found}</strong>
+			<strong>{view.summary.found}</strong>
 			<span class="muted small"
-				>{share(data.summary.found, checked)}Recognition: once you knew it mattered, you found a
+				>{share(view.summary.found, checked)}Recognition: once you knew it mattered, you found a
 				good move</span
 			>
 		</div>
 		<div class="card tile missed">
 			<span class="label">Missed</span>
-			<strong>{data.summary.missed}</strong>
+			<strong>{view.summary.missed}</strong>
 			<span class="muted small"
-				>{share(data.summary.missed, checked)}Finding: even knowing it mattered, no good move</span
+				>{share(view.summary.missed, checked)}Finding: even knowing it mattered, no good move</span
 			>
 		</div>
 		<div class="card tile">
 			<span class="label">Not checked yet</span>
-			<strong>{data.summary.unchecked}</strong>
+			<strong>{view.summary.unchecked}</strong>
 			<span
 				class="muted small term"
 				title="Includes turning points marked by Analyze all that you have not opened yet"
@@ -143,11 +167,11 @@
 		</div>
 	</section>
 
-	{#if data.entries.length}
+	{#if entries.length}
 		<section class="card">
 			<h2 class="card-title">Progress</h2>
-			{#if data.progress.length >= 2}
-				<ProgressChart points={data.progress} />
+			{#if view.progress.length >= 2}
+				<ProgressChart points={view.progress} />
 			{:else}
 				<p class="muted">Come back after more weeks of games to see your progress.</p>
 			{/if}
@@ -198,11 +222,11 @@
 
 		<section class="card">
 			<h2 class="card-title">Your rules</h2>
-			{#if data.rules.length}
+			{#if view.rules.length}
 				<p class="muted small">
 					Your “When …, then …” rules, grouped by what went wrong. Read them before you play.
 				</p>
-				{#each data.rules as section (section.label)}
+				{#each view.rules as section (section.label)}
 					<h3 class="label">{section.label} · {section.rules.length}</h3>
 					<ul class="rules">
 						{#each section.rules as rule (`${rule.file}|${rule.date}|${rule.white}|${rule.ply}`)}
@@ -226,7 +250,7 @@
 
 		<section class="card">
 			<h2 class="card-title">Opening leaks</h2>
-			{#if data.leaks.length}
+			{#if view.leaks.length}
 				<div class="table">
 					<table>
 						<thead>
@@ -242,7 +266,7 @@
 							</tr>
 						</thead>
 						<tbody>
-							{#each data.leaks as leak (leak.opening)}
+							{#each view.leaks as leak (leak.opening)}
 								<tr>
 									<td>{leak.opening}</td>
 									<td class="num">{leak.games}</td>
@@ -256,7 +280,7 @@
 			{:else}
 				<p class="muted">No turning points in the first 15 moves yet.</p>
 			{/if}
-			{#if data.repeated.length}
+			{#if view.repeated.length}
 				<h3 class="label">Positions that turned in several games</h3>
 				<div class="table">
 					<table>
@@ -269,13 +293,20 @@
 							</tr>
 						</thead>
 						<tbody>
-							{#each data.repeated as row (row.fen)}
+							{#each view.repeated as row (row.fen)}
 								<tr>
 									<td
 										><div class="mini"><Board fen={row.fen} flipped={row.ply % 2 === 0} /></div></td
 									>
 									<td class="nowrap">
 										{row.moves.map((move) => moveLabel(row.ply, move)).join(', ')}
+										<a
+											class="explorer small"
+											href="https://lichess.org/analysis/{row.fen.replaceAll(' ', '_')}"
+											target="_blank"
+											rel="noopener noreferrer"
+											title="Look the position up in the Lichess opening explorer">Explorer ↗</a
+										>
 									</td>
 									<td class="num">{row.games}</td>
 									<td class="num verdict missed">{row.missed}</td>
@@ -290,7 +321,7 @@
 
 	<section class="card">
 		<h2 class="card-title">Turning points</h2>
-		{#if !data.entries.length}
+		{#if !entries.length}
 			<p class="muted">
 				No notes yet. Analyze a game, play your candidate move at a hidden turning point, reveal it
 				and save your notes.
@@ -309,7 +340,7 @@
 						</tr>
 					</thead>
 					<tbody>
-						{#each data.entries as entry (`${entry.file}|${entry.date}|${entry.white}|${entry.ply}`)}
+						{#each entries as entry (`${entry.file}|${entry.date}|${entry.white}|${entry.ply}`)}
 							<tr>
 								<td class="nowrap">{formatDate(entry.date)}</td>
 								<td>{entry.white} – {entry.black}</td>
@@ -358,6 +389,22 @@
 		align-items: center;
 		gap: 8px;
 		margin-top: 10px;
+	}
+
+	.speeds {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+	}
+
+	.speeds button {
+		padding: 4px 12px;
+		font-size: 0.85rem;
+	}
+
+	.speeds button.on {
+		border-color: var(--accent);
+		color: var(--accent-2);
 	}
 
 	.tiles {
@@ -483,6 +530,11 @@
 		text-decoration: underline dotted;
 		text-underline-offset: 3px;
 		cursor: help;
+	}
+
+	.explorer {
+		display: block;
+		margin-top: 4px;
 	}
 
 	.mini {

@@ -4,6 +4,7 @@
 		formatScore,
 		formatLine,
 		foundBetterMove,
+		isOnlyMove,
 		judgeMove,
 		winPercent,
 		type Move,
@@ -30,6 +31,7 @@
 	let { move, candidate, before, after, depth, side, verdict = '', onverdict }: Props = $props();
 
 	let best = $state<string | null>(null);
+	let onlyMove = $state(false);
 	let yours = $state<Result | null>(null);
 	let refutation = $state('');
 	let message = $state('');
@@ -43,6 +45,7 @@
 	$effect(() => {
 		const controller = new AbortController();
 		best = null;
+		onlyMove = false;
 		yours = null;
 		refutation = '';
 		message = '';
@@ -58,11 +61,13 @@
 		}
 		const whiteToMove = fen.split(' ')[1] === 'w';
 		Promise.all([
-			backend.lines(move.fenBefore, depth, 1, controller.signal),
+			backend.lines(move.fenBefore, depth, 2, controller.signal),
 			fetchScore(fen, depth, controller.signal)
 		])
-			.then(([[line], score]) => {
+			.then(([variations, score]) => {
+				const [line] = variations;
 				best = line?.moves[0] ?? null;
+				onlyMove = isOnlyMove(variations, side);
 				yours = { san, score, winPercent: winPercent(score, whiteToMove) };
 				onverdict?.(found, best, line?.moves ?? []);
 			})
@@ -107,7 +112,13 @@
 	<span class="label">Engine</span>
 	<span class="san">{best ?? '…'}</span>
 	<span class="score">{formatScore(before.score)}</span>
-	<span></span>
+	{#if onlyMove}
+		<span class="only" title="Every other move gives away at least 10% winning chances"
+			>only move</span
+		>
+	{:else}
+		<span></span>
+	{/if}
 </div>
 
 <style>
@@ -130,6 +141,11 @@
 
 	.score {
 		font-variant-numeric: tabular-nums;
+	}
+
+	.only {
+		justify-self: start;
+		color: var(--accent-2);
 	}
 
 	.wide {

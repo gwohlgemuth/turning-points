@@ -3,6 +3,7 @@ import {
 	cpToWinPercent,
 	findTurningPoints,
 	foundBetterMove,
+	isOnlyMove,
 	formatLine,
 	formatScore,
 	judgeMove,
@@ -89,6 +90,20 @@ describe('findTurningPoints', () => {
 	it('returns nothing for n = 0 or an empty game', () => {
 		expect(findTurningPoints(series, 0, 'w')).toEqual([]);
 		expect(findTurningPoints([50], 3, 'w')).toEqual([]);
+	});
+});
+
+describe('isOnlyMove', () => {
+	const line = (value: number) => ({ score: { type: 'cp' as const, value }, moves: [] });
+
+	it('is true when the second best move gives away 10% or more', () => {
+		expect(isOnlyMove([line(100), line(-100)], 'w')).toBe(true);
+		expect(isOnlyMove([line(-100), line(100)], 'b')).toBe(true);
+	});
+
+	it('is false when the second best move is about as good, or there is none', () => {
+		expect(isOnlyMove([line(100), line(80)], 'w')).toBe(false);
+		expect(isOnlyMove([line(100)], 'w')).toBe(false);
 	});
 });
 

@@ -34,6 +34,7 @@ const entry = (patch: Partial<StatsEntry>): StatsEntry => ({
 	tactical: false,
 	missedWin: false,
 	opening: '',
+	speed: null,
 	spotted: null,
 	...patch
 });

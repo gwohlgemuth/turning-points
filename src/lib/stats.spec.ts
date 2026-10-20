@@ -39,6 +39,7 @@ describe('entriesFromPgn', () => {
 				tactical: false,
 				missedWin: false,
 				opening: '',
+				speed: null,
 				spotted: null
 			}
 		]);

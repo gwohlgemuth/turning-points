@@ -24,6 +24,7 @@
 	let evals = $state<{ before: PositionEval; after: PositionEval } | null>(null);
 	let recorded = $state(false);
 	let best = $state<string | null>(null);
+	let ruleShown = $state(false);
 	let message = $state('');
 	let found = $state(0);
 	let missed = $state(0);
@@ -127,6 +128,7 @@
 		candidate = null;
 		recorded = false;
 		best = null;
+		ruleShown = false;
 	}
 </script>
 
@@ -227,7 +229,17 @@
 						<p class="muted">Calculating…</p>
 					{/if}
 					{#if recorded && card.lesson}
-						<p class="lesson"><span class="muted small">Your rule</span> {card.lesson}</p>
+						{#if ruleShown}
+							<p class="lesson"><span class="muted small">Your rule</span> {card.lesson}</p>
+						{:else}
+							<p class="lesson">
+								<span class="muted small">Your rule</span>
+								<span>
+									What was your rule for this position? Say it to yourself, then
+									<button class="link" onclick={() => (ruleShown = true)}>show it</button>.
+								</span>
+							</p>
+						{/if}
 					{/if}
 					<button class="primary" onclick={next} disabled={!recorded}>Next</button>
 				{/if}
@@ -342,6 +354,20 @@
 		gap: 2px;
 		padding-left: 10px;
 		border-left: 2px solid var(--accent);
+	}
+
+	.link {
+		background: none;
+		border: none;
+		padding: 0;
+		font: inherit;
+		color: var(--accent-2);
+		text-decoration: underline;
+		cursor: pointer;
+	}
+
+	.link:hover {
+		background: none;
 	}
 
 	.error {

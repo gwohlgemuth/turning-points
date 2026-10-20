@@ -13,6 +13,7 @@ export type Notes = {
 	verdict: Verdict;
 	best: string;
 	confidence: Confidence;
+	considered: string;
 	cause: Cause;
 	lesson: string;
 };
@@ -23,6 +24,7 @@ export const emptyNotes = (): Notes => ({
 	verdict: '',
 	best: '',
 	confidence: '',
+	considered: '',
 	cause: '',
 	lesson: ''
 });
@@ -60,10 +62,11 @@ const MARKER = 'Turning point.';
 const CANDIDATE = 'Candidate:';
 const BEST = 'Best:';
 const CONFIDENCE = 'Confidence:';
+const CONSIDERED = 'Considered:';
 const CAUSE = 'Cause:';
 const LESSON = 'Next time:';
 const NOTE_PATTERN = new RegExp(
-	`${escape(MARKER)}(?: ${escape(CANDIDATE)} (\\S+)(?: \\((found|missed)\\))?)?(?: ${escape(BEST)} (.*?)\\.)?(?: ${escape(CONFIDENCE)} (sure|unsure|guess)\\.)?(?: ${escape(CAUSE)} (${CAUSES.map(({ value }) => value).join('|')})\\.)?${NOTE_QUESTIONS.map(({ label }) => `(?: ${escape(label)} (.*?))?`).join('')}(?: ${escape(LESSON)} (.*?))?$`
+	`${escape(MARKER)}(?: ${escape(CANDIDATE)} (\\S+)(?: \\((found|missed)\\))?)?(?: ${escape(BEST)} (.*?)\\.)?(?: ${escape(CONFIDENCE)} (sure|unsure|guess)\\.)?(?: ${escape(CONSIDERED)} (.*?)\\.)?(?: ${escape(CAUSE)} (${CAUSES.map(({ value }) => value).join('|')})\\.)?${NOTE_QUESTIONS.map(({ label }) => `(?: ${escape(label)} (.*?))?`).join('')}(?: ${escape(LESSON)} (.*?))?$`
 );
 
 function escape(text: string): string {
@@ -73,6 +76,20 @@ function escape(text: string): string {
 function clean(text: string): string {
 	return text.replace(/[{}]/g, '').replace(/\s+/g, ' ').trim();
 }
+
+const moveList = (text: string) => [
+	...new Set(
+		clean(text)
+			.replace(/\d+\.+/g, ' ')
+			.split(/[\s,;]+/)
+			.filter(Boolean)
+	)
+];
+
+const bareMove = (san: string) => san.replace(/[+#!?]/g, '');
+
+export const wasConsidered = (considered: string, san: string) =>
+	moveList(considered).some((move) => bareMove(move) === bareMove(san));
 
 export const answeredCount = (notes: Notes | undefined) =>
 	notes?.answers.filter((answer) => clean(answer)).length ?? 0;
@@ -88,7 +105,8 @@ export const isRevealed = (notes: Notes | undefined) =>
 export function formatNote(notes: Notes): string {
 	const candidate = clean(notes.candidate).split(' ')[0];
 	const lesson = clean(notes.lesson);
-	if (!answeredCount(notes) && !candidate && !notes.cause && !lesson) return '';
+	const considered = moveList(notes.considered).join(' ');
+	if (!answeredCount(notes) && !candidate && !considered && !notes.cause && !lesson) return '';
 	const verdict = candidate && notes.verdict ? ` (${notes.verdict})` : '';
 	const best = candidate ? clean(notes.best) : '';
 	return [
@@ -96,6 +114,7 @@ export function formatNote(notes: Notes): string {
 		...(candidate ? [`${CANDIDATE} ${candidate}${verdict}`] : []),
 		...(best ? [`${BEST} ${best}.`] : []),
 		...(candidate && notes.confidence ? [`${CONFIDENCE} ${notes.confidence}.`] : []),
+		...(considered ? [`${CONSIDERED} ${considered}.`] : []),
 		...(notes.cause ? [`${CAUSE} ${notes.cause}.`] : []),
 		...NOTE_QUESTIONS.flatMap(({ label }, i) =>
 			clean(notes.answers[i]) ? [`${label} ${clean(notes.answers[i])}`] : []
@@ -109,13 +128,14 @@ function splitComment(comment: string): { rest: string; notes: Notes | null } {
 	if (index < 0) return { rest: comment.trim(), notes: null };
 	const match = NOTE_PATTERN.exec(comment.slice(index).trim());
 	const notes: Notes = {
-		answers: [match?.[6] ?? '', match?.[7] ?? '', match?.[8] ?? ''],
+		answers: [match?.[7] ?? '', match?.[8] ?? '', match?.[9] ?? ''],
 		candidate: match?.[1] ?? '',
 		verdict: (match?.[2] ?? '') as Verdict,
 		best: match?.[3] ?? '',
 		confidence: (match?.[4] ?? '') as Confidence,
-		cause: (match?.[5] ?? '') as Cause,
-		lesson: match?.[9] ?? ''
+		considered: match?.[5] ?? '',
+		cause: (match?.[6] ?? '') as Cause,
+		lesson: match?.[10] ?? ''
 	};
 	return { rest: comment.slice(0, index).trim(), notes };
 }

@@ -6,7 +6,8 @@ import {
 	formatDuration,
 	moveTimes,
 	parseClock,
-	parseTimeControl
+	parseTimeControl,
+	speedOf
 } from './clock.ts';
 
 describe('parseClock', () => {
@@ -59,5 +60,15 @@ describe('formatting', () => {
 		expect(formatClock(3725)).toBe('1:02:05');
 		expect(formatDuration(4)).toBe('4 s');
 		expect(describeTime({ spent: 4, remaining: 151 })).toBe('4 s (2:31 left)');
+	});
+});
+
+describe('speedOf', () => {
+	it('uses the Lichess estimate of base time plus 40 increments', () => {
+		expect(speedOf({ base: 60, increment: 0 })).toBe('bullet');
+		expect(speedOf({ base: 180, increment: 2 })).toBe('blitz');
+		expect(speedOf({ base: 600, increment: 0 })).toBe('rapid');
+		expect(speedOf({ base: 1800, increment: 20 })).toBe('classical');
+		expect(speedOf(null)).toBeNull();
 	});
 });

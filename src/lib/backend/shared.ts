@@ -8,7 +8,7 @@ import {
 	type CardState,
 	type ReviewState
 } from '../review.ts';
-import { collectStats } from '../stats.ts';
+import { collectStats, summarize, type StatsEntry } from '../stats.ts';
 import type { PgnFile } from './types.ts';
 
 export class BackendError extends Error {
@@ -20,17 +20,16 @@ export class BackendError extends Error {
 	}
 }
 
-export function statsData(files: PgnFile[]) {
-	const stats = collectStats(files);
-	return {
-		...stats,
-		profile: profile(stats.entries),
-		progress: progress(stats.entries),
-		leaks: openingLeaks(stats.entries),
-		repeated: repeatedPositions(stats.entries),
-		rules: rulebook(stats.entries)
-	};
-}
+export const statsData = (files: PgnFile[]) => ({ entries: collectStats(files).entries });
+
+export const statsView = (entries: StatsEntry[]) => ({
+	summary: summarize(entries),
+	profile: profile(entries),
+	progress: progress(entries),
+	leaks: openingLeaks(entries),
+	repeated: repeatedPositions(entries),
+	rules: rulebook(entries)
+});
 
 export type StatsData = ReturnType<typeof statsData>;
 

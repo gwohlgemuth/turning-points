@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { Chess } from 'chess.js';
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { flip } from 'svelte/animate';
 	import { fade, fly, slide } from 'svelte/transition';
 	import backend from '#backend';
@@ -13,7 +13,7 @@
 	import Header from '#lib/components/Header.svelte';
 	import SaveFolder from '#lib/components/SaveFolder.svelte';
 	import TimeChart from '#lib/components/TimeChart.svelte';
-	import { describeTime, formatDuration } from '#lib/clock.ts';
+	import { describeTime, formatClock, formatDuration } from '#lib/clock.ts';
 	import Variations from '#lib/components/Variations.svelte';
 	import CandidateCheck from '#lib/components/CandidateCheck.svelte';
 	import CountUp from '#lib/components/CountUp.svelte';
@@ -55,6 +55,7 @@
 		isRevealed,
 		notesSignature,
 		readNotes,
+		wasConsidered,
 		writeNotes,
 		type Notes
 	} from '#lib/notes.ts';
@@ -130,6 +131,8 @@
 	let engineError = $state('');
 	let batchRunning = $state(false);
 	let spotting = $state(false);
+	let thinkStart = $state<Record<number, number>>({});
+	let now = $state(Date.now());
 	let spotFlags = $state<number[]>([]);
 	let savedSpot = $state('');
 	let autoplay = $state(false);
@@ -186,6 +189,18 @@
 				) ?? null)
 	);
 	let candidateTp = $derived(!analyzing && hiddenTp?.ply === selected + 1 ? hiddenTp : null);
+	let thinkingPly = $derived(
+		candidateTp && !notes[candidateTp.ply]?.candidate ? candidateTp.ply : null
+	);
+
+	$effect(() => {
+		const ply = thinkingPly;
+		if (!ply) return;
+		untrack(() => (thinkStart[ply] ??= Date.now()));
+		now = Date.now();
+		const timer = setInterval(() => (now = Date.now()), 1000);
+		return () => clearInterval(timer);
+	});
 	let unsaved = $derived(notesSignature(notes) !== savedNotes || spotFlags.join(' ') !== savedSpot);
 	let hasHidden = $derived(turningPoints.some((tp) => !revealed[tp.ply]));
 	let graphVisible = $derived(
@@ -313,6 +328,7 @@
 			evals = [];
 			opened = {};
 			checkedBest = {};
+			thinkStart = {};
 			notes = readNotes(pgn);
 			savedNotes = notesSignature(notes);
 			spotFlags = readSpotFlags(pgn);
@@ -1041,6 +1057,12 @@
 												{/if}
 											</span>
 										</div>
+										{#if thinkingPly === tp.ply && thinkStart[tp.ply]}
+											<p class="thinking muted small">
+												⏱ {formatClock(Math.max(0, now - thinkStart[tp.ply]) / 1000)} thinking · take
+												3–5 minutes, as at the board
+											</p>
+										{/if}
 										{#if hidden && notes[tp.ply]?.candidate}
 											<div class="confidence">
 												<span class="muted small">How sure are you?</span>
@@ -1053,6 +1075,14 @@
 													>
 												{/each}
 											</div>
+											<label class="considered">
+												<span class="muted small">Other moves you considered</span>
+												<input
+													type="text"
+													placeholder="Nf3 Bc4"
+													bind:value={notes[tp.ply].considered}
+												/>
+											</label>
 										{/if}
 										{#if notesOpen[tp.ply] && notes[tp.ply]}
 											<div class="notes" transition:slide={{ duration: ms(200) }}>
@@ -1102,6 +1132,14 @@
 													setVerdict(tp.ply, found);
 												}}
 											/>
+											{@const bestSan = notes[tp.ply].best.split(' ')[0]}
+											{#if notes[tp.ply].verdict === 'missed' && notes[tp.ply].considered && bestSan}
+												<p class="muted small">
+													{wasConsidered(notes[tp.ply].considered, bestSan)
+														? `You considered ${bestSan} but rejected it: the gap was calculating or judging it.`
+														: `${bestSan} was not among the moves you considered: look wider, forcing moves first.`}
+												</p>
+											{/if}
 										{/if}
 										{#if opened[tp.ply] && !hidden}
 											<div transition:slide={{ duration: ms(200) }}>
@@ -1833,6 +1871,23 @@
 		align-items: center;
 		gap: 4px;
 		padding-top: 6px;
+	}
+
+	.considered {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding-top: 6px;
+	}
+
+	.considered input {
+		flex: 1;
+		min-width: 0;
+		max-width: 220px;
+	}
+
+	.thinking {
+		margin: 6px 0 0;
 	}
 
 	.confidence span {

@@ -6,6 +6,7 @@ import {
 	isRevealed,
 	notesSignature,
 	readNotes,
+	wasConsidered,
 	writeNotes,
 	type Notes
 } from './notes.ts';
@@ -22,6 +23,7 @@ const notes: Notes = {
 	verdict: '',
 	best: '',
 	confidence: '',
+	considered: '',
 	cause: '',
 	lesson: ''
 };
@@ -154,6 +156,19 @@ describe('writeNotes and readNotes', () => {
 		expect(isRevealed(causeOnly)).toBe(true);
 	});
 
+	it('round-trips the moves considered and cleans them up', () => {
+		const considered: Notes = {
+			...emptyNotes(),
+			candidate: 'Nc3',
+			confidence: 'unsure',
+			considered: '1. Nf3, Bc4 Nf3',
+			cause: 'calculation'
+		};
+		const written = writeNotes(pgn, { 3: considered });
+		expect(written).toContain('Confidence: unsure. Considered: Nf3 Bc4. Cause: calculation.');
+		expect(readNotes(written)).toEqual({ 3: { ...considered, considered: 'Nf3 Bc4' } });
+	});
+
 	it('drops the confidence without a candidate', () => {
 		const written = writeNotes(pgn, { 3: { ...answers('Fast', '', ''), confidence: 'guess' } });
 		expect(written).not.toContain('Confidence');
@@ -180,6 +195,14 @@ describe('writeNotes and readNotes', () => {
 	it('reads nothing from a game without notes or an invalid PGN', () => {
 		expect(readNotes(pgn)).toEqual({});
 		expect(readNotes('not a game')).toEqual({});
+	});
+});
+
+describe('wasConsidered', () => {
+	it('finds the move regardless of check signs and separators', () => {
+		expect(wasConsidered('Nf3, Qxf7', 'Qxf7+')).toBe(true);
+		expect(wasConsidered('Nf3 Bc4', 'Nc3')).toBe(false);
+		expect(wasConsidered('', 'Nc3')).toBe(false);
 	});
 });
 
