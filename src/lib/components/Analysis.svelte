@@ -1134,23 +1134,23 @@
 												{/if}
 											</div>
 										{/if}
-										{#if !hidden && notes[tp.ply]?.candidate}
+										{#if !hidden}
 											<CandidateCheck
 												{move}
-												candidate={notes[tp.ply].candidate}
+												candidate={notes[tp.ply]?.candidate}
 												{before}
 												{after}
 												{depth}
 												{side}
-												verdict={notes[tp.ply].verdict}
+												verdict={notes[tp.ply]?.verdict}
 												onverdict={(found, best, line) => {
 													if (best) checkedBest[tp.ply] = best;
 													if (!notes[tp.ply].best) notes[tp.ply].best = line.slice(0, 4).join(' ');
 													setVerdict(tp.ply, found);
 												}}
 											/>
-											{@const bestSan = notes[tp.ply].best.split(' ')[0]}
-											{#if notes[tp.ply].verdict === 'missed' && notes[tp.ply].considered && bestSan}
+											{@const bestSan = notes[tp.ply]?.best.split(' ')[0]}
+											{#if notes[tp.ply]?.verdict === 'missed' && notes[tp.ply].considered && bestSan}
 												<p class="muted small">
 													{wasConsidered(notes[tp.ply].considered, bestSan)
 														? `You considered ${bestSan} but rejected it: the gap was calculating or judging it.`

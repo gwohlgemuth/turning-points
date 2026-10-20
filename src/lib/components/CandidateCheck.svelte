@@ -10,7 +10,8 @@
 		type Move,
 		type PositionEval,
 		type Score,
-		type Side
+		type Side,
+		type Variation
 	} from '#lib/analysis.ts';
 	import backend from '#backend';
 	import { fetchScore } from '#lib/lines.ts';
@@ -18,7 +19,7 @@
 
 	type Props = {
 		move: Move;
-		candidate: string;
+		candidate?: string;
 		before: PositionEval;
 		after: PositionEval;
 		depth: number;
@@ -28,7 +29,16 @@
 	};
 	type Result = { san: string; score: Score; winPercent: number };
 
-	let { move, candidate, before, after, depth, side, verdict = '', onverdict }: Props = $props();
+	let {
+		move,
+		candidate = '',
+		before,
+		after,
+		depth,
+		side,
+		verdict = '',
+		onverdict
+	}: Props = $props();
 
 	let best = $state<string | null>(null);
 	let onlyMove = $state(false);
@@ -49,31 +59,6 @@
 		yours = null;
 		refutation = '';
 		message = '';
-		const chess = new Chess(move.fenBefore);
-		let fen: string;
-		let san: string;
-		try {
-			san = chess.move(candidate).san;
-			fen = chess.fen();
-		} catch {
-			message = `${candidate} is not a legal move here`;
-			return;
-		}
-		const whiteToMove = fen.split(' ')[1] === 'w';
-		Promise.all([
-			backend.lines(move.fenBefore, depth, 2, controller.signal),
-			fetchScore(fen, depth, controller.signal)
-		])
-			.then(([variations, score]) => {
-				const [line] = variations;
-				best = line?.moves[0] ?? null;
-				onlyMove = isOnlyMove(variations, side);
-				yours = { san, score, winPercent: winPercent(score, whiteToMove) };
-				onverdict?.(found, best, line?.moves ?? []);
-			})
-			.catch((err: Error) => {
-				if (err.name !== 'AbortError') message = err.message;
-			});
 		if (judgement && !new Chess(move.fenAfter).isGameOver()) {
 			backend
 				.lines(move.fenAfter, depth, 1, controller.signal)
@@ -82,6 +67,36 @@
 				})
 				.catch(() => {});
 		}
+		const bestLines = backend.lines(move.fenBefore, depth, 2, controller.signal);
+		const showBest = (variations: Variation[]) => {
+			best = variations[0]?.moves[0] ?? null;
+			onlyMove = isOnlyMove(variations, side);
+		};
+		const fail = (err: Error) => {
+			if (err.name !== 'AbortError') message = err.message;
+		};
+		if (!candidate) {
+			bestLines.then(showBest).catch(fail);
+			return () => controller.abort();
+		}
+		const chess = new Chess(move.fenBefore);
+		let fen: string;
+		let san: string;
+		try {
+			san = chess.move(candidate).san;
+			fen = chess.fen();
+		} catch {
+			message = `${candidate} is not a legal move here`;
+			return () => controller.abort();
+		}
+		const whiteToMove = fen.split(' ')[1] === 'w';
+		Promise.all([bestLines, fetchScore(fen, depth, controller.signal)])
+			.then(([variations, score]) => {
+				showBest(variations);
+				yours = { san, score, winPercent: winPercent(score, whiteToMove) };
+				onverdict?.(found, best, variations[0]?.moves ?? []);
+			})
+			.catch(fail);
 		return () => controller.abort();
 	});
 </script>
@@ -97,16 +112,20 @@
 		<span class="san line">{refutation}</span>
 	{/if}
 
-	<span class="label">Your move</span>
-	<span class="san">{candidate}</span>
-	{#if message}
-		<span class="error wide">{message}</span>
-	{:else if !yours}
-		<span class="muted wide">Calculating…</span>
-	{:else}
-		<span class="score">{formatScore(yours.score)}</span>
-		{@const shown = verdict ? verdict === 'found' : found}
-		<span class="verdict" class:found={shown}>{shown ? '✓ found' : '✗ missed'}</span>
+	{#if candidate}
+		<span class="label">Your move</span>
+		<span class="san">{candidate}</span>
+		{#if message}
+			<span class="error wide">{message}</span>
+		{:else if !yours}
+			<span class="muted wide">Calculating…</span>
+		{:else}
+			<span class="score">{formatScore(yours.score)}</span>
+			{@const shown = verdict ? verdict === 'found' : found}
+			<span class="verdict" class:found={shown}>{shown ? '✓ found' : '✗ missed'}</span>
+		{/if}
+	{:else if message}
+		<span class="error full">{message}</span>
 	{/if}
 
 	<span class="label">Engine</span>
@@ -146,6 +165,10 @@
 	.only {
 		justify-self: start;
 		color: var(--accent-2);
+	}
+
+	.full {
+		grid-column: 1 / -1;
 	}
 
 	.wide {
