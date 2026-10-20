@@ -71,6 +71,14 @@ describe('gamesToPgn and splitPgn', () => {
 });
 
 describe('summaryFromPgn', () => {
+	it('adds the UTC time of day when the game has one', () => {
+		const pgn = '[UTCDate "2026.10.11"]\n[UTCTime "14:05:30"]\n\n1. e4 *';
+		expect(summaryFromPgn(pgn, 0).date).toBe(Date.parse('2026-10-11T14:05:30Z'));
+		expect(summaryFromPgn('[Date "2026.10.11"]\n[UTCTime "14:05:30"]\n\n1. e4 *', 0).date).toBe(
+			Date.parse('2026-10-11')
+		);
+	});
+
 	it('reads players, ratings, result and date from the headers', () => {
 		expect(summaryFromPgn(first, 0)).toMatchObject({
 			id: 'file-0',

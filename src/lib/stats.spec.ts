@@ -164,14 +164,15 @@ describe('nextGame', () => {
 	const online = (id: string, white: string, black: string, date: number) =>
 		({ id, url: `https://lichess.org/${id}`, white, black, date }) as GameSummary;
 	const saved = (id: string, open: number, date: number, url = '') =>
-		({ id, url, white: 'x', black: 'y', date, open, side: 'b' }) as SavedGame;
+		({ id, url, white: 'x', black: 'y', date, open, worked: 1, side: 'b' }) as SavedGame;
 
 	it('takes the newest game with work left, from either list', () => {
 		const next = nextGame(
 			[online('a', 'me', 'x', 1), online('b', 'y', 'z', 9)],
 			[saved('s', 2, 5), saved('t', 0, 8)],
 			'me',
-			new Set()
+			new Set(),
+			0
 		);
 		expect([next?.game.id, next?.side]).toEqual(['s', 'b']);
 	});
@@ -179,12 +180,25 @@ describe('nextGame', () => {
 	it('prefers the saved copy of an online game and skips finished or visited games', () => {
 		const url = 'https://lichess.org/a';
 		const games = [online('a', 'me', 'x', 3), online('c', 'x', 'me', 2)];
-		expect(nextGame(games, [saved('s', 1, 3, url)], 'me', new Set())?.game.id).toBe('s');
-		expect(nextGame(games, [saved('s', 0, 3, url)], 'me', new Set())?.game.id).toBe('c');
-		expect(nextGame(games, [], 'me', new Set([url, 'https://lichess.org/c']))).toBeNull();
+		expect(nextGame(games, [saved('s', 1, 3, url)], 'me', new Set(), 0)?.game.id).toBe('s');
+		expect(nextGame(games, [saved('s', 0, 3, url)], 'me', new Set(), 0)?.game.id).toBe('c');
+		expect(nextGame(games, [], 'me', new Set([url, 'https://lichess.org/c']), 0)).toBeNull();
+	});
+
+	it('counts saved games without any turning points marked as not analyzed yet', () => {
+		const unmarked = { ...saved('s', 0, 3, 'https://lichess.org/a'), worked: 0 };
+		expect(nextGame([online('a', 'me', 'x', 3)], [unmarked], 'me', new Set(), 0)?.game.id).toBe(
+			's'
+		);
 	});
 
 	it("falls back to other players' games when none are the user's", () => {
-		expect(nextGame([online('b', 'y', 'z', 1)], [], 'me', new Set())?.side).toBe('w');
+		expect(nextGame([online('b', 'y', 'z', 1)], [], 'me', new Set(), 0)?.side).toBe('w');
+	});
+
+	it('goes to the next older game with work left, and from the oldest back to the newest', () => {
+		const games = [4, 3, 2, 1].map((date) => online(`g${date}`, 'me', 'x', date));
+		expect(nextGame(games, [], 'me', new Set(['https://lichess.org/g3']), 3)?.game.id).toBe('g2');
+		expect(nextGame(games, [], 'me', new Set(), 1)?.game.id).toBe('g4');
 	});
 });

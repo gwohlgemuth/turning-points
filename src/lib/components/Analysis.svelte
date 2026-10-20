@@ -529,7 +529,7 @@
 				.games(import.meta.env.STATIC ? 'lichess' : source, username, max)
 				.catch(() => []);
 		const saved = await backend.saved(saving.folder).catch(() => []);
-		const next = nextGame(loadedGames, saved, username, visited);
+		const next = nextGame(loadedGames, saved, username, visited, summaryFromPgn(gamePgn, 0).date);
 		if (!next) {
 			nextMessage = 'No more games with work left';
 			return;

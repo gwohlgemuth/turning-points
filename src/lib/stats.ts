@@ -203,12 +203,13 @@ export function nextGame(
 	online: GameSummary[],
 	saved: SavedGame[],
 	username: string,
-	visited: Set<string>
+	visited: Set<string>,
+	before: number
 ): { game: GameSummary; side: Side } | null {
 	const savedUrls = new Set(saved.map((game) => game.url).filter(Boolean));
 	const candidates = [
 		...saved
-			.filter((game) => game.open > 0)
+			.filter((game) => game.open > 0 || !game.worked)
 			.map((game) => ({ game, side: playerSide(game, username) ?? game.side })),
 		...online
 			.filter((game) => !savedUrls.has(game.url))
@@ -217,6 +218,7 @@ export function nextGame(
 		.filter(({ game }) => !visited.has(gameRef(game)))
 		.sort((a, b) => b.game.date - a.game.date);
 	const own = candidates.filter(({ side }) => side);
-	const pick = (own.length ? own : candidates)[0];
+	const pool = own.length ? own : candidates;
+	const pick = pool.find(({ game }) => game.date < before) ?? pool[0];
 	return pick ? { game: pick.game, side: pick.side ?? 'w' } : null;
 }

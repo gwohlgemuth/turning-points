@@ -121,9 +121,10 @@ export const parseRating = (value?: string) =>
 	value && /^\d+$/.test(value) ? Number(value) : null;
 
 export function summaryFromPgn(pgn: string, index: number): GameSummary {
-	const date = Date.parse(
-		(pgnHeader(pgn, 'UTCDate') ?? pgnHeader(pgn, 'Date') ?? '').replaceAll('.', '-')
-	);
+	const utcDay = pgnHeader(pgn, 'UTCDate');
+	const day = (utcDay ?? pgnHeader(pgn, 'Date') ?? '').replaceAll('.', '-');
+	const time = utcDay ? pgnHeader(pgn, 'UTCTime') : undefined;
+	const date = Date.parse(time && /^\d\d:\d\d:\d\d$/.test(time) ? `${day}T${time}Z` : day);
 	return {
 		id: `file-${index}`,
 		url: '',
