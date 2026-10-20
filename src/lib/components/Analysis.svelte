@@ -72,7 +72,7 @@
 	import { saving, savePgn } from '#lib/saving.svelte.ts';
 	import { isFalseAlarm, isSpotted, readSpotFlags, spotScore, writeSpotFlags } from '#lib/spot.ts';
 	import { playFound, playMissed } from '#lib/sound.svelte.ts';
-	import type { Preferences } from '#lib/preferences.ts';
+	import { updatePreferences, type Preferences } from '#lib/preferences.ts';
 
 	type Props = { preferences: Preferences; active: boolean };
 
@@ -132,6 +132,7 @@
 	let engineError = $state('');
 	let batchRunning = $state(false);
 	let spotting = $state(false);
+	let spotFirst = $state(untrack(() => preferences.spotFirst));
 	let thinkStart = $state<Record<number, number>>({});
 	let now = $state(Date.now());
 	let spotFlags = $state<number[]>([]);
@@ -342,7 +343,7 @@
 			savedNotes = notesSignature(notes);
 			spotFlags = readSpotFlags(pgn);
 			savedSpot = spotFlags.join(' ');
-			spotting = !spotFlags.length && !Object.values(notes).some(isRevealed);
+			spotting = spotFirst && !spotFlags.length && !Object.values(notes).some(isRevealed);
 			notesOpen = {};
 			revealed = Object.fromEntries(
 				Object.entries(notes).map(([ply, value]) => [ply, isRevealed(value)])
@@ -424,7 +425,6 @@
 	function reveal(ply: number) {
 		revealed[ply] = true;
 		notes[ply] ??= emptyNotes();
-		notesOpen[ply] = true;
 		select(ply - 1);
 	}
 
@@ -442,7 +442,10 @@
 	}
 
 	function revealAll() {
-		for (const tp of turningPoints) revealed[tp.ply] = true;
+		for (const tp of turningPoints) {
+			revealed[tp.ply] = true;
+			notes[tp.ply] ??= emptyNotes();
+		}
 	}
 
 	function nextHidden() {
@@ -628,6 +631,17 @@
 				</div>
 			</div>
 		{/if}
+		<label
+			class="toggle"
+			title="Before you see the turning points, flag the moves you think decided the game"
+		>
+			<input
+				type="checkbox"
+				bind:checked={spotFirst}
+				onchange={() => updatePreferences({ spotFirst })}
+			/>
+			Start new games with spotting
+		</label>
 		{#if status === 'running'}
 			<button class="analyze" onclick={stop}>Stop</button>
 			<div class="progress" role="progressbar" aria-valuenow={progress}>
@@ -686,6 +700,14 @@
 							<label>
 								Lines
 								<input type="number" min="1" max="5" bind:value={lines} disabled={unsaved} />
+							</label>
+							<label title="Start new games with spotting">
+								<input
+									type="checkbox"
+									bind:checked={spotFirst}
+									onchange={() => updatePreferences({ spotFirst })}
+								/>
+								Spotting
 							</label>
 						</div>
 					{/if}
@@ -911,7 +933,7 @@
 								{#if won === 'b'}<span class="crown" title="Winner">♚</span>{/if}
 							</span>
 						</div>
-						{#if book !== null}
+						{#if book !== null && !spotting}
 							<p class="book muted small">
 								{headers.Opening ? `${headers.Opening} · ` : ''}{#if book < moves.length}Out of book
 									with <button class="link" onclick={() => select(book! + 1)}
@@ -1060,7 +1082,12 @@
 													class:on={notesOpen[tp.ply]}
 													onclick={() => toggleNotes(tp.ply)}
 													aria-expanded={!!notesOpen[tp.ply]}
-													title="Three questions">Notes {answeredCount(notes[tp.ply])}/3</button
+													title={hidden
+														? 'How sure you are, other moves you considered, why you chose it'
+														: 'The three questions'}
+													>More{answeredCount(notes[tp.ply])
+														? ` · ${answeredCount(notes[tp.ply])}/3`
+														: ''}</button
 												>
 												{#if hidden}
 													<button class="reveal" onclick={() => reveal(tp.ply)} disabled={analyzing}
@@ -1080,58 +1107,36 @@
 												3–5 minutes, as at the board
 											</p>
 										{/if}
-										{#if hidden && notes[tp.ply]?.candidate}
-											<div class="confidence">
-												<span class="muted small">How sure are you?</span>
-												{#each CONFIDENCES as { value, label } (value)}
-													<button
-														class:on={notes[tp.ply].confidence === value}
-														onclick={() =>
-															(notes[tp.ply].confidence =
-																notes[tp.ply].confidence === value ? '' : value)}>{label}</button
-													>
-												{/each}
-											</div>
-											<label class="considered">
-												<span class="muted small">Other moves you considered</span>
-												<input
-													type="text"
-													placeholder="Nf3 Bc4"
-													bind:value={notes[tp.ply].considered}
-												/>
-											</label>
-										{/if}
 										{#if notesOpen[tp.ply] && notes[tp.ply]}
 											<div class="notes" transition:slide={{ duration: ms(200) }}>
+												{#if hidden && notes[tp.ply].candidate}
+													<div class="confidence">
+														<span class="muted small">How sure are you?</span>
+														{#each CONFIDENCES as { value, label } (value)}
+															<button
+																class:on={notes[tp.ply].confidence === value}
+																onclick={() =>
+																	(notes[tp.ply].confidence =
+																		notes[tp.ply].confidence === value ? '' : value)}
+																>{label}</button
+															>
+														{/each}
+													</div>
+													<label class="considered">
+														<span class="muted small">Other moves you considered</span>
+														<input
+															type="text"
+															placeholder="Nf3 Bc4"
+															bind:value={notes[tp.ply].considered}
+														/>
+													</label>
+												{/if}
 												{#each NOTE_QUESTIONS.slice(0, hidden ? 1 : 3) as { question }, q (question)}
 													<label>
 														<span>{q + 1}. {question}</span>
 														<textarea rows="2" bind:value={notes[tp.ply].answers[q]}></textarea>
 													</label>
 												{/each}
-												{#if !hidden}
-													<div class="cause">
-														<span>What went wrong in the game?</span>
-														<div>
-															{#each CAUSES as { value, label, hint } (value)}
-																<button
-																	class:on={notes[tp.ply].cause === value}
-																	title={hint}
-																	onclick={() =>
-																		(notes[tp.ply].cause =
-																			notes[tp.ply].cause === value ? '' : value)}>{label}</button
-																>
-															{/each}
-														</div>
-													</div>
-													<label>
-														<span>Next time, when …, then …</span>
-														<textarea
-															rows="2"
-															placeholder="When my opponent's queen leaves the king, then I look for checks first."
-															bind:value={notes[tp.ply].lesson}></textarea>
-													</label>
-												{/if}
 											</div>
 										{/if}
 										{#if !hidden}
@@ -1156,6 +1161,31 @@
 														? `You considered ${bestSan} but rejected it: the gap was calculating or judging it.`
 														: `${bestSan} was not among the moves you considered: look wider, forcing moves first.`}
 												</p>
+											{/if}
+											{#if notes[tp.ply]}
+												<div class="essentials">
+													<div class="cause">
+														<span>What went wrong in the game?</span>
+														<div>
+															{#each CAUSES as { value, label, hint } (value)}
+																<button
+																	class:on={notes[tp.ply].cause === value}
+																	title={hint}
+																	onclick={() =>
+																		(notes[tp.ply].cause =
+																			notes[tp.ply].cause === value ? '' : value)}>{label}</button
+																>
+															{/each}
+														</div>
+													</div>
+													<label>
+														<span>Next time, when …, then …</span>
+														<textarea
+															rows="2"
+															placeholder="When my opponent's queen leaves the king, then I look for checks first."
+															bind:value={notes[tp.ply].lesson}></textarea>
+													</label>
+												</div>
 											{/if}
 										{/if}
 										{#if opened[tp.ply] && !hidden}
@@ -1262,12 +1292,12 @@
 		gap: 6px;
 	}
 
-	.quick-settings input,
+	.quick-settings input[type='number'],
 	.quick-settings select {
 		padding: 4px 6px;
 	}
 
-	.quick-settings input {
+	.quick-settings input[type='number'] {
 		width: 3.5em;
 	}
 
@@ -1947,20 +1977,23 @@
 		color: var(--accent-2);
 	}
 
-	.notes {
+	.notes,
+	.essentials {
 		display: grid;
 		gap: 8px;
 		padding: 10px 0 4px;
 	}
 
-	.notes label {
+	.notes label,
+	.essentials label {
 		display: grid;
 		gap: 4px;
 		font-size: 0.85rem;
 		color: var(--muted);
 	}
 
-	.notes textarea {
+	.notes textarea,
+	.essentials textarea {
 		width: 100%;
 		box-sizing: border-box;
 		resize: vertical;

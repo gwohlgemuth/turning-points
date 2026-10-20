@@ -99,32 +99,32 @@
 						turning point on, so it can't give the answer away.
 					</li>
 					<li>
-						Every new game starts with <strong>spotting</strong>: step through it and flag the moves
-						you think decided it (<kbd>Space</kbd>), then press <strong>Check</strong>, or
-						<strong>Skip</strong> if you'd rather not. This trains recognizing critical moments, which
-						is exactly what you need at the board: they are the moves worth a full check of the forcing
-						moves, while quiet moves can be played quickly.
-					</li>
-					<li>
 						Press <strong>Next open turning point</strong> (or <kbd>N</kbd>). First ask what your
-						opponent wants, then think and play your candidate move on the board. It is marked
-						<span class="found">✓ found</span>
+						opponent wants, then think and play your candidate move on the board, and press
+						<strong>Reveal</strong>. Your move is marked <span class="found">✓ found</span>
 						if it is about as good as the engine's move, otherwise
-						<span class="missed">✗ missed</span>. Say how sure you are and note the other moves you
-						considered, then press <strong>Reveal</strong>. If you missed it, the app tells you
-						whether the engine's move was among them, and marks an <strong>only move</strong>, where
-						every other move gives the advantage away.
+						<span class="missed">✗ missed</span>. You also see the refutation of the game move, and
+						an
+						<strong>only move</strong> mark where every other move gives the advantage away.
 					</li>
 					<li>
-						Answer the three questions in your own words: Why did I choose that move? Why is my move
-						not ideal? Why is the better move better? Pick what went wrong in the game, then write
-						one rule for next time: “When …, then …”.
+						Pick what went wrong in the game with one click, and write one rule for next time: “When
+						…, then …”. That's all a turning point needs.
 					</li>
 					<li>
 						Press <strong>Save notes</strong>. The game is saved as a PGN file with your notes, and
 						feeds Review and Stats.
 					</li>
 				</ol>
+				<p>
+					Want to go deeper? <strong>More</strong> holds the optional steps: how sure you are and
+					which other moves you considered before you reveal, and three questions after it: Why did
+					I choose that move? Why is my move not ideal? Why is the better move better? Turn on
+					<strong>Start new games with spotting</strong>
+					in the analysis settings to flag the moves you think decided a game (<kbd>Space</kbd>)
+					before you see its turning points, then press <strong>Check</strong>. This trains
+					recognizing critical moments at the board.
+				</p>
 			</section>
 
 			<section class="card" id="routine">
@@ -141,12 +141,9 @@
 						training into reading.
 					</li>
 					<li>
-						<strong>Write the answers.</strong> Putting the reason into words is where the learning happens.
-						One honest sentence is worth more than a long line of moves.
-					</li>
-					<li>
-						<strong>Be honest about how sure you were.</strong> A move you were sure of that turns out
-						wrong is the one you remember best, and Stats shows where your judgment misleads you.
+						<strong>Keep it short.</strong> A candidate, a cause and a rule are enough, a few
+						minutes per game. A routine you keep after every game beats a thorough one you skip.
+						When a position deserves more, open <strong>More</strong> and write down why.
 					</li>
 					<li>
 						<strong>Name the cause.</strong> Missed a threat, miscalculated, wrong plan: only you know

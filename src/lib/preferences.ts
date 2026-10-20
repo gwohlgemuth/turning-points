@@ -10,6 +10,7 @@ export type Preferences = {
 	max: number;
 	folder: string;
 	sound: boolean;
+	spotFirst: boolean;
 };
 
 export function parsePreferences(raw: string | undefined): Preferences {
@@ -24,7 +25,8 @@ export function parsePreferences(raw: string | undefined): Preferences {
 		username: typeof value.username === 'string' ? value.username.slice(0, 30) : '',
 		max: GAME_COUNTS.some((count) => count === value.max) ? (value.max as number) : 20,
 		folder: typeof value.folder === 'string' ? value.folder : DEFAULT_SAVE_FOLDER,
-		sound: value.sound !== false
+		sound: value.sound !== false,
+		spotFirst: value.spotFirst === true
 	};
 }
 

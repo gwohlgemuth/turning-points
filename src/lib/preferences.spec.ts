@@ -8,14 +8,16 @@ describe('parsePreferences', () => {
 			username: 'hikaru',
 			max: 50,
 			folder: 'Chess',
-			sound: false
+			sound: false,
+			spotFirst: true
 		});
 		expect(parsePreferences(raw)).toEqual({
 			source: 'chesscom',
 			username: 'hikaru',
 			max: 50,
 			folder: 'Chess',
-			sound: false
+			sound: false,
+			spotFirst: true
 		});
 	});
 
@@ -25,7 +27,8 @@ describe('parsePreferences', () => {
 			username: '',
 			max: 20,
 			folder: DEFAULT_SAVE_FOLDER,
-			sound: true
+			sound: true,
+			spotFirst: false
 		};
 		expect(parsePreferences(undefined)).toEqual(defaults);
 		expect(parsePreferences('not json')).toEqual(defaults);
