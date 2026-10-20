@@ -1,4 +1,5 @@
 import type { Move, PositionEval, Side } from './analysis.ts';
+import type { Notes } from './notes.ts';
 
 export const MAX_RECENT = 20;
 const STORAGE_KEY = 'turning-points-recent';
@@ -45,12 +46,21 @@ export function saveRecent(list: RecentEntry[]): void {
 	}
 }
 
-export type CurrentGame = { key: string; side: Side; selected: number };
+export type CurrentGame = {
+	key: string;
+	pgn: string;
+	side: Side;
+	selected: number;
+	notes: Record<number, Notes>;
+	revealed: Record<number, boolean>;
+	spotFlags: number[];
+	spotting: boolean;
+};
 
 export function loadCurrent(): CurrentGame | null {
 	try {
 		const value = JSON.parse(localStorage.getItem(CURRENT_KEY) ?? 'null');
-		return value && typeof value.key === 'string' ? value : null;
+		return value && typeof value.key === 'string' && typeof value.pgn === 'string' ? value : null;
 	} catch {
 		return null;
 	}

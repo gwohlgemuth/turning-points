@@ -71,6 +71,7 @@
 		saveCurrent,
 		saveRecent,
 		updatePgn,
+		type CurrentGame,
 		type RecentEntry
 	} from '#lib/recent.ts';
 	import { saving, savePgn } from '#lib/saving.svelte.ts';
@@ -109,6 +110,8 @@
 	let notesOpen = $state<Record<number, boolean>>({});
 	let revealed = $state<Record<number, boolean>>({});
 	let savedNotes = $state(notesSignature({}));
+	let gamePgn = $state('');
+	let draft: CurrentGame | null = null;
 	let loadedGames = $state<GameSummary[]>([]);
 	let nextMessage = $state('');
 	const visited = new SvelteSet<string>();
@@ -361,6 +364,8 @@
 			exploration = null;
 			autoplay = false;
 			selected = 0;
+			gamePgn = pgn;
+			applyDraft();
 		} else if (event.type === 'eval') {
 			evals[event.eval.index] = event.eval;
 		} else if (event.type === 'done') {
@@ -381,7 +386,7 @@
 		});
 		for (const evaluation of entry.evals) handleEvent({ type: 'eval', eval: evaluation });
 		status = 'done';
-		showFirstOpen();
+		if (selected === 0) showFirstOpen();
 		keepRecent(remember(recent, { ...entry, pgn }));
 	}
 
@@ -502,6 +507,7 @@
 		const previousSpot = savedSpot;
 		savedSpot = spotFlags.join(' ');
 		pgn = writeSpotFlags(writeNotes(pgn, notes), spotFlags);
+		gamePgn = pgn;
 		keepRecent(updatePgn(recent, gameKey(pgn), pgn));
 		await savePgn(pgn, pgnFilename(pgn), true);
 		if (saving.failed) {
@@ -532,7 +538,7 @@
 	}
 
 	function warnUnsaved(event: BeforeUnloadEvent) {
-		if (unsaved || batchRunning) event.preventDefault();
+		if (batchRunning) event.preventDefault();
 	}
 
 	function show(index: number) {
@@ -613,21 +619,46 @@
 	}
 
 	$effect(() => {
-		const key = status === 'done' && moves.length ? gameKey(pgn) : null;
-		if (key && recent.some((entry) => entry.key === key)) saveCurrent({ key, side, selected });
+		const key = moves.length ? gameKey(gamePgn) : null;
+		if (!key) return;
+		saveCurrent({
+			key,
+			pgn: gamePgn,
+			side,
+			selected,
+			notes: $state.snapshot(notes),
+			revealed: $state.snapshot(revealed),
+			spotFlags: $state.snapshot(spotFlags),
+			spotting
+		});
 	});
+
+	function applyDraft() {
+		if (draft && draft.key === gameKey(pgn)) {
+			notes = draft.notes;
+			revealed = { ...revealed, ...draft.revealed };
+			spotFlags = draft.spotFlags;
+			spotting = draft.spotting;
+			selected = Math.min(draft.selected, moves.length);
+		}
+		draft = null;
+	}
 
 	function reopen() {
 		const current = loadCurrent();
-		const entry = current && recent.find((other) => other.key === current.key);
-		if (!entry) return;
-		pgn = entry.pgn;
+		if (!current) return;
+		draft = current;
+		pgn = current.pgn;
 		side = current.side;
 		flipped = side === 'b';
-		depth = entry.depth;
 		setupOpen = false;
+		const entry = recent.find((other) => other.key === current.key);
+		if (!entry) {
+			analyze();
+			return;
+		}
+		depth = entry.depth;
 		replay(entry);
-		select(current.selected);
 	}
 
 	reopen();

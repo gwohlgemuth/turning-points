@@ -118,8 +118,10 @@
 						Press <strong>Save & next game</strong>. The game is saved as a PGN file with your
 						notes, which feeds Review and Stats, and the newest game with work left opens: one from
 						your online list you haven't saved yet, or a saved one with open turning points, for
-						example after <strong>Analyze all</strong>. <strong>Save notes</strong> saves without moving
-						on. Reloading the page brings you back to the game and move you were on.
+						example after <strong>Analyze all</strong>. <strong>Save notes</strong> saves without
+						moving on. Reloading or closing the page loses nothing: you come back to the game and
+						move you were on, with notes you haven't saved yet. Only <strong>Save notes</strong> writes
+						them to the PGN file.
 					</li>
 				</ol>
 				<p>
