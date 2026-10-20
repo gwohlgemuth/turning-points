@@ -142,7 +142,7 @@
 	<div class="page-head">
 		<h1>Review</h1>
 		<p class="muted small">
-			Missed turning points from {backend.describe(data.folder)} · {Math.max(
+			Turning points to review from {backend.describe(data.folder)} · {Math.max(
 				data.due.length - index,
 				0
 			)} due today ·
@@ -154,7 +154,8 @@
 		<section class="card">
 			<p class="muted">
 				Nothing to review today. Turning points you missed in the analysis appear here the day after
-				you saved your notes, and come back after 1, 3, 7, 14 and 30 days until you find them.
+				you saved your notes, and come back after 1, 3, 7, 14 and 30 days until you find them. Those
+				you found but were unsure of come back twice, the next day and a month later.
 			</p>
 		</section>
 	{:else if !card || !move}
@@ -207,9 +208,11 @@
 					<span class="muted small">{formatDate(card.date)}</span>
 				</p>
 				<p class="muted">
-					{card.side === 'w' ? 'White' : 'Black'} to move (move {Math.ceil(card.ply / 2)}). You
-					missed this turning point before. First ask what your opponent wants, then play the move
-					you would choose now.
+					{card.side === 'w' ? 'White' : 'Black'} to move (move {Math.ceil(card.ply / 2)}).
+					{card.verdict === 'found'
+						? 'You found this turning point before, but were not sure.'
+						: 'You missed this turning point before.'} First ask what your opponent wants, then play the
+					move you would choose now.
 				</p>
 				{#if message}
 					<p class="error">{message}</p>

@@ -11,6 +11,14 @@ export type Card = StatsEntry & { key: string; side: Side; due: string };
 
 export const cardKey = (fen: string, san: string) => `${fen}|${san}`;
 
+const UNSURE_BOX = INTERVALS.length - 1;
+
+const unsureFind = (entry: StatsEntry) =>
+	entry.verdict === 'found' && (entry.confidence === 'unsure' || entry.confidence === 'guess');
+
+const reviewable = (entry: StatsEntry) =>
+	!!entry.fen && (entry.verdict === 'missed' || unsureFind(entry));
+
 export function addDays(day: string, days: number): string {
 	const date = new Date(`${day}T00:00:00Z`);
 	date.setUTCDate(date.getUTCDate() + days);
@@ -35,11 +43,12 @@ export function reviewDeck(entries: StatsEntry[], state: ReviewState, today: str
 	let learned = 0;
 	const seen = new Set<string>();
 	for (const entry of entries) {
-		if (entry.verdict !== 'missed' || !entry.fen) continue;
+		if (!reviewable(entry)) continue;
 		const key = cardKey(entry.fen, entry.move);
 		if (seen.has(key)) continue;
 		seen.add(key);
 		const card = state[key];
+		if (!card && unsureFind(entry)) continue;
 		if (card && 'learned' in card) learned++;
 		else if (card && card.due > today) upcoming.push(card.due);
 		else due.push({ ...entry, key, side: entry.ply % 2 === 1 ? 'w' : 'b', due: card?.due ?? '' });
@@ -61,10 +70,10 @@ function mixGames(cards: Card[]): Card[] {
 export function scheduleNew(entries: StatsEntry[], state: ReviewState, today: string): number {
 	let scheduled = 0;
 	for (const entry of entries) {
-		if (entry.verdict !== 'missed' || !entry.fen) continue;
+		if (!reviewable(entry)) continue;
 		const key = cardKey(entry.fen, entry.move);
 		if (state[key]) continue;
-		state[key] = { box: 0, due: addDays(today, 1) };
+		state[key] = { box: unsureFind(entry) ? UNSURE_BOX : 0, due: addDays(today, 1) };
 		scheduled++;
 	}
 	return scheduled;

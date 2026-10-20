@@ -122,6 +122,17 @@ export function profile(entries: StatsEntry[]) {
 	};
 }
 
+export const median = (values: number[]) => {
+	const sorted = [...values].sort((a, b) => a - b);
+	const middle = Math.floor(sorted.length / 2);
+	return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+};
+
+export function timeAtTurningPoints(entries: StatsEntry[]) {
+	const ratios = entries.flatMap((entry) => (entry.timeRatio === null ? [] : [entry.timeRatio]));
+	return ratios.length ? { ratio: median(ratios), count: ratios.length } : null;
+}
+
 export function rulebook(entries: StatsEntry[]) {
 	const withRule = entries.filter((entry) => entry.lesson.trim());
 	const section = (label: string, cause: Cause) => ({

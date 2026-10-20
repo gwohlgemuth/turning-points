@@ -1,4 +1,11 @@
-import { openingLeaks, profile, progress, repeatedPositions, rulebook } from '../profile.ts';
+import {
+	openingLeaks,
+	profile,
+	progress,
+	repeatedPositions,
+	rulebook,
+	timeAtTurningPoints
+} from '../profile.ts';
 import {
 	localDay,
 	nextState,
@@ -28,7 +35,8 @@ export const statsView = (entries: StatsEntry[]) => ({
 	progress: progress(entries),
 	leaks: openingLeaks(entries),
 	repeated: repeatedPositions(entries),
-	rules: rulebook(entries)
+	rules: rulebook(entries),
+	thinking: timeAtTurningPoints(entries)
 });
 
 export type StatsData = ReturnType<typeof statsData>;

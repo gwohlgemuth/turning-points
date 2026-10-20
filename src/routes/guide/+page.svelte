@@ -159,8 +159,9 @@
 					</li>
 					<li>
 						<strong>Review daily, 5–10 minutes.</strong> Positions you missed come back after 1, 3, 7,
-						14 and 30 days, until you find them, mixed across games. After each one, recall your rule
-						before you show it: the rule, not the move, is what carries over to new positions.
+						14 and 30 days, until you find them, mixed across games. Positions you found but were unsure
+						or guessed come back twice, since a lucky guess is not yet knowledge. After each one, recall
+						your rule before you show it: the rule, not the move, is what carries over to new positions.
 					</li>
 					<li>
 						<strong>Once a week</strong>, use <strong>Analyze all</strong> on your recent games,

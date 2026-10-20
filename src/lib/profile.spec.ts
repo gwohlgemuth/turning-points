@@ -8,6 +8,7 @@ import {
 	progress,
 	repeatedPositions,
 	rulebook,
+	timeAtTurningPoints,
 	timeTag,
 	winsMaterial
 } from './profile.ts';
@@ -31,6 +32,7 @@ const entry = (patch: Partial<StatsEntry>): StatsEntry => ({
 	answered: 0,
 	phase: 'middlegame',
 	time: null,
+	timeRatio: null,
 	tactical: false,
 	missedWin: false,
 	opening: '',
@@ -152,6 +154,20 @@ describe('rulebook', () => {
 			['Missed a threat', ['Threat']],
 			['No cause given', ['No cause']]
 		]);
+	});
+});
+
+describe('timeAtTurningPoints', () => {
+	it('takes the median of the time ratios and skips games without clocks', () => {
+		expect(
+			timeAtTurningPoints([
+				entry({ timeRatio: 0.5 }),
+				entry({ timeRatio: 3 }),
+				entry({ timeRatio: 1 }),
+				entry({})
+			])
+		).toEqual({ ratio: 1, count: 3 });
+		expect(timeAtTurningPoints([entry({})])).toBeNull();
 	});
 });
 

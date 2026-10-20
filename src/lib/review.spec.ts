@@ -25,6 +25,7 @@ const entry = (ply: number, verdict: StatsEntry['verdict'], fen = `fen-${ply}`):
 	answered: 0,
 	phase: 'middlegame',
 	time: null,
+	timeRatio: null,
 	tactical: false,
 	missedWin: false,
 	opening: '',
@@ -105,6 +106,30 @@ describe('scheduleNew', () => {
 			[cardKey('fen-1', 'e4')]: { box: 0, due: '2026-10-09' },
 			[cardKey('fen-3', 'e4')]: { box: 2, due: '2026-10-20' }
 		});
+	});
+});
+
+describe('unsure finds', () => {
+	const unsure = { ...entry(1, 'found'), confidence: 'unsure' as const };
+	const sure = { ...entry(2, 'found'), confidence: 'sure' as const };
+
+	it('schedules them for tomorrow, one step before learned', () => {
+		const state = {};
+		expect(scheduleNew([unsure, sure], state, '2026-10-08')).toBe(1);
+		expect(state).toEqual({ [cardKey('fen-1', 'e4')]: { box: 4, due: '2026-10-09' } });
+		expect(nextState({ box: 4, due: '2026-10-09' }, true, '2026-10-09')).toEqual({
+			box: 5,
+			due: '2026-11-08'
+		});
+		expect(nextState({ box: 5, due: '2026-11-08' }, true, '2026-11-08')).toEqual({ learned: true });
+	});
+
+	it('deals them only once they are scheduled', () => {
+		expect(reviewDeck([unsure], {}, '2026-10-08').due).toEqual([]);
+		const state = { [cardKey('fen-1', 'e4')]: { box: 4, due: '2026-10-08' } };
+		expect(reviewDeck([unsure, sure], state, '2026-10-08').due.map((card) => card.ply)).toEqual([
+			1
+		]);
 	});
 });
 

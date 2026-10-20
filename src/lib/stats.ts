@@ -1,6 +1,13 @@
 import { Chess, type Move } from 'chess.js';
 import { bookPlies } from './book/index.ts';
-import { extractClocks, moveTimes, parseTimeControl, speedOf, type Speed } from './clock.ts';
+import {
+	extractClocks,
+	moveTimes,
+	parseTimeControl,
+	speedOf,
+	type MoveTime,
+	type Speed
+} from './clock.ts';
 import {
 	gameUrl,
 	mergeAdjacentComments,
@@ -13,6 +20,7 @@ import { answeredCount, readNotes, type Cause, type Confidence, type Verdict } f
 import {
 	gamePhase,
 	lostMaterial,
+	median,
 	timeTag,
 	winsMaterial,
 	type Phase,
@@ -36,6 +44,7 @@ export type StatsEntry = {
 	answered: number;
 	phase: Phase;
 	time: TimeTag | null;
+	timeRatio: number | null;
 	tactical: boolean;
 	missedWin: boolean;
 	opening: string;
@@ -61,6 +70,15 @@ function history(pgn: string): Move[] {
 	} catch {
 		return [];
 	}
+}
+
+const OPENING_PLIES = 10;
+
+function timeRatio(times: MoveTime[], ply: number): number | null {
+	const own = times.filter((_, i) => i + 1 > OPENING_PLIES && (i + 1) % 2 === ply % 2);
+	const usual = own.length ? median(own.map((time) => time.spent)) : 0;
+	if (!usual || !times[ply - 1]) return null;
+	return times[ply - 1].spent / usual;
 }
 
 export function entriesFromPgn(file: string, pgn: string): StatsEntry[] {
@@ -99,6 +117,7 @@ export function entriesFromPgn(file: string, pgn: string): StatsEntry[] {
 			answered: answeredCount(notes[ply]),
 			phase: gamePhase(fen),
 			time: timeTag(times[ply - 1] ?? null, control),
+			timeRatio: timeRatio(times, ply),
 			tactical,
 			missedWin: !tactical && winsMaterial(fen, notes[ply].best.split(' ').filter(Boolean)),
 			opening,

@@ -36,6 +36,7 @@ describe('entriesFromPgn', () => {
 				answered: 1,
 				phase: 'opening',
 				time: null,
+				timeRatio: null,
 				tactical: false,
 				missedWin: false,
 				opening: '',
@@ -44,6 +45,24 @@ describe('entriesFromPgn', () => {
 				spotted: null
 			}
 		]);
+	});
+
+	it('compares the time spent on a turning point with the usual time per move', () => {
+		const sans = 'e4 e5 Nf3 Nc6 Bc4 Bc5 c3 Nf6 d3 d6 O-O O-O Re1 a6'.split(' ');
+		const white = [298, 296, 294, 292, 290, 270, 260];
+		const clock = (seconds: number) =>
+			`{ [%clk 0:${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}] }`;
+		const moves = sans
+			.map((san, i) => {
+				const number = i % 2 ? '' : `${i / 2 + 1}. `;
+				const remaining = i % 2 ? 299 - (i - 1) / 2 : white[i / 2];
+				return `${number}${san} ${clock(remaining)}`;
+			})
+			.join(' ');
+		const pgn = writeNotes(`[TimeControl "300+0"]\n[Result "*"]\n\n${moves} *`, {
+			13: { ...emptyNotes(), candidate: 'h3' }
+		});
+		expect(entriesFromPgn('a.pgn', pgn)[0].timeRatio).toBeCloseTo(10 / 15);
 	});
 
 	it('marks a missed win from the stored best line', () => {

@@ -212,6 +212,20 @@
 					{/if}
 				{/each}
 			</div>
+			{#if view.thinking}
+				<p class="muted small">
+					At turning points you took
+					<strong class:missed-text={view.thinking.ratio < 1}
+						>{view.thinking.ratio.toFixed(1)}×</strong
+					>
+					your usual time per move (median of {view.thinking.count}).
+					{view.thinking.ratio < 1
+						? 'You played the critical moves faster than the others: when the position gets tense, slow down.'
+						: view.thinking.ratio < 2
+							? 'Critical moves deserve more of your time than that.'
+							: 'You take your time when it matters.'}
+				</p>
+			{/if}
 			{#if sureMissed}
 				<p class="muted small">
 					Sure but missed: <strong class="missed-text">{sureMissed}</strong>. These are the
