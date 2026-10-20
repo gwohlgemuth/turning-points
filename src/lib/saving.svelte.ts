@@ -1,7 +1,11 @@
 import backend from '#backend';
-import { DEFAULT_SAVE_FOLDER, updatePreferences } from './preferences.ts';
+import { DEFAULT_SAVE_FOLDER, readPreferences, updatePreferences } from './preferences.ts';
 
-export const saving = $state({ folder: DEFAULT_SAVE_FOLDER, message: '', failed: false });
+export const saving = $state({
+	folder: typeof document === 'undefined' ? DEFAULT_SAVE_FOLDER : readPreferences().folder,
+	message: '',
+	failed: false
+});
 
 export function setSaveFolder(folder: string): void {
 	saving.folder = folder;
