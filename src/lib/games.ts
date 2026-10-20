@@ -25,6 +25,8 @@ export function playerSide(game: GameSummary, username: string): Side | null {
 	return null;
 }
 
+export const gameRef = (game: GameSummary) => game.url || game.id;
+
 export function winner(result: string): Side | 'draw' | null {
 	if (result === '1-0') return 'w';
 	if (result === '0-1') return 'b';

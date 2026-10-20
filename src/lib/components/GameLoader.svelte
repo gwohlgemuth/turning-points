@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { slide } from 'svelte/transition';
 	import backend from '#backend';
 	import { ms } from '#lib/motion.ts';
@@ -126,8 +126,16 @@
 	const progress = (game: GameSummary): SavedGame | undefined =>
 		'worked' in game ? (game as SavedGame) : savedByUrl.get(game.url);
 
-	async function load(event: SubmitEvent) {
+	function load(event: SubmitEvent) {
 		event.preventDefault();
+		fetchGames();
+	}
+
+	onMount(() => {
+		if (initial.username && !games.length) fetchGames();
+	});
+
+	async function fetchGames() {
 		slideList = true;
 		loading = true;
 		message = '';

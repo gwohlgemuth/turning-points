@@ -8,15 +8,25 @@ import {
 	type MoveTime,
 	type Speed
 } from './clock.ts';
+import type { Side } from './analysis.ts';
 import {
+	gameRef,
 	gameUrl,
 	mergeAdjacentComments,
 	pgnHeader,
+	playerSide,
 	splitPgn,
 	summaryFromPgn,
 	type GameSummary
 } from './games.ts';
-import { answeredCount, readNotes, type Cause, type Confidence, type Verdict } from './notes.ts';
+import {
+	answeredCount,
+	isRevealed,
+	readNotes,
+	type Cause,
+	type Confidence,
+	type Verdict
+} from './notes.ts';
 import {
 	gamePhase,
 	lostMaterial,
@@ -149,9 +159,13 @@ export function collectStats(files: { path: string; text: string }[]) {
 	return { entries, summary: summarize(entries) };
 }
 
+const sideOfPly = (ply: number): Side => (ply % 2 === 1 ? 'w' : 'b');
+
 export type SavedGame = GameSummary & {
 	file: string;
 	worked: number;
+	open: number;
+	side: Side | null;
 	found: number;
 	missed: number;
 };
@@ -161,12 +175,16 @@ export function savedGames(files: { path: string; text: string }[]): SavedGame[]
 		.flatMap(({ path, text }) =>
 			splitPgn(text).map((pgn, index) => {
 				const entries = entriesFromPgn(path, pgn);
+				const notes = readNotes(pgn);
+				const first = Number(Object.keys(notes)[0]);
 				return {
 					...summaryFromPgn(pgn, index),
 					id: `saved:${path}:${index}`,
 					url: gameUrl(pgn) ?? '',
 					file: path,
 					worked: entries.length,
+					open: Object.values(notes).filter((note) => !isRevealed(note)).length,
+					side: first ? sideOfPly(first) : null,
 					found: entries.filter((entry) => entry.verdict === 'found').length,
 					missed: entries.filter((entry) => entry.verdict === 'missed').length
 				};
@@ -179,4 +197,26 @@ export function savedGames(files: { path: string; text: string }[]): SavedGame[]
 		if (game.url && (!other || game.worked > other.worked)) byUrl.set(game.url, game);
 	}
 	return games.filter((game) => !game.url || byUrl.get(game.url) === game);
+}
+
+export function nextGame(
+	online: GameSummary[],
+	saved: SavedGame[],
+	username: string,
+	visited: Set<string>
+): { game: GameSummary; side: Side } | null {
+	const savedUrls = new Set(saved.map((game) => game.url).filter(Boolean));
+	const candidates = [
+		...saved
+			.filter((game) => game.open > 0)
+			.map((game) => ({ game, side: playerSide(game, username) ?? game.side })),
+		...online
+			.filter((game) => !savedUrls.has(game.url))
+			.map((game) => ({ game, side: playerSide(game, username) }))
+	]
+		.filter(({ game }) => !visited.has(gameRef(game)))
+		.sort((a, b) => b.game.date - a.game.date);
+	const own = candidates.filter(({ side }) => side);
+	const pick = (own.length ? own : candidates)[0];
+	return pick ? { game: pick.game, side: pick.side ?? 'w' } : null;
 }

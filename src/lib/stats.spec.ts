@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { emptyNotes, writeNotes } from './notes.ts';
-import { collectStats, entriesFromPgn, savedGames } from './stats.ts';
+import type { GameSummary } from './games.ts';
+import { collectStats, entriesFromPgn, nextGame, savedGames, type SavedGame } from './stats.ts';
 
 const game = (white: string, date: string) => `[White "${white}"]
 [Black "B"]
@@ -141,6 +142,14 @@ describe('savedGames', () => {
 		]);
 	});
 
+	it('counts the turning points still open and the side they were marked for', () => {
+		const games = savedGames([{ path: 'both.pgn', text: `${older}\n${newer}` }]);
+		expect(games.map(({ white, open, side }) => [white, open, side])).toEqual([
+			['C', 1, 'w'],
+			['A', 0, 'w']
+		]);
+	});
+
 	it('keeps the copy with the most progress when a game is saved twice', () => {
 		const site = '[Site "https://lichess.org/xyz"]\n';
 		const games = savedGames([
@@ -148,5 +157,34 @@ describe('savedGames', () => {
 			{ path: 'one.pgn', text: site + older }
 		]);
 		expect(games.map((saved) => [saved.file, saved.worked])).toEqual([['one.pgn', 1]]);
+	});
+});
+
+describe('nextGame', () => {
+	const online = (id: string, white: string, black: string, date: number) =>
+		({ id, url: `https://lichess.org/${id}`, white, black, date }) as GameSummary;
+	const saved = (id: string, open: number, date: number, url = '') =>
+		({ id, url, white: 'x', black: 'y', date, open, side: 'b' }) as SavedGame;
+
+	it('takes the newest game with work left, from either list', () => {
+		const next = nextGame(
+			[online('a', 'me', 'x', 1), online('b', 'y', 'z', 9)],
+			[saved('s', 2, 5), saved('t', 0, 8)],
+			'me',
+			new Set()
+		);
+		expect([next?.game.id, next?.side]).toEqual(['s', 'b']);
+	});
+
+	it('prefers the saved copy of an online game and skips finished or visited games', () => {
+		const url = 'https://lichess.org/a';
+		const games = [online('a', 'me', 'x', 3), online('c', 'x', 'me', 2)];
+		expect(nextGame(games, [saved('s', 1, 3, url)], 'me', new Set())?.game.id).toBe('s');
+		expect(nextGame(games, [saved('s', 0, 3, url)], 'me', new Set())?.game.id).toBe('c');
+		expect(nextGame(games, [], 'me', new Set([url, 'https://lichess.org/c']))).toBeNull();
+	});
+
+	it("falls back to other players' games when none are the user's", () => {
+		expect(nextGame([online('b', 'y', 'z', 1)], [], 'me', new Set())?.side).toBe('w');
 	});
 });

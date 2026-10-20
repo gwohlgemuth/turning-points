@@ -3,6 +3,7 @@
 	import { Chess } from 'chess.js';
 	import { onMount, untrack } from 'svelte';
 	import { flip } from 'svelte/animate';
+	import { SvelteSet } from 'svelte/reactivity';
 	import { fade, fly, slide } from 'svelte/transition';
 	import backend from '#backend';
 	import { ms } from '#lib/motion.ts';
@@ -39,6 +40,7 @@
 	} from '#lib/analysis.ts';
 	import {
 		gameKey,
+		gameRef,
 		gameUrl,
 		pgnFilename,
 		parseRating,
@@ -72,7 +74,8 @@
 	import { saving, savePgn } from '#lib/saving.svelte.ts';
 	import { isFalseAlarm, isSpotted, readSpotFlags, spotScore, writeSpotFlags } from '#lib/spot.ts';
 	import { playFound, playMissed } from '#lib/sound.svelte.ts';
-	import { updatePreferences, type Preferences } from '#lib/preferences.ts';
+	import { readPreferences, updatePreferences, type Preferences } from '#lib/preferences.ts';
+	import { nextGame } from '#lib/stats.ts';
 
 	type Props = { preferences: Preferences; active: boolean };
 
@@ -99,6 +102,8 @@
 	let revealed = $state<Record<number, boolean>>({});
 	let savedNotes = $state(notesSignature({}));
 	let loadedGames = $state<GameSummary[]>([]);
+	let nextMessage = $state('');
+	const visited = new SvelteSet<string>();
 	let loaderTab = $state<'online' | 'saved' | 'recent' | 'pgn'>('online');
 	let recent = $state<RecentEntry[]>([]);
 	let recentGames = $derived(
@@ -437,6 +442,12 @@
 		notes[ply].confidence = '';
 	}
 
+	function fillBest(ply: number, line: string[]) {
+		const backfill = !!notes[ply].verdict && !unsaved;
+		notes[ply].best = line.slice(0, 4).join(' ');
+		if (backfill) savedNotes = notesSignature(notes);
+	}
+
 	function setVerdict(ply: number, found: boolean) {
 		if (notes[ply].verdict) return;
 		(found ? playFound : playMissed)();
@@ -493,6 +504,20 @@
 			savedNotes = previous;
 			savedSpot = previousSpot;
 		}
+	}
+
+	async function saveAndNext() {
+		if (unsaved) {
+			await saveNotes();
+			if (saving.failed) return;
+		}
+		const saved = await backend.saved(saving.folder).catch(() => []);
+		const next = nextGame(loadedGames, saved, readPreferences().username, visited);
+		if (!next) {
+			nextMessage = 'No more games with work left';
+			return;
+		}
+		loadGame(next.game, next.side);
 	}
 
 	function warnUnsaved(event: BeforeUnloadEvent) {
@@ -568,6 +593,8 @@
 	}
 
 	function loadGame(game: GameSummary, player: Side) {
+		visited.add(gameRef(game));
+		nextMessage = '';
 		pgn = game.pgn;
 		side = player;
 		flipped = player === 'b';
@@ -1159,7 +1186,7 @@
 												verdict={notes[tp.ply]?.verdict}
 												onverdict={(found, best, line) => {
 													if (best) checkedBest[tp.ply] = best;
-													if (!notes[tp.ply].best) notes[tp.ply].best = line.slice(0, 4).join(' ');
+													if (!notes[tp.ply].best) fillBest(tp.ply, line);
 													setVerdict(tp.ply, found);
 												}}
 											/>
@@ -1206,10 +1233,22 @@
 								{/each}
 							</ol>
 						{/if}
-						{#if turningPoints.length && !spotting}
+						{#if !spotting}
 							<div class="save-notes">
-								<button onclick={saveNotes} disabled={!pgn.trim()} class:unsaved>Save notes</button>
-								{#if unsaved && !saving.failed}
+								{#if turningPoints.length}
+									<button onclick={saveNotes} disabled={!pgn.trim()} class:unsaved
+										>Save notes</button
+									>
+								{/if}
+								<button
+									onclick={saveAndNext}
+									disabled={batchRunning}
+									title="Open the newest game with work left: from your online list, or saved with open turning points"
+									>{unsaved ? 'Save & next game' : 'Next game'}</button
+								>
+								{#if nextMessage}
+									<span class="muted small">{nextMessage}</span>
+								{:else if unsaved && !saving.failed}
 									<span class="muted small">Unsaved changes</span>
 								{:else if saving.message}
 									<span class="muted small" class:error={saving.failed}>{saving.message}</span>

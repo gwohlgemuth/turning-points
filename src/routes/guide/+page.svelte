@@ -91,8 +91,9 @@
 						In the <strong>Online</strong> tab, enter your {import.meta.env.STATIC
 							? 'Lichess'
 							: 'Lichess or Chess.com'} username and press
-						<strong>Load games</strong>. Choose yourself under <strong>View as</strong>, then click
-						a game. Got a game from elsewhere? Paste it or open a file in the <strong>PGN</strong> tab.
+						<strong>Load games</strong>. Next time, your games load by themselves. Choose yourself
+						under <strong>View as</strong>, then click a game. Got a game from elsewhere? Paste it
+						or open a file in the <strong>PGN</strong> tab.
 					</li>
 					<li>
 						The engine analyzes every position. The evaluation stays hidden from the first open
@@ -114,8 +115,11 @@
 						…, then …”. That's all a turning point needs.
 					</li>
 					<li>
-						Press <strong>Save notes</strong>. The game is saved as a PGN file with your notes, and
-						feeds Review and Stats.
+						Press <strong>Save & next game</strong>. The game is saved as a PGN file with your
+						notes, which feeds Review and Stats, and the newest game with work left opens: one from
+						your online list you haven't saved yet, or a saved one with open turning points, for
+						example after <strong>Analyze all</strong>. <strong>Save notes</strong> saves without moving
+						on.
 					</li>
 				</ol>
 				<p>
