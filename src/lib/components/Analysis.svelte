@@ -356,6 +356,7 @@
 			evals[event.eval.index] = event.eval;
 		} else if (event.type === 'done') {
 			status = 'done';
+			if (selected === 0) showFirstOpen();
 		} else {
 			status = 'error';
 			message = event.message;
@@ -371,6 +372,7 @@
 		});
 		for (const evaluation of entry.evals) handleEvent({ type: 'eval', eval: evaluation });
 		status = 'done';
+		showFirstOpen();
 		keepRecent(remember(recent, { ...entry, pgn }));
 	}
 
@@ -465,6 +467,13 @@
 	function finishSpotting() {
 		autoplay = false;
 		spotting = false;
+		showFirstOpen();
+	}
+
+	function showFirstOpen() {
+		if (spotting) return;
+		const first = turningPoints.find((tp) => !revealed[tp.ply]);
+		if (first) select(first.ply - 1);
 	}
 
 	function skipSpotting() {

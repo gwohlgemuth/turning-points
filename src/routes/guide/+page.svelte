@@ -99,8 +99,10 @@
 						turning point on, so it can't give the answer away.
 					</li>
 					<li>
-						Press <strong>Next open turning point</strong> (or <kbd>N</kbd>). First ask what your
-						opponent wants, then think and play your candidate move on the board, and press
+						When the analysis is done, the board shows the position before the first open turning
+						point; <strong>Next open turning point</strong> (or <kbd>N</kbd>) moves on. First ask
+						what your opponent wants, then think and play your candidate move on the board, and
+						press
 						<strong>Reveal</strong>. Your move is marked <span class="found">✓ found</span>
 						if it is about as good as the engine's move, otherwise
 						<span class="missed">✗ missed</span>. You also see the refutation of the game move, and
