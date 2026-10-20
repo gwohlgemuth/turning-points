@@ -34,6 +34,7 @@ const entry = (patch: Partial<StatsEntry>): StatsEntry => ({
 	tactical: false,
 	missedWin: false,
 	opening: '',
+	book: null,
 	speed: null,
 	spotted: null,
 	...patch
@@ -172,14 +173,28 @@ describe('winsMaterial', () => {
 describe('openingLeaks', () => {
 	it('groups early turning points by opening', () => {
 		const leaks = openingLeaks([
-			entry({ opening: 'Sicilian Defense', ply: 8, verdict: 'missed' }),
-			entry({ opening: 'Sicilian Defense', ply: 12, date: 1 }),
+			entry({ opening: 'Sicilian Defense', ply: 8, book: 6, verdict: 'missed' }),
+			entry({ opening: 'Sicilian Defense', ply: 12, book: 4, date: 1 }),
 			entry({ opening: 'Sicilian Defense', ply: 40 }),
 			entry({ ply: 5 })
 		]);
 		expect(leaks).toEqual([
-			{ opening: 'Sicilian Defense', games: 2, turningPoints: 2, missed: 1 },
-			{ opening: 'Unknown', games: 1, turningPoints: 1, missed: 0 }
+			{
+				opening: 'Sicilian Defense',
+				games: 2,
+				turningPoints: 2,
+				leavingBook: 1,
+				soonAfterBook: 1,
+				missed: 1
+			},
+			{
+				opening: 'Unknown',
+				games: 1,
+				turningPoints: 1,
+				leavingBook: 0,
+				soonAfterBook: 0,
+				missed: 0
+			}
 		]);
 	});
 });

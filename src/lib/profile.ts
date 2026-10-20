@@ -146,11 +146,15 @@ export function openingLeaks(entries: StatsEntry[]) {
 		const name = entry.opening || 'Unknown';
 		byOpening.set(name, [...(byOpening.get(name) ?? []), entry]);
 	}
+	const afterBook = (entry: StatsEntry, from: number, to: number) =>
+		entry.book !== null && entry.ply > entry.book + from && entry.ply <= entry.book + to;
 	return [...byOpening.entries()]
 		.map(([opening, list]) => ({
 			opening,
 			games: new Set(list.map(gameId)).size,
 			turningPoints: list.length,
+			leavingBook: list.filter((entry) => afterBook(entry, 0, 2)).length,
+			soonAfterBook: list.filter((entry) => afterBook(entry, 2, 10)).length,
 			missed: list.filter((entry) => entry.verdict === 'missed').length
 		}))
 		.sort((a, b) => b.turningPoints - a.turningPoints || a.opening.localeCompare(b.opening));

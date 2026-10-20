@@ -1,4 +1,5 @@
 import { Chess, type Move } from 'chess.js';
+import { bookPlies } from './book/index.ts';
 import { extractClocks, moveTimes, parseTimeControl, speedOf, type Speed } from './clock.ts';
 import {
 	gameUrl,
@@ -38,6 +39,7 @@ export type StatsEntry = {
 	tactical: boolean;
 	missedWin: boolean;
 	opening: string;
+	book: number | null;
 	speed: Speed | null;
 	spotted: boolean | null;
 };
@@ -72,6 +74,12 @@ export function entriesFromPgn(file: string, pgn: string): StatsEntry[] {
 	const times = control && clocks.length === moves.length ? moveTimes(clocks, control) : [];
 	const opening = pgnHeader(pgn, 'Opening') ?? pgnHeader(pgn, 'ECO') ?? '';
 	const flags = readSpotFlags(pgn);
+	const book = moves.length
+		? bookPlies(
+				moves[0].before,
+				moves.map((move) => move.after)
+			)
+		: null;
 	return plies.map((ply) => {
 		const fen = moves[ply - 1]?.before ?? '';
 		const tactical = lostMaterial(moves, ply);
@@ -94,6 +102,7 @@ export function entriesFromPgn(file: string, pgn: string): StatsEntry[] {
 			tactical,
 			missedWin: !tactical && winsMaterial(fen, notes[ply].best.split(' ').filter(Boolean)),
 			opening,
+			book,
 			speed: speedOf(control),
 			spotted: flags.length ? isSpotted(ply, flags) : null
 		};

@@ -62,6 +62,7 @@ pnpm update:homepage  # build the browser version and commit it to ../homepage (
 pnpm check     # type checking
 pnpm test      # unit tests
 pnpm lint      # prettier + eslint
+pnpm update:book <path>  # rebuild the opening book from a checkout of lichess-org/chess-openings
 ```
 
 In development, `/review?due=all` makes every card that is not yet learned due today, so the review can be tried without waiting a day.
@@ -71,6 +72,8 @@ In development, `/review?due=all` makes every card that is not yet learned due t
 Chess pieces: "cburnett" set by [Colin M.L. Burnett](https://en.wikipedia.org/wiki/User:Cburnett), licensed under GPLv2+/BSD/GFDL, taken from [lichess](https://github.com/lichess-org/lila/tree/master/public/piece/cburnett).
 
 Browser engine: [Stockfish.js](https://github.com/nmrugg/stockfish.js) by Nathan Rugg and Chess.com, based on [Stockfish](https://github.com/official-stockfish/Stockfish), licensed under the GPLv3.
+
+Opening book: the named openings of [lichess-org/chess-openings](https://github.com/lichess-org/chess-openings), dedicated to the public domain (CC0), stored as hashes of their positions in `src/lib/book/positions.txt`.
 
 Font: [Inter](https://github.com/rsms/inter) by The Inter Project Authors, licensed under the SIL Open Font License 1.1 (see `static/fonts/OFL.txt`).
 

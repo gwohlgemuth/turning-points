@@ -259,6 +259,13 @@
 						position on Lichess.
 					</li>
 					<li>
+						The analysis shows where each game left the <strong>book</strong>, the named openings
+						Lichess knows. In Opening leaks, <strong>Leaving book</strong> counts turning points on
+						your first moves out of book: learn the line one step further.
+						<strong>Soon after</strong> counts those in the five moves after that: you know the moves
+						but not the plans, so study annotated games in that opening.
+					</li>
+					<li>
 						Filter by <strong>time control</strong>: mistakes in blitz and in classical games have
 						different causes.
 					</li>

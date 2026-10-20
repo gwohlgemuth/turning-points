@@ -262,6 +262,20 @@
 										>Turning points by move 15</span
 									>
 								</th>
+								<th class="num">
+									<span
+										class="term"
+										title="Turning points on your first move or the move after it out of book: learn the line further"
+										>Leaving book</span
+									>
+								</th>
+								<th class="num">
+									<span
+										class="term"
+										title="Turning points in the five moves after that: learn the typical plans"
+										>Soon after</span
+									>
+								</th>
 								<th class="num">Missed</th>
 							</tr>
 						</thead>
@@ -271,6 +285,8 @@
 									<td>{leak.opening}</td>
 									<td class="num">{leak.games}</td>
 									<td class="num">{leak.turningPoints}</td>
+									<td class="num">{leak.leavingBook}</td>
+									<td class="num">{leak.soonAfterBook}</td>
 									<td class="num verdict missed">{leak.missed}</td>
 								</tr>
 							{/each}

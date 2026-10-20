@@ -28,6 +28,7 @@ const entry = (ply: number, verdict: StatsEntry['verdict'], fen = `fen-${ply}`):
 	tactical: false,
 	missedWin: false,
 	opening: '',
+	book: null,
 	speed: null,
 	spotted: null
 });

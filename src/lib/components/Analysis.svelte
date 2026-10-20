@@ -13,6 +13,7 @@
 	import Header from '#lib/components/Header.svelte';
 	import SaveFolder from '#lib/components/SaveFolder.svelte';
 	import TimeChart from '#lib/components/TimeChart.svelte';
+	import { bookPlies } from '#lib/book/index.ts';
 	import { describeTime, formatClock, formatDuration } from '#lib/clock.ts';
 	import Variations from '#lib/components/Variations.svelte';
 	import CandidateCheck from '#lib/components/CandidateCheck.svelte';
@@ -156,6 +157,14 @@
 	const RESULT_LABELS = { w: 'White wins', b: 'Black wins', draw: 'Draw' };
 	let won = $derived(winner(headers.Result ?? '*'));
 	let hasTimes = $derived(moves.some((m) => m.time));
+	let book = $derived(
+		moves.length
+			? bookPlies(
+					startFen,
+					moves.map((move) => move.fenAfter)
+				)
+			: null
+	);
 	let turningPlies = $derived(new Set(turningPoints.map((tp) => tp.ply)));
 	let shownTurningPlies = $derived(spotting ? new Set<number>() : turningPlies);
 	let spotResult = $derived(
@@ -902,6 +911,14 @@
 								{#if won === 'b'}<span class="crown" title="Winner">♚</span>{/if}
 							</span>
 						</div>
+						{#if book !== null}
+							<p class="book muted small">
+								{headers.Opening ? `${headers.Opening} · ` : ''}{#if book < moves.length}Out of book
+									with <button class="link" onclick={() => select(book! + 1)}
+										>{moveLabel(book + 1, moves[book].san)}</button
+									>{:else}In book for the whole game{/if}
+							</p>
+						{/if}
 						<EvalGraph
 							{winPercents}
 							{positions}
@@ -1517,6 +1534,16 @@
 		color: var(--accent);
 		font-size: 1.2rem;
 		line-height: 1;
+	}
+
+	.book {
+		margin: 0 0 8px;
+		text-align: center;
+	}
+
+	.book .link {
+		font-size: inherit;
+		font-weight: 650;
 	}
 
 	.result {
