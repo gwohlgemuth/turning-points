@@ -15,7 +15,14 @@
 	import SaveFolder from '#lib/components/SaveFolder.svelte';
 	import TimeChart from '#lib/components/TimeChart.svelte';
 	import { bookPlies } from '#lib/book/index.ts';
-	import { describeTime, formatClock, formatDuration } from '#lib/clock.ts';
+	import {
+		describeTime,
+		formatClock,
+		formatDuration,
+		formatTimeControl,
+		parseTimeControl,
+		speedOf
+	} from '#lib/clock.ts';
 	import Variations from '#lib/components/Variations.svelte';
 	import CandidateCheck from '#lib/components/CandidateCheck.svelte';
 	import CountUp from '#lib/components/CountUp.svelte';
@@ -39,6 +46,7 @@
 		winPercent
 	} from '#lib/analysis.ts';
 	import {
+		formatWhen,
 		gameKey,
 		gameRef,
 		gameUrl,
@@ -83,7 +91,7 @@
 		type LoaderTab,
 		type Preferences
 	} from '#lib/preferences.ts';
-	import { nextGame } from '#lib/stats.ts';
+	import { gameQueue, type QueuedGame } from '#lib/stats.ts';
 
 	type Props = { preferences: Preferences; active: boolean };
 
@@ -95,6 +103,7 @@
 	let lines = $state(untrack(() => preferences.lines));
 	$effect(() => updatePreferences({ depth, lines }));
 	let setupOpen = $state(true);
+	let reopening = $state(false);
 
 	let status = $state<'idle' | 'running' | 'done' | 'error'>('idle');
 	let message = $state('');
@@ -115,7 +124,7 @@
 	let loadedGames = $state<GameSummary[]>([]);
 	let nextMessage = $state('');
 	const visited = new SvelteSet<string>();
-	let loaderTab = $state<LoaderTab>(untrack(() => preferences.tab));
+	let loaderTab = $state<LoaderTab | 'queue'>(untrack(() => preferences.tab));
 	let recent = $state<RecentEntry[]>(loadRecent());
 	let recentGames = $derived(
 		recent.map((entry, i) => ({
@@ -170,6 +179,10 @@
 	const RESULT_LABELS = { w: 'White wins', b: 'Black wins', draw: 'Draw' };
 	let won = $derived(winner(headers.Result ?? '*'));
 	let hasTimes = $derived(moves.some((m) => m.time));
+	let playedAt = $derived(formatWhen(summaryFromPgn(gamePgn, 0).date));
+	let control = $derived(parseTimeControl(headers.TimeControl));
+	let link = $derived(gameUrl(gamePgn));
+	let tags = $derived(Object.entries(headers).filter(([, value]) => !/^[?.\s]*$/.test(value)));
 	let book = $derived(
 		moves.length
 			? bookPlies(
@@ -339,7 +352,7 @@
 			winPercent: winPercent(best.score, boardFen.split(' ')[1] === 'w')
 		};
 	}
-	let showSetup = $derived(!moves.length || setupOpen || status === 'error');
+	let showSetup = $derived((!moves.length && !reopening) || setupOpen || status === 'error');
 	let progress = $derived(positions > 0 ? Math.round((winPercents.length / positions) * 100) : 0);
 
 	function handleEvent(event: AnalyzeEvent) {
@@ -365,6 +378,9 @@
 			autoplay = false;
 			selected = 0;
 			gamePgn = pgn;
+			reopening = false;
+			const key = gameKey(pgn);
+			if (key) visited.add(key);
 			applyDraft();
 		} else if (event.type === 'eval') {
 			evals[event.eval.index] = event.eval;
@@ -516,20 +532,46 @@
 		}
 	}
 
-	async function saveAndNext() {
-		if (unsaved) {
-			await saveNotes();
-			if (saving.failed) return;
-		}
-		const current = gameKey(pgn);
-		if (current) visited.add(current);
+	async function peekQueue(fetchOnline: boolean) {
 		const { source, username, max } = readPreferences();
-		if (!loadedGames.length && username)
+		if (fetchOnline && !loadedGames.length && username)
 			loadedGames = await backend
 				.games(import.meta.env.STATIC ? 'lichess' : source, username, max)
 				.catch(() => []);
 		const saved = await backend.saved(saving.folder).catch(() => []);
-		const next = nextGame(loadedGames, saved, username, visited, summaryFromPgn(gamePgn, 0).date);
+		return gameQueue(loadedGames, saved, username, visited, summaryFromPgn(gamePgn, 0).date);
+	}
+
+	let upcoming = $state<QueuedGame[]>([]);
+
+	$effect(() => {
+		if (!moves.length || spotting || batchRunning) return;
+		void [gamePgn, visited.size, loadedGames];
+		let current = true;
+		untrack(() => peekQueue(false)).then((queue) => {
+			if (current) upcoming = queue;
+		});
+		return () => (current = false);
+	});
+
+	const sourceLabel = (source: 'saved' | 'online') =>
+		source === 'saved'
+			? 'Saved'
+			: readPreferences().source === 'chesscom' && !import.meta.env.STATIC
+				? 'Chess.com'
+				: 'Lichess';
+
+	function showQueue() {
+		loaderTab = 'queue';
+		setupOpen = true;
+	}
+
+	async function openQueued(entry: QueuedGame | undefined) {
+		if (unsaved) {
+			await saveNotes();
+			if (saving.failed) return;
+		}
+		const next = entry ?? (await peekQueue(true))[0];
 		if (!next) {
 			nextMessage = 'No more games with work left';
 			return;
@@ -654,6 +696,7 @@
 		setupOpen = false;
 		const entry = recent.find((other) => other.key === current.key);
 		if (!entry) {
+			reopening = true;
 			analyze();
 			return;
 		}
@@ -702,6 +745,8 @@
 			{depth}
 			{preferences}
 			{active}
+			queue={moves.length ? upcoming : undefined}
+			onqueue={openQueued}
 		/>
 		<SaveFolder folder={preferences.folder} />
 	</section>
@@ -1031,6 +1076,30 @@
 								{#if won === 'b'}<span class="crown" title="Winner">♚</span>{/if}
 							</span>
 						</div>
+						{#if !spotting && (playedAt || control || link)}
+							<p class="game-info muted small">
+								{[playedAt, control && `${formatTimeControl(control)} ${speedOf(control)}`]
+									.filter(Boolean)
+									.join(' · ')}{#if link}{playedAt || control ? ' · ' : ''}<a
+										href={link}
+										target="_blank"
+										rel="noopener noreferrer"
+										>{link.includes('chess.com') ? 'Chess.com' : 'Lichess'} ↗</a
+									>{/if}
+							</p>
+						{/if}
+						{#if !spotting && tags.length}
+							<details class="tags">
+								<summary>All PGN tags</summary>
+								<table>
+									<tbody>
+										{#each tags as [name, value] (name)}
+											<tr><th>{name}</th><td>{value}</td></tr>
+										{/each}
+									</tbody>
+								</table>
+							</details>
+						{/if}
 						{#if book !== null && !spotting}
 							<p class="book muted small">
 								{headers.Opening ? `${headers.Opening} · ` : ''}{#if book < moves.length}Out of book
@@ -1303,9 +1372,9 @@
 									>
 								{/if}
 								<button
-									onclick={saveAndNext}
+									onclick={() => openQueued(undefined)}
 									disabled={batchRunning}
-									title="Open the newest game with work left: from your online list, or saved with open turning points"
+									title="Open the next older game with work left: from your online list, or saved with open turning points"
 									>{unsaved ? 'Save & next game' : 'Next game'}</button
 								>
 								{#if nextMessage}
@@ -1316,6 +1385,19 @@
 									<span class="muted small" class:error={saving.failed}>{saving.message}</span>
 								{/if}
 							</div>
+							{#if upcoming.length && !nextMessage}
+								<p class="next-preview muted small">
+									Next: {formatWhen(upcoming[0].game.date)}
+									{upcoming[0].game.white} – {upcoming[0].game.black} · {sourceLabel(
+										upcoming[0].source
+									)}
+									{#if upcoming.length > 1 || !loadedGames.length}
+										· <button class="link" onclick={showQueue}
+											>{upcoming.length > 1 ? `${upcoming.length - 1} more` : 'All'} ›</button
+										>
+									{/if}
+								</p>
+							{/if}
 						{/if}
 					</section>
 				</div>
@@ -1676,9 +1758,42 @@
 		line-height: 1;
 	}
 
-	.book {
+	.book,
+	.game-info {
 		margin: 0 0 8px;
 		text-align: center;
+	}
+
+	.tags {
+		margin: 0 0 8px;
+		font-size: 0.85rem;
+	}
+
+	.tags table {
+		margin-top: 6px;
+		border-collapse: collapse;
+	}
+
+	.tags th,
+	.tags td {
+		padding: 2px 10px 2px 0;
+		text-align: left;
+		vertical-align: top;
+		overflow-wrap: anywhere;
+	}
+
+	.tags th {
+		color: var(--muted);
+		font-weight: 500;
+	}
+
+	.next-preview {
+		margin: -14px 0 22px;
+	}
+
+	.next-preview .link {
+		font-size: inherit;
+		font-weight: 650;
 	}
 
 	.book .link {

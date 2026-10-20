@@ -199,26 +199,38 @@ export function savedGames(files: { path: string; text: string }[]): SavedGame[]
 	return games.filter((game) => !game.url || byUrl.get(game.url) === game);
 }
 
-export function nextGame(
+export type QueuedGame = { game: GameSummary; side: Side; source: 'saved' | 'online' };
+
+export function gameQueue(
 	online: GameSummary[],
 	saved: SavedGame[],
 	username: string,
 	visited: Set<string>,
 	before: number
-): { game: GameSummary; side: Side } | null {
+): QueuedGame[] {
 	const savedUrls = new Set(saved.map((game) => game.url).filter(Boolean));
 	const candidates = [
 		...saved
 			.filter((game) => game.open > 0 || !game.worked)
-			.map((game) => ({ game, side: playerSide(game, username) ?? game.side })),
+			.map((game) => ({
+				game,
+				side: playerSide(game, username) ?? game.side,
+				source: 'saved' as const
+			})),
 		...online
 			.filter((game) => !savedUrls.has(game.url))
-			.map((game) => ({ game, side: playerSide(game, username) }))
+			.map((game) => ({ game, side: playerSide(game, username), source: 'online' as const }))
 	]
 		.filter(({ game }) => !visited.has(gameRef(game)))
 		.sort((a, b) => b.game.date - a.game.date);
 	const own = candidates.filter(({ side }) => side);
-	const pool = own.length ? own : candidates;
-	const pick = pool.find(({ game }) => game.date < before) ?? pool[0];
-	return pick ? { game: pick.game, side: pick.side ?? 'w' } : null;
+	const pool = (own.length ? own : candidates).map((entry) => ({
+		...entry,
+		side: entry.side ?? 'w'
+	}));
+	const start = Math.max(
+		0,
+		pool.findIndex(({ game }) => game.date < before)
+	);
+	return [...pool.slice(start), ...pool.slice(0, start)];
 }

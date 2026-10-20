@@ -97,7 +97,9 @@
 					</li>
 					<li>
 						The engine analyzes every position. The evaluation stays hidden from the first open
-						turning point on, so it can't give the answer away.
+						turning point on, so it can't give the answer away. Under the players you see when and
+						how the game was played, and <strong>All PGN tags</strong> shows everything the PGN says about
+						it.
 					</li>
 					<li>
 						When the analysis is done, the board shows the position before the first open turning
@@ -119,9 +121,13 @@
 						notes, which feeds Review and Stats, and the next older game with work left opens: one
 						from your online list you haven't saved yet, or a saved one with open turning points,
 						for example after <strong>Analyze all</strong>. After the oldest, it starts again with
-						the newest. <strong>Save notes</strong> saves without moving on. Reloading or closing
-						the page loses nothing: you come back to the game and move you were on, with notes you
-						haven't saved yet. Only <strong>Save notes</strong> writes them to the PGN file.
+						the newest. The line below the button shows which game comes next and from where: your
+						online list or your save folder. <strong>more ›</strong> opens the
+						<strong>Up next</strong> tab with the whole queue in that order, where you can open any
+						game.
+						<strong>Save notes</strong> saves without moving on. Reloading or closing the page loses
+						nothing: you come back to the game and move you were on, with notes you haven't saved
+						yet. Only <strong>Save notes</strong> writes them to the PGN file.
 					</li>
 				</ol>
 				<p>

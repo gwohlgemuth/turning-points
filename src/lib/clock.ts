@@ -22,6 +22,9 @@ export function parseTimeControl(value: string | undefined): TimeControl | null 
 	return { base: Number(match[1]), increment: Number(match[2] ?? 0) };
 }
 
+export const formatTimeControl = (control: TimeControl) =>
+	`${Number((control.base / 60).toFixed(2))}+${control.increment}`;
+
 export type Speed = 'bullet' | 'blitz' | 'rapid' | 'classical';
 
 export function speedOf(control: TimeControl | null): Speed | null {

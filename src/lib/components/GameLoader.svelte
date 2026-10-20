@@ -12,6 +12,7 @@
 		formatGameDate,
 		gameKey,
 		gameOutcome,
+		gameRef,
 		gamesToPgn,
 		pgnFilename,
 		playerSide,
@@ -24,14 +25,14 @@
 		type GameSummary,
 		type Outcome
 	} from '#lib/games.ts';
-	import type { SavedGame } from '#lib/stats.ts';
+	import type { QueuedGame, SavedGame } from '#lib/stats.ts';
 	import { savePgn, saving } from '#lib/saving.svelte.ts';
 	import { updatePreferences, type LoaderTab, type Preferences } from '#lib/preferences.ts';
 
 	type Props = {
 		onselect: (game: GameSummary, side: Side) => void;
 		games?: GameSummary[];
-		tab?: LoaderTab;
+		tab?: LoaderTab | 'queue';
 		pgn?: string;
 		recent?: GameSummary[];
 		onforget?: (id: string) => void;
@@ -41,6 +42,8 @@
 		depth: number;
 		preferences: Preferences;
 		active?: boolean;
+		queue?: QueuedGame[];
+		onqueue?: (entry: QueuedGame) => void;
 	};
 
 	let {
@@ -55,7 +58,9 @@
 		onbatch,
 		depth,
 		preferences,
-		active = true
+		active = true,
+		queue,
+		onqueue
 	}: Props = $props();
 
 	const initial = untrack(() => preferences);
@@ -82,8 +87,13 @@
 					: worked
 				: tab === 'recent'
 					? recent
-					: []
+					: tab === 'queue'
+						? (queue ?? []).map(({ game }) => game)
+						: []
 	);
+	let queued = $derived(new Map((queue ?? []).map((entry) => [gameRef(entry.game), entry])));
+	const sourceName = () =>
+		source === 'chesscom' && !import.meta.env.STATIC ? 'Chess.com' : 'Lichess';
 	let savedByUrl = $derived(new Map(saved.filter((game) => game.url).map((g) => [g.url, g])));
 	const players = $derived(playersByCount(list));
 	let perspective = $derived(
@@ -102,13 +112,13 @@
 		}
 	}
 
-	function showTab(next: LoaderTab) {
+	function showTab(next: LoaderTab | 'queue') {
 		slideList = false;
 		tab = next;
 		message = '';
-		updatePreferences({ tab: next });
+		if (next !== 'queue') updatePreferences({ tab: next });
 		loadSaved();
-		if (next === 'online') fetchIfEmpty();
+		if (next === 'online' || next === 'queue') fetchIfEmpty();
 	}
 
 	function fetchIfEmpty() {
@@ -138,7 +148,7 @@
 	}
 
 	onMount(() => {
-		if (tab === 'online') fetchIfEmpty();
+		if (tab === 'online' || tab === 'queue') fetchIfEmpty();
 	});
 
 	async function fetchGames() {
@@ -160,6 +170,8 @@
 	}
 
 	function choose(game: GameSummary) {
+		const entry = tab === 'queue' ? queued.get(gameRef(game)) : undefined;
+		if (entry && onqueue) return onqueue(entry);
 		selectedId = game.id;
 		onselect(game, playerSide(game, perspective) ?? 'w');
 	}
@@ -243,6 +255,15 @@
 		disabled={!!batch}
 		onclick={() => showTab('pgn')}>PGN</button
 	>
+	{#if queue}
+		<button
+			role="tab"
+			aria-selected={tab === 'queue'}
+			class:on={tab === 'queue'}
+			disabled={!!batch}
+			onclick={() => showTab('queue')}>Up next</button
+		>
+	{/if}
 </div>
 
 <div class="tab-controls">
@@ -291,6 +312,12 @@
 			<input type="file" accept=".pgn,text/plain" onchange={loadFile} aria-label="Open PGN file" />
 			<button onclick={() => savePgn(pgn, pgnFilename(pgn))} disabled={!pgn.trim()}>Save</button>
 		</div>
+	{:else if tab === 'queue'}
+		<span class="muted">
+			{list.length
+				? 'Games with work left, in the order Next game takes them.'
+				: 'No games with work left.'}
+		</span>
 	{:else if recent.length}
 		<button onclick={() => confirm('Remove all games from Recent?') && onclear?.()}
 			>Clear recent</button
@@ -367,7 +394,11 @@
 							</span>
 						{/each}
 					</span>
-					{#if info && (info.worked || tab !== 'saved')}
+					{#if tab === 'queue'}
+						<span class="badge"
+							>{queued.get(gameRef(game))?.source === 'saved' ? 'Saved' : sourceName()}</span
+						>
+					{:else if info && (info.worked || tab !== 'saved')}
 						<span
 							class="badge"
 							title="{info.worked} turning points worked on · {info.found} found · {info.missed} missed"

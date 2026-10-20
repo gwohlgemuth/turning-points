@@ -13,6 +13,7 @@ import {
 	playersByCount,
 	splitPgn,
 	summaryFromPgn,
+	formatWhen,
 	winner,
 	type GameSummary
 } from './games.ts';
@@ -67,6 +68,14 @@ describe('gamesToPgn and splitPgn', () => {
 
 	it('keeps a single game with Windows line endings in one piece', () => {
 		expect(splitPgn(first.replaceAll('\n', '\r\n'))).toEqual([first]);
+	});
+});
+
+describe('formatWhen', () => {
+	it('shows the time only when the game has one', () => {
+		expect(formatWhen(Date.parse('2026-10-11T14:05:30Z'))).toMatch(/\d{1,2}[:.]\d{2}/);
+		expect(formatWhen(Date.parse('2026-10-11'))).not.toMatch(/\d{1,2}:\d{2}/);
+		expect(formatWhen(0)).toBe('');
 	});
 });
 

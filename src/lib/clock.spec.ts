@@ -4,6 +4,7 @@ import {
 	extractClocks,
 	formatClock,
 	formatDuration,
+	formatTimeControl,
 	moveTimes,
 	parseClock,
 	parseTimeControl,
@@ -60,6 +61,14 @@ describe('formatting', () => {
 		expect(formatClock(3725)).toBe('1:02:05');
 		expect(formatDuration(4)).toBe('4 s');
 		expect(describeTime({ spent: 4, remaining: 151 })).toBe('4 s (2:31 left)');
+	});
+});
+
+describe('formatTimeControl', () => {
+	it('shows the base time in minutes and the increment in seconds', () => {
+		expect(formatTimeControl({ base: 300, increment: 3 })).toBe('5+3');
+		expect(formatTimeControl({ base: 30, increment: 0 })).toBe('0.5+0');
+		expect(formatTimeControl({ base: 900, increment: 10 })).toBe('15+10');
 	});
 });
 

@@ -117,6 +117,15 @@ export function playersByCount(games: GameSummary[]): string[] {
 	return [...counts.keys()].sort((a, b) => counts.get(b)! - counts.get(a)! || a.localeCompare(b));
 }
 
+const DAY = 86_400_000;
+
+export const formatWhen = (date: number) =>
+	!date
+		? ''
+		: date % DAY
+			? new Date(date).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+			: new Date(date).toLocaleDateString(undefined, { dateStyle: 'medium', timeZone: 'UTC' });
+
 export const parseRating = (value?: string) =>
 	value && /^\d+$/.test(value) ? Number(value) : null;
 
