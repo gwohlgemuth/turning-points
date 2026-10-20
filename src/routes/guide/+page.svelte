@@ -119,7 +119,7 @@
 						notes, which feeds Review and Stats, and the newest game with work left opens: one from
 						your online list you haven't saved yet, or a saved one with open turning points, for
 						example after <strong>Analyze all</strong>. <strong>Save notes</strong> saves without moving
-						on.
+						on. Reloading the page brings you back to the game and move you were on.
 					</li>
 				</ol>
 				<p>

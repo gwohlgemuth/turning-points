@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { Chess } from 'chess.js';
-	import { onMount, untrack } from 'svelte';
+	import { untrack } from 'svelte';
 	import { flip } from 'svelte/animate';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { fade, fly, slide } from 'svelte/transition';
@@ -65,8 +65,10 @@
 	import {
 		findAnalysis,
 		forget,
+		loadCurrent,
 		loadRecent,
 		remember,
+		saveCurrent,
 		saveRecent,
 		updatePgn,
 		type RecentEntry
@@ -74,7 +76,12 @@
 	import { saving, savePgn } from '#lib/saving.svelte.ts';
 	import { isFalseAlarm, isSpotted, readSpotFlags, spotScore, writeSpotFlags } from '#lib/spot.ts';
 	import { playFound, playMissed } from '#lib/sound.svelte.ts';
-	import { readPreferences, updatePreferences, type Preferences } from '#lib/preferences.ts';
+	import {
+		readPreferences,
+		updatePreferences,
+		type LoaderTab,
+		type Preferences
+	} from '#lib/preferences.ts';
 	import { nextGame } from '#lib/stats.ts';
 
 	type Props = { preferences: Preferences; active: boolean };
@@ -83,8 +90,9 @@
 
 	let pgn = $state('');
 	let side = $state<Side>('w');
-	let depth = $state(16);
-	let lines = $state(3);
+	let depth = $state(untrack(() => preferences.depth));
+	let lines = $state(untrack(() => preferences.lines));
+	$effect(() => updatePreferences({ depth, lines }));
 	let setupOpen = $state(true);
 
 	let status = $state<'idle' | 'running' | 'done' | 'error'>('idle');
@@ -104,8 +112,8 @@
 	let loadedGames = $state<GameSummary[]>([]);
 	let nextMessage = $state('');
 	const visited = new SvelteSet<string>();
-	let loaderTab = $state<'online' | 'saved' | 'recent' | 'pgn'>('online');
-	let recent = $state<RecentEntry[]>([]);
+	let loaderTab = $state<LoaderTab>(untrack(() => preferences.tab));
+	let recent = $state<RecentEntry[]>(loadRecent());
 	let recentGames = $derived(
 		recent.map((entry, i) => ({
 			...summaryFromPgn(entry.pgn, i),
@@ -113,10 +121,6 @@
 			url: gameUrl(entry.pgn) ?? ''
 		}))
 	);
-
-	onMount(() => {
-		recent = loadRecent();
-	});
 
 	function keepRecent(list: RecentEntry[]) {
 		recent = list;
@@ -511,8 +515,15 @@
 			await saveNotes();
 			if (saving.failed) return;
 		}
+		const current = gameKey(pgn);
+		if (current) visited.add(current);
+		const { source, username, max } = readPreferences();
+		if (!loadedGames.length && username)
+			loadedGames = await backend
+				.games(import.meta.env.STATIC ? 'lichess' : source, username, max)
+				.catch(() => []);
 		const saved = await backend.saved(saving.folder).catch(() => []);
-		const next = nextGame(loadedGames, saved, readPreferences().username, visited);
+		const next = nextGame(loadedGames, saved, username, visited);
 		if (!next) {
 			nextMessage = 'No more games with work left';
 			return;
@@ -600,6 +611,26 @@
 		flipped = player === 'b';
 		analyze();
 	}
+
+	$effect(() => {
+		const key = status === 'done' && moves.length ? gameKey(pgn) : null;
+		if (key && recent.some((entry) => entry.key === key)) saveCurrent({ key, side, selected });
+	});
+
+	function reopen() {
+		const current = loadCurrent();
+		const entry = current && recent.find((other) => other.key === current.key);
+		if (!entry) return;
+		pgn = entry.pgn;
+		side = current.side;
+		flipped = side === 'b';
+		depth = entry.depth;
+		setupOpen = false;
+		replay(entry);
+		select(current.selected);
+	}
+
+	reopen();
 </script>
 
 <svelte:window onkeydown={handleKey} onbeforeunload={warnUnsaved} />

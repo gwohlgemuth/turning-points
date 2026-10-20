@@ -26,12 +26,12 @@
 	} from '#lib/games.ts';
 	import type { SavedGame } from '#lib/stats.ts';
 	import { savePgn, saving } from '#lib/saving.svelte.ts';
-	import { updatePreferences, type Preferences } from '#lib/preferences.ts';
+	import { updatePreferences, type LoaderTab, type Preferences } from '#lib/preferences.ts';
 
 	type Props = {
 		onselect: (game: GameSummary, side: Side) => void;
 		games?: GameSummary[];
-		tab?: 'online' | 'saved' | 'recent' | 'pgn';
+		tab?: LoaderTab;
 		pgn?: string;
 		recent?: GameSummary[];
 		onforget?: (id: string) => void;
@@ -102,11 +102,17 @@
 		}
 	}
 
-	function showTab(next: 'online' | 'saved' | 'recent' | 'pgn') {
+	function showTab(next: LoaderTab) {
 		slideList = false;
 		tab = next;
 		message = '';
+		updatePreferences({ tab: next });
 		loadSaved();
+		if (next === 'online') fetchIfEmpty();
+	}
+
+	function fetchIfEmpty() {
+		if (username.trim() && !games.length && !loading) fetchGames();
 	}
 
 	$effect(() => {
@@ -132,7 +138,7 @@
 	}
 
 	onMount(() => {
-		if (initial.username && !games.length) fetchGames();
+		if (tab === 'online') fetchIfEmpty();
 	});
 
 	async function fetchGames() {

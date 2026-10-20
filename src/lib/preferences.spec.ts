@@ -9,7 +9,10 @@ describe('parsePreferences', () => {
 			max: 50,
 			folder: 'Chess',
 			sound: false,
-			spotFirst: true
+			spotFirst: true,
+			depth: 20,
+			lines: 1,
+			tab: 'saved'
 		});
 		expect(parsePreferences(raw)).toEqual({
 			source: 'chesscom',
@@ -17,7 +20,10 @@ describe('parsePreferences', () => {
 			max: 50,
 			folder: 'Chess',
 			sound: false,
-			spotFirst: true
+			spotFirst: true,
+			depth: 20,
+			lines: 1,
+			tab: 'saved'
 		});
 	});
 
@@ -28,12 +34,18 @@ describe('parsePreferences', () => {
 			max: 20,
 			folder: DEFAULT_SAVE_FOLDER,
 			sound: true,
-			spotFirst: false
+			spotFirst: false,
+			depth: 16,
+			lines: 3,
+			tab: 'online'
 		};
 		expect(parsePreferences(undefined)).toEqual(defaults);
 		expect(parsePreferences('not json')).toEqual(defaults);
 		expect(parsePreferences('null')).toEqual(defaults);
 		expect(parsePreferences(JSON.stringify({ source: 'x', max: 7, username: 5 }))).toEqual(
+			defaults
+		);
+		expect(parsePreferences(JSON.stringify({ depth: 40, lines: 2.5, tab: 'other' }))).toEqual(
 			defaults
 		);
 	});
