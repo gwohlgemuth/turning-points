@@ -1,6 +1,4 @@
-import { pgnHeader } from './games.ts';
-
-const HEADER = /^\[SpotFlags "[^"]*"\]\n?/m;
+import { pgnHeader, writeHeader } from './games.ts';
 
 export const isSpotted = (ply: number, flags: number[]) =>
 	flags.includes(ply) || flags.includes(ply - 2);
@@ -22,10 +20,5 @@ export function readSpotFlags(pgn: string): number[] {
 		.filter((ply) => Number.isInteger(ply) && ply > 0);
 }
 
-export function writeSpotFlags(pgn: string, flags: number[]): string {
-	const line = flags.length ? `[SpotFlags "${[...flags].sort((a, b) => a - b).join(' ')}"]\n` : '';
-	if (HEADER.test(pgn)) return pgn.replace(HEADER, line);
-	if (!line) return pgn;
-	if (!pgn.trimStart().startsWith('[')) return `${line}\n${pgn}`;
-	return pgn.replace(/^((?:\s*\[[^\n]*\]\n)*)/, `$1${line}`);
-}
+export const writeSpotFlags = (pgn: string, flags: number[]) =>
+	writeHeader(pgn, 'SpotFlags', flags.length ? [...flags].sort((a, b) => a - b).join(' ') : null);

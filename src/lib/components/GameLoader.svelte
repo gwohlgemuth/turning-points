@@ -193,7 +193,9 @@
 
 	let batch = $state<{ done: number; total: number } | null>(null);
 	let batchController: AbortController | null = null;
-	let unworked = $derived(shown.filter((game) => !progress(game)?.worked));
+	let unworked = $derived(
+		shown.filter((game) => !progress(game)?.worked && !progress(game)?.empty)
+	);
 
 	async function analyzeAll() {
 		const queue = [...unworked];

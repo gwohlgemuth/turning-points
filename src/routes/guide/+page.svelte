@@ -124,7 +124,7 @@
 						the newest. The line below the button shows which game comes next and from where: your
 						online list or your save folder. <strong>more ›</strong> opens the
 						<strong>Up next</strong> tab with the whole queue in that order, where you can open any
-						game.
+						game. A game without turning points is saved as done, so it doesn't come back.
 						<strong>Save notes</strong> saves without moving on. Reloading or closing the page loses
 						nothing: you come back to the game and move you were on, with notes you haven't saved
 						yet. Only <strong>Save notes</strong> writes them to the PGN file.

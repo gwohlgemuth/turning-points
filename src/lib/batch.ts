@@ -1,4 +1,5 @@
 import { findTurningPoints, type Move, type PositionEval, type Side } from './analysis.ts';
+import { markNoTurningPoints } from './games.ts';
 import { emptyNotes, writeNotes } from './notes.ts';
 import backend from '#backend';
 
@@ -20,7 +21,11 @@ export function markTurningPoints(
 		count,
 		side
 	);
-	return writeNotes(pgn, Object.fromEntries(turningPoints.map((tp) => [tp.ply, emptyNotes()])));
+	const marked = writeNotes(
+		pgn,
+		Object.fromEntries(turningPoints.map((tp) => [tp.ply, emptyNotes()]))
+	);
+	return markNoTurningPoints(marked, !turningPoints.length);
 }
 
 export async function analyzeGame(

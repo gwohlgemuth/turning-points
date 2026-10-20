@@ -14,6 +14,8 @@ import {
 	splitPgn,
 	summaryFromPgn,
 	formatWhen,
+	hasNoTurningPoints,
+	markNoTurningPoints,
 	winner,
 	type GameSummary
 } from './games.ts';
@@ -68,6 +70,18 @@ describe('gamesToPgn and splitPgn', () => {
 
 	it('keeps a single game with Windows line endings in one piece', () => {
 		expect(splitPgn(first.replaceAll('\n', '\r\n'))).toEqual([first]);
+	});
+});
+
+describe('markNoTurningPoints', () => {
+	const pgn = '[White "A"]\n[Result "*"]\n\n1. e4 *';
+
+	it('marks a game without turning points and removes the mark again', () => {
+		const marked = markNoTurningPoints(pgn, true);
+		expect(marked).toContain('[Result "*"]\n[TurningPoints "0"]\n\n1. e4');
+		expect(hasNoTurningPoints(marked)).toBe(true);
+		expect(markNoTurningPoints(marked, false)).toBe(pgn);
+		expect(hasNoTurningPoints(pgn)).toBe(false);
 	});
 });
 

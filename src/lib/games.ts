@@ -68,6 +68,22 @@ export function pgnHeader(pgn: string, name: string): string | undefined {
 	return new RegExp(`\\[${name} "([^"]*)"\\]`).exec(pgn)?.[1];
 }
 
+export function writeHeader(pgn: string, name: string, value: string | null): string {
+	const header = new RegExp(`^\\[${name} "[^"]*"\\]\\n?`, 'm');
+	const line = value === null ? '' : `[${name} "${value}"]\n`;
+	if (header.test(pgn)) return pgn.replace(header, line);
+	if (!line) return pgn;
+	if (!pgn.trimStart().startsWith('[')) return `${line}\n${pgn}`;
+	return pgn.replace(/^((?:\s*\[[^\n]*\]\n)*)/, `$1${line}`);
+}
+
+const TURNING_POINTS_HEADER = 'TurningPoints';
+
+export const hasNoTurningPoints = (pgn: string) => pgnHeader(pgn, TURNING_POINTS_HEADER) === '0';
+
+export const markNoTurningPoints = (pgn: string, none: boolean) =>
+	writeHeader(pgn, TURNING_POINTS_HEADER, none ? '0' : null);
+
 export function gameUrl(pgn: string): string | undefined {
 	const url = pgnHeader(pgn, 'Link') ?? pgnHeader(pgn, 'Site');
 	return url?.startsWith('http') ? url : undefined;

@@ -50,6 +50,8 @@
 		gameKey,
 		gameRef,
 		gameUrl,
+		hasNoTurningPoints,
+		markNoTurningPoints,
 		pgnFilename,
 		parseRating,
 		pgnHeader,
@@ -179,6 +181,9 @@
 	const RESULT_LABELS = { w: 'White wins', b: 'Black wins', draw: 'Draw' };
 	let won = $derived(winner(headers.Result ?? '*'));
 	let hasTimes = $derived(moves.some((m) => m.time));
+	let nothingToTrain = $derived(
+		status === 'done' && moves.length > 0 && !turningPoints.length && !hasNoTurningPoints(gamePgn)
+	);
 	let playedAt = $derived(formatWhen(summaryFromPgn(gamePgn, 0).date));
 	let control = $derived(parseTimeControl(headers.TimeControl));
 	let link = $derived(gameUrl(gamePgn));
@@ -522,7 +527,10 @@
 		savedNotes = notesSignature(notes);
 		const previousSpot = savedSpot;
 		savedSpot = spotFlags.join(' ');
-		pgn = writeSpotFlags(writeNotes(pgn, notes), spotFlags);
+		pgn = markNoTurningPoints(
+			writeSpotFlags(writeNotes(pgn, notes), spotFlags),
+			status === 'done' && !turningPoints.length
+		);
 		gamePgn = pgn;
 		keepRecent(updatePgn(recent, gameKey(pgn), pgn));
 		await savePgn(pgn, pgnFilename(pgn), true);
@@ -567,7 +575,7 @@
 	}
 
 	async function openQueued(entry: QueuedGame | undefined) {
-		if (unsaved) {
+		if (unsaved || nothingToTrain) {
 			await saveNotes();
 			if (saving.failed) return;
 		}
@@ -1188,7 +1196,7 @@
 								<p class="muted">
 									{analyzing
 										? 'Waiting for the engine…'
-										: `No turning points: none of your moves changed your winning chances by ${MIN_SWING}% or more.`}
+										: `No turning points: none of your moves changed your winning chances by ${MIN_SWING}% or more.${nothingToTrain ? ' Save & next game marks the game as done.' : ''}`}
 								</p>
 							{/if}
 							<ol>
@@ -1375,7 +1383,7 @@
 									onclick={() => openQueued(undefined)}
 									disabled={batchRunning}
 									title="Open the next older game with work left: from your online list, or saved with open turning points"
-									>{unsaved ? 'Save & next game' : 'Next game'}</button
+									>{unsaved || nothingToTrain ? 'Save & next game' : 'Next game'}</button
 								>
 								{#if nextMessage}
 									<span class="muted small">{nextMessage}</span>

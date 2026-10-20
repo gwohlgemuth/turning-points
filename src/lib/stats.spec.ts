@@ -189,6 +189,11 @@ describe('gameQueue', () => {
 		expect(gameQueue(games, [], 'me', new Set([url, 'https://lichess.org/c']), 0)).toEqual([]);
 	});
 
+	it('skips saved games that were analyzed and have no turning points', () => {
+		const empty = { ...saved('s', 0, 3, 'https://lichess.org/a'), worked: 0, empty: true };
+		expect(gameQueue([online('a', 'me', 'x', 3)], [empty], 'me', new Set(), 0)).toEqual([]);
+	});
+
 	it('counts saved games without any turning points marked as not analyzed yet', () => {
 		const unmarked = { ...saved('s', 0, 3, 'https://lichess.org/a'), worked: 0 };
 		expect(ids(gameQueue([online('a', 'me', 'x', 3)], [unmarked], 'me', new Set(), 0))).toEqual([

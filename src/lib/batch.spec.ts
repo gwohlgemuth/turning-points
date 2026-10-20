@@ -18,6 +18,14 @@ describe('markTurningPoints', () => {
 		expect(readNotes(marked)).toEqual({ 3: emptyNotes(), 5: emptyNotes() });
 	});
 
+	it('marks a game whose side has no turning points', () => {
+		const marked = markTurningPoints(pgn, evals([50, 52, 50, 51, 50, 52]), 3, 'w');
+		expect(marked).toContain('[TurningPoints "0"]');
+		expect(markTurningPoints(pgn, evals([50, 52, 62, 45, 60, 20]), 3, 'w')).not.toContain(
+			'TurningPoints'
+		);
+	});
+
 	it('only looks at the moves of the given side', () => {
 		const marked = markTurningPoints(pgn, evals([50, 52, 62, 45, 60, 20]), 1, 'b');
 		expect(Object.keys(readNotes(marked))).toEqual(['4']);

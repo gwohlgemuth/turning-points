@@ -12,6 +12,7 @@ import type { Side } from './analysis.ts';
 import {
 	gameRef,
 	gameUrl,
+	hasNoTurningPoints,
 	mergeAdjacentComments,
 	pgnHeader,
 	playerSide,
@@ -165,6 +166,7 @@ export type SavedGame = GameSummary & {
 	file: string;
 	worked: number;
 	open: number;
+	empty: boolean;
 	side: Side | null;
 	found: number;
 	missed: number;
@@ -184,6 +186,7 @@ export function savedGames(files: { path: string; text: string }[]): SavedGame[]
 					file: path,
 					worked: entries.length,
 					open: Object.values(notes).filter((note) => !isRevealed(note)).length,
+					empty: hasNoTurningPoints(pgn),
 					side: first ? sideOfPly(first) : null,
 					found: entries.filter((entry) => entry.verdict === 'found').length,
 					missed: entries.filter((entry) => entry.verdict === 'missed').length
@@ -211,7 +214,7 @@ export function gameQueue(
 	const savedUrls = new Set(saved.map((game) => game.url).filter(Boolean));
 	const candidates = [
 		...saved
-			.filter((game) => game.open > 0 || !game.worked)
+			.filter((game) => game.open > 0 || (!game.worked && !game.empty))
 			.map((game) => ({
 				game,
 				side: playerSide(game, username) ?? game.side,
