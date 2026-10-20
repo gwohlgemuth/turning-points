@@ -20,6 +20,7 @@ const entry = (ply: number, verdict: StatsEntry['verdict'], fen = `fen-${ply}`):
 	candidate: 'd4',
 	verdict,
 	confidence: '',
+	cause: '',
 	lesson: '',
 	answered: 0,
 	phase: 'middlegame',

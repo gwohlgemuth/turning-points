@@ -8,7 +8,7 @@ import {
 	summaryFromPgn,
 	type GameSummary
 } from './games.ts';
-import { answeredCount, readNotes, type Confidence, type Verdict } from './notes.ts';
+import { answeredCount, readNotes, type Cause, type Confidence, type Verdict } from './notes.ts';
 import {
 	gamePhase,
 	lostMaterial,
@@ -30,6 +30,7 @@ export type StatsEntry = {
 	candidate: string;
 	verdict: Verdict;
 	confidence: Confidence;
+	cause: Cause;
 	lesson: string;
 	answered: number;
 	phase: Phase;
@@ -84,6 +85,7 @@ export function entriesFromPgn(file: string, pgn: string): StatsEntry[] {
 			candidate: notes[ply].candidate,
 			verdict: notes[ply].verdict,
 			confidence: notes[ply].confidence,
+			cause: notes[ply].cause,
 			lesson: notes[ply].lesson,
 			answered: answeredCount(notes[ply]),
 			phase: gamePhase(fen),

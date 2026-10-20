@@ -1,5 +1,6 @@
 import { Chess, type Move } from 'chess.js';
 import type { MoveTime, TimeControl } from './clock.ts';
+import { CAUSES, type Cause } from './notes.ts';
 import type { StatsEntry } from './stats.ts';
 
 export type Phase = 'opening' | 'middlegame' | 'endgame';
@@ -110,8 +111,29 @@ export function profile(entries: StatsEntry[]) {
 			sure: { label: 'Sure', hint: 'You were sure of your candidate move' },
 			unsure: { label: 'Unsure', hint: 'You were unsure of your candidate move' },
 			guess: { label: 'Guess', hint: 'Your candidate move was a guess' }
-		})
+		}),
+		cause: group(
+			entries,
+			(entry) => entry.cause || null,
+			Object.fromEntries(
+				CAUSES.map(({ value, label, hint }) => [value, { label, hint }])
+			) as Labels<Exclude<Cause, ''>>
+		)
 	};
+}
+
+export function rulebook(entries: StatsEntry[]) {
+	const withRule = entries.filter((entry) => entry.lesson.trim());
+	const section = (label: string, cause: Cause) => ({
+		label,
+		rules: withRule.filter((entry) => entry.cause === cause)
+	});
+	return [
+		...CAUSES.map(({ value, label }) => section(label, value)).sort(
+			(a, b) => b.rules.length - a.rules.length
+		),
+		section('No cause given', '')
+	].filter(({ rules }) => rules.length);
 }
 
 const gameId = (entry: StatsEntry) => `${entry.file}|${entry.date}|${entry.white}|${entry.black}`;

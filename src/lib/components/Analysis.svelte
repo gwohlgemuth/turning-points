@@ -46,6 +46,7 @@
 		type GameSummary
 	} from '#lib/games.ts';
 	import {
+		CAUSES,
 		CONFIDENCES,
 		NOTE_QUESTIONS,
 		answeredCount,
@@ -1057,6 +1058,20 @@
 													</label>
 												{/each}
 												{#if !hidden}
+													<div class="cause">
+														<span>What went wrong in the game?</span>
+														<div>
+															{#each CAUSES as { value, label, hint } (value)}
+																<button
+																	class:on={notes[tp.ply].cause === value}
+																	title={hint}
+																	onclick={() =>
+																		(notes[tp.ply].cause =
+																			notes[tp.ply].cause === value ? '' : value)}>{label}</button
+																>
+															{/each}
+														</div>
+													</div>
 													<label>
 														<span>Next time, when …, then …</span>
 														<textarea
@@ -1819,12 +1834,27 @@
 		margin-right: 4px;
 	}
 
-	.confidence button {
+	.cause {
+		display: grid;
+		gap: 4px;
+		font-size: 0.85rem;
+		color: var(--muted);
+	}
+
+	.cause div {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+	}
+
+	.confidence button,
+	.cause button {
 		padding: 3px 9px;
 		font-size: 0.8rem;
 	}
 
 	.confidence button.on,
+	.cause button.on,
 	.tp-actions button.on {
 		border-color: var(--accent);
 		color: var(--accent-2);

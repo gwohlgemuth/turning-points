@@ -22,6 +22,7 @@ const notes: Notes = {
 	verdict: '',
 	best: '',
 	confidence: '',
+	cause: '',
 	lesson: ''
 };
 
@@ -134,6 +135,23 @@ describe('writeNotes and readNotes', () => {
 		expect(readNotes(written)).toEqual({ 3: checked });
 		const old = written.replace(' Best: Qxf7+ Kd7 Qd5.', '');
 		expect(readNotes(old)).toEqual({ 3: { ...checked, best: '' } });
+	});
+
+	it('round-trips the cause, with or without a candidate', () => {
+		const full: Notes = {
+			...answers('Fast', '', ''),
+			candidate: 'Nc3',
+			verdict: 'missed',
+			confidence: 'sure',
+			cause: 'threat',
+			lesson: 'Ask what the opponent wants'
+		};
+		const written = writeNotes(pgn, { 3: full });
+		expect(written).toContain('Confidence: sure. Cause: threat. Why I chose it: Fast');
+		expect(readNotes(written)).toEqual({ 3: full });
+		const causeOnly: Notes = { ...emptyNotes(), cause: 'rushed' };
+		expect(readNotes(writeNotes(pgn, { 3: causeOnly }))).toEqual({ 3: causeOnly });
+		expect(isRevealed(causeOnly)).toBe(true);
 	});
 
 	it('drops the confidence without a candidate', () => {

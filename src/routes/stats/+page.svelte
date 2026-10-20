@@ -29,7 +29,8 @@
 		{ title: 'Phase', rows: data.profile.phase },
 		{ title: 'Time', rows: data.profile.time },
 		{ title: 'Kind', rows: data.profile.kind },
-		{ title: 'Confidence', rows: data.profile.confidence }
+		{ title: 'Confidence', rows: data.profile.confidence },
+		{ title: 'Cause', rows: data.profile.cause }
 	]);
 	let sureMissed = $derived(
 		data.profile.confidence.find((row) => row.label === 'Sure')?.missed ?? 0
@@ -191,6 +192,34 @@
 				<p class="muted small">
 					Sure but missed: <strong class="missed-text">{sureMissed}</strong>. These are the
 					positions where your judgment misled you, so they are the most worth reviewing.
+				</p>
+			{/if}
+		</section>
+
+		<section class="card">
+			<h2 class="card-title">Your rules</h2>
+			{#if data.rules.length}
+				<p class="muted small">
+					Your “When …, then …” rules, grouped by what went wrong. Read them before you play.
+				</p>
+				{#each data.rules as section (section.label)}
+					<h3 class="label">{section.label} · {section.rules.length}</h3>
+					<ul class="rules">
+						{#each section.rules as rule (`${rule.file}|${rule.date}|${rule.white}|${rule.ply}`)}
+							<li>
+								<span>{rule.lesson}</span>
+								<span class="muted small nowrap"
+									>{moveLabel(rule.ply, rule.move)} · {rule.white} – {rule.black} · {formatDate(
+										rule.date
+									)}</span
+								>
+							</li>
+						{/each}
+					</ul>
+				{/each}
+			{:else}
+				<p class="muted">
+					No rules yet. After revealing a turning point, write one rule for next time.
 				</p>
 			{/if}
 		</section>
@@ -430,6 +459,24 @@
 
 	h3.label {
 		margin: 18px 0 6px;
+	}
+
+	.rules {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	.rules li {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: space-between;
+		gap: 4px 16px;
+		padding: 7px 0;
+	}
+
+	.rules li + li {
+		border-top: 1px solid var(--border);
 	}
 
 	.term {

@@ -31,6 +31,7 @@ describe('entriesFromPgn', () => {
 				candidate: 'Nf3',
 				verdict: 'found',
 				confidence: '',
+				cause: '',
 				lesson: '',
 				answered: 1,
 				phase: 'opening',

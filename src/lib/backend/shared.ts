@@ -1,4 +1,4 @@
-import { openingLeaks, profile, progress, repeatedPositions } from '../profile.ts';
+import { openingLeaks, profile, progress, repeatedPositions, rulebook } from '../profile.ts';
 import {
 	localDay,
 	nextState,
@@ -27,7 +27,8 @@ export function statsData(files: PgnFile[]) {
 		profile: profile(stats.entries),
 		progress: progress(stats.entries),
 		leaks: openingLeaks(stats.entries),
-		repeated: repeatedPositions(stats.entries)
+		repeated: repeatedPositions(stats.entries),
+		rules: rulebook(stats.entries)
 	};
 }
 

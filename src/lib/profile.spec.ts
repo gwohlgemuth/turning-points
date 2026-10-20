@@ -7,6 +7,7 @@ import {
 	profile,
 	progress,
 	repeatedPositions,
+	rulebook,
 	timeTag,
 	winsMaterial
 } from './profile.ts';
@@ -25,6 +26,7 @@ const entry = (patch: Partial<StatsEntry>): StatsEntry => ({
 	candidate: '',
 	verdict: '',
 	confidence: '',
+	cause: '',
 	lesson: '',
 	answered: 0,
 	phase: 'middlegame',
@@ -93,6 +95,19 @@ describe('profile', () => {
 		]);
 	});
 
+	it('groups by cause in the order of the causes', () => {
+		const result = profile([
+			entry({ cause: 'plan', verdict: 'missed' }),
+			entry({ cause: 'threat', verdict: 'found' }),
+			entry({ cause: 'plan' }),
+			entry({})
+		]);
+		expect(result.cause.map(({ label, total, missed }) => [label, total, missed])).toEqual([
+			['Missed a threat', 1, 0],
+			['Wrong plan', 2, 1]
+		]);
+	});
+
 	it('counts each group and leaves out empty ones', () => {
 		const result = profile([
 			entry({ phase: 'endgame', verdict: 'missed', tactical: true, time: 'trouble' }),
@@ -117,6 +132,23 @@ describe('profile', () => {
 		expect(result.kind.map((row) => [row.label, row.total])).toEqual([
 			['Material lost', 1],
 			['Positional', 2]
+		]);
+	});
+});
+
+describe('rulebook', () => {
+	it('groups the rules by cause, most common first, and puts rules without a cause last', () => {
+		const result = rulebook([
+			entry({ lesson: 'No cause', ply: 1 }),
+			entry({ lesson: 'Plan A', cause: 'plan', ply: 2 }),
+			entry({ lesson: 'Threat', cause: 'threat', ply: 3 }),
+			entry({ lesson: 'Plan B', cause: 'plan', ply: 4 }),
+			entry({ lesson: ' ', cause: 'rushed', ply: 5 })
+		]);
+		expect(result.map(({ label, rules }) => [label, rules.map((rule) => rule.lesson)])).toEqual([
+			['Wrong plan', ['Plan A', 'Plan B']],
+			['Missed a threat', ['Threat']],
+			['No cause given', ['No cause']]
 		]);
 	});
 });

@@ -113,8 +113,8 @@
 					</li>
 					<li>
 						Answer the three questions in your own words: Why did I choose that move? Why is my move
-						not ideal? Why is the better move better? Then write one rule for next time: “When …,
-						then …”.
+						not ideal? Why is the better move better? Pick what went wrong in the game, then write
+						one rule for next time: “When …, then …”.
 					</li>
 					<li>
 						Press <strong>Save notes</strong>. The game is saved as a PGN file with your notes, and
@@ -144,8 +144,13 @@
 						wrong is the one you remember best, and Stats shows where your judgment misleads you.
 					</li>
 					<li>
+						<strong>Name the cause.</strong> Missed a threat, miscalculated, wrong plan: only you know
+						what went wrong in your head. The engine can't tell you, and it decides what you train.
+					</li>
+					<li>
 						<strong>End with a rule.</strong> “When …, then …” turns the analysis into something you can
-						use at the board. It comes back with the position in Review.
+						use at the board. It comes back with the position in Review, and Stats collects all your rules,
+						grouped by cause. Read them before you play.
 					</li>
 					<li>
 						<strong>Review daily, 5–10 minutes.</strong> Positions you missed come back after 1, 3, 7,
@@ -212,6 +217,34 @@
 								automatic. In tense positions, check the forcing moves for both sides.
 							</li>
 							<li><strong>Positional</strong>: study plans and annotated games.</li>
+						</ul>
+					</li>
+					<li>
+						<strong>Cause</strong> shows what went wrong, as you named it:
+						<ul>
+							<li>
+								<strong>Missed a threat</strong>: before every move, ask what your opponent's last
+								move wants.
+							</li>
+							<li>
+								<strong>Missed a chance</strong>: check checks, captures and threats for yourself.
+							</li>
+							<li>
+								<strong>Miscalculated</strong>: solve exercises without moving the pieces, and write
+								down the line before you check it.
+							</li>
+							<li>
+								<strong>Misjudged</strong>: at the end of each line, ask who is better and why.
+								Annotated master games train this.
+							</li>
+							<li>
+								<strong>Wrong plan</strong>: study the typical plans of your openings' structures.
+							</li>
+							<li><strong>Rushed</strong>: no move without a final blunder check.</li>
+							<li>
+								<strong>Nerves</strong>: play the position, not the result. Breathe before critical
+								moves.
+							</li>
 						</ul>
 					</li>
 					<li>
