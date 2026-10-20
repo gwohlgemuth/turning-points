@@ -14,12 +14,12 @@ const evals = (percents: number[]): PositionEval[] =>
 
 describe('markTurningPoints', () => {
 	it('marks the biggest swings of the chosen side', () => {
-		const marked = markTurningPoints(pgn, evals([50, 52, 50, 45, 60, 20]), 2, 'w');
+		const marked = markTurningPoints(pgn, evals([50, 52, 62, 45, 60, 20]), 2, 'w');
 		expect(readNotes(marked)).toEqual({ 3: emptyNotes(), 5: emptyNotes() });
 	});
 
 	it('only looks at the moves of the given side', () => {
-		const marked = markTurningPoints(pgn, evals([50, 52, 50, 45, 60, 20]), 1, 'b');
+		const marked = markTurningPoints(pgn, evals([50, 52, 62, 45, 60, 20]), 1, 'b');
 		expect(Object.keys(readNotes(marked))).toEqual(['4']);
 	});
 });

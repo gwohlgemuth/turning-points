@@ -31,6 +31,7 @@
 		type PositionEval,
 		type Score,
 		type Side,
+		MIN_SWING,
 		TURNING_POINTS,
 		type Variation,
 		winPercent
@@ -962,7 +963,11 @@
 								</div>
 							{/if}
 							{#if !turningPoints.length}
-								<p class="muted">Waiting for the engine…</p>
+								<p class="muted">
+									{analyzing
+										? 'Waiting for the engine…'
+										: `No turning points: none of your moves changed your winning chances by ${MIN_SWING}% or more.`}
+								</p>
 							{/if}
 							<ol>
 								{#each turningPoints as tp, i (tp.ply)}

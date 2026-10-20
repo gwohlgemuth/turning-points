@@ -68,6 +68,8 @@
 					Most games are decided by two to four moments. Turning Points finds them for you: the
 					moves where your winning chances changed the most. That is not the same as the biggest
 					swing in centipawns, because +8 to +6 is still winning, while +0.5 to −1.5 turns the game.
+					It shows up to three of your moves, and only those that changed your winning chances by at
+					least 10 %, so a clean game can have fewer or none.
 				</p>
 				<p>
 					The training, inspired by

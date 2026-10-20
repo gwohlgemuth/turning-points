@@ -97,6 +97,7 @@ export function formatScore(score: Score): string {
 }
 
 export const TURNING_POINTS = 3;
+export const MIN_SWING = 10;
 
 export function findTurningPoints(winPercents: number[], n: number, side: Side): TurningPoint[] {
 	const sign = side === 'w' ? 1 : -1;
@@ -107,7 +108,7 @@ export function findTurningPoints(winPercents: number[], n: number, side: Side):
 		swings.push({ ply, before, after, delta: sign * (after - before) });
 	}
 	return swings
-		.filter((s) => s.delta !== 0)
+		.filter((s) => Math.abs(s.delta) >= MIN_SWING)
 		.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
 		.slice(0, Math.max(0, n))
 		.sort((a, b) => a.ply - b.ply);
