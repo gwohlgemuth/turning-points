@@ -14,15 +14,12 @@
 
 	if (browser) sound.enabled = untrack(() => data.preferences.sound);
 
-	const ORDER = ['/', '/review', '/stats', '/guide'];
-
 	onNavigate((navigation) => {
 		const from = navigation.from?.route.id;
 		const to = navigation.to?.route.id;
 		if (!document.startViewTransition || prefersReducedMotion.current || !from || from === to)
 			return;
-		const back = ORDER.indexOf(to ?? '') < ORDER.indexOf(from);
-		document.documentElement.dataset.direction = back ? 'back' : 'forward';
+		document.documentElement.toggleAttribute('data-scrolled', scrollY > 0);
 		return new Promise((resolve) => {
 			document.startViewTransition(async () => {
 				resolve();

@@ -282,6 +282,7 @@
 	}
 
 	.board {
+		view-transition-name: board;
 		display: flex;
 		gap: 8px;
 		width: clamp(400px, calc(100svh - 360px), 520px);

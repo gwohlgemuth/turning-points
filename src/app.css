@@ -163,6 +163,7 @@ details > summary:hover {
 }
 
 .page-head h1 {
+	view-transition-name: page-title;
 	margin: 0;
 	font-size: 1.4rem;
 	font-weight: 750;
@@ -184,11 +185,30 @@ details > summary:hover {
 }
 
 ::view-transition-old(root) {
-	animation: 90ms ease-in both page-out;
+	animation: 200ms ease both page-out;
 }
 
 ::view-transition-new(root) {
-	animation: 200ms ease-out 80ms both page-in;
+	animation: 200ms ease both page-in;
+}
+
+::view-transition-group(page-title),
+::view-transition-group(board) {
+	animation-duration: 200ms;
+}
+
+/* Keep the title text at its natural size while the old and new titles cross-fade */
+::view-transition-old(page-title),
+::view-transition-new(page-title) {
+	height: 100%;
+	width: auto;
+	object-fit: none;
+	object-position: left center;
+}
+
+/* After scrolling, shared elements would fly in from off-screen, so the whole page cross-fades */
+:root[data-scrolled] * {
+	view-transition-name: none !important;
 }
 
 ::view-transition-group(nav-indicator) {
@@ -205,12 +225,7 @@ details > summary:hover {
 @keyframes page-in {
 	from {
 		opacity: 0;
-		transform: translateX(var(--page-shift, 8px));
 	}
-}
-
-:root[data-direction='back'] {
-	--page-shift: -8px;
 }
 
 @media (prefers-reduced-motion: reduce) {
