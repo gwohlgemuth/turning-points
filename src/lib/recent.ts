@@ -66,6 +66,14 @@ export function loadCurrent(): CurrentGame | null {
 	}
 }
 
+export function clearCurrent(): void {
+	try {
+		localStorage.removeItem(CURRENT_KEY);
+	} catch {
+		// storage blocked: nothing was saved either
+	}
+}
+
 export function saveCurrent(current: CurrentGame): void {
 	try {
 		localStorage.setItem(CURRENT_KEY, JSON.stringify(current));

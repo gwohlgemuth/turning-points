@@ -75,6 +75,7 @@
 	import {
 		findAnalysis,
 		forget,
+		clearCurrent,
 		loadCurrent,
 		loadRecent,
 		remember,
@@ -455,6 +456,19 @@
 	function stop() {
 		controller?.abort();
 		status = 'done';
+	}
+
+	function closeGame() {
+		if (unsaved && !confirm('Your notes are not saved yet. Discard them?')) return;
+		controller?.abort();
+		pgn = '';
+		handleEvent({ type: 'start', startFen: '', moves: [], headers: {} });
+		spotting = false;
+		play = false;
+		status = 'idle';
+		message = '';
+		setupOpen = true;
+		clearCurrent();
 	}
 
 	function toggleNotes(ply: number) {
@@ -1022,6 +1036,12 @@
 
 				<div class="side">
 					<section class="card graphs">
+						<button
+							class="close-game"
+							onclick={closeGame}
+							title="Close game"
+							aria-label="Close game">✕</button
+						>
 						<div class="players">
 							<span class="player white" class:winner={won === 'w'} class:loser={won === 'b'}>
 								{headers.White ?? 'White'}
@@ -1651,8 +1671,23 @@
 	}
 
 	.graphs {
+		position: relative;
 		display: grid;
 		gap: 12px;
+	}
+
+	.close-game {
+		position: absolute;
+		top: 10px;
+		right: 10px;
+		padding: 4px 9px;
+		border-color: transparent;
+		background: transparent;
+		color: var(--muted);
+	}
+
+	.close-game:hover {
+		color: var(--text);
 	}
 
 	.players {
