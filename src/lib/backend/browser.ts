@@ -3,10 +3,19 @@ import engineWasm from 'stockfish/bin/stockfish-19-lite-single.wasm?url';
 import { parseGame } from '../analysis.ts';
 import { analyzeGame, clampDepth, Engine, engineLines, engineMove } from '../engine.ts';
 import { candidateNames, pgnFilename, sameGame, splitPgn } from '../games.ts';
-import { parseReviewState } from '../review.ts';
+import { mergeReviewState, parseReviewState } from '../review.ts';
 import { fetchLichessGames } from '../sources.ts';
 import { savedGames } from '../stats.ts';
-import { formatReview, recordReview, reviewData, scheduleMissed, statsData } from './shared.ts';
+import {
+	filesToWrite,
+	formatReview,
+	formatSync,
+	parseSync,
+	recordReview,
+	reviewData,
+	scheduleMissed,
+	statsData
+} from './shared.ts';
 import type { Backend, PgnFile } from './types.ts';
 
 function createEngine(): Engine {
@@ -131,15 +140,24 @@ const backend: Backend = {
 
 	reviewDeck: async (_folder, today) => reviewData(await readFiles(), await readReview(), today),
 
-	async exportPgn() {
+	async exportSync() {
 		const files = (await readFiles()).sort((a, b) => a.path.localeCompare(b.path));
-		return files.map((file) => file.text.trim()).join('\n\n') + '\n';
+		return formatSync({ files, review: parseReviewState(await readReview()) });
 	},
 
-	async importPgn(text) {
-		const games = splitPgn(text);
-		for (const game of games) await backend.save('', game + '\n', pgnFilename(game), true);
-		return games.length;
+	async importSync(text) {
+		const sync = parseSync(text);
+		if (!sync) {
+			const games = splitPgn(text);
+			for (const game of games) await backend.save('', game + '\n', pgnFilename(game), true);
+			return games.length;
+		}
+		const changed = filesToWrite(await readFiles(), sync.files);
+		for (const file of changed) await writeFile(file);
+		const state = mergeReviewState(parseReviewState(await readReview()), sync.review);
+		for (const file of changed) scheduleMissed(state, file);
+		await writeReview(formatReview(state));
+		return changed.length;
 	},
 
 	async deleteGame(file) {

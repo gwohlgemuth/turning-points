@@ -47,9 +47,10 @@ pnpm dev
 `pnpm build:static` builds a version that runs entirely in the browser, served from `/turning-points` (e.g. `https://gwohl.de/turning-points`). Copy the `build` folder to that path on any static host. Differences from the local app:
 
 - The engine is [Stockfish.js](https://github.com/nmrugg/stockfish.js) (lite, single-threaded WASM) in a Web Worker: no install, but weaker and slower than a native binary.
-- Saved games and review progress live in the browser's IndexedDB instead of a folder. Use _Export all as PGN_ and _Import PGN_ on the Stats page to back them up or move them. Delete single games with ✕ in _My games_, or all of them with _Delete all_ on the Stats page.
+- Saved games and review progress live in the browser's IndexedDB instead of a folder. Delete single games with ✕ in _My games_, or all of them with _Delete all_ on the Stats page.
+- To sync two devices (e.g. phone and PC), use _Save sync file_ on one and _Load sync file_ on the other (Stats page). The file holds all games and the review progress; loading it merges them instead of replacing, so syncing back and forth ends in the same state. Send it any way you like, e.g. to yourself in Signal ("Note to Self") or via a cloud drive: on a phone, _Save sync file_ opens the share sheet. On Android, the installed app is a share target: share the file from Signal to _Turning Points_ to load it directly. _Load sync file_ also takes plain PGN files.
 - Games are loaded by username from Lichess only, queried directly from the browser. Other games can be pasted or opened as PGN.
-- It can be installed as an app (_Install app_ on Android, _Add to Home Screen_ on iOS) and works offline, except for loading games. On iOS the installed app has its own storage, separate from Safari: use PGN export/import to move saved games.
+- It can be installed as an app (_Install app_ on Android, _Add to Home Screen_ on iOS) and works offline, except for loading games. On iOS the installed app has its own storage, separate from Safari: use a sync file to move saved games.
 
 ## Scripts
 

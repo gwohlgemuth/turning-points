@@ -32,8 +32,8 @@ export type Backend = {
 	reviewDeck(folder: string, today?: string): Promise<ReviewData>;
 	listFolders?(path: string): Promise<FolderListing>;
 	createFolder?(parent: string, name: string): Promise<string>;
-	exportPgn?(): Promise<string>;
-	importPgn?(text: string): Promise<number>;
+	exportSync?(): Promise<string>;
+	importSync?(text: string): Promise<number>;
 	deleteGame?(file: string): Promise<void>;
 	deleteAll?(): Promise<void>;
 };

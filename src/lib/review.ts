@@ -79,6 +79,19 @@ export function scheduleNew(entries: StatsEntry[], state: ReviewState, today: st
 	return scheduled;
 }
 
+function furthest(a: CardState | undefined, b: CardState | undefined): CardState {
+	if (!a || !b) return (a ?? b)!;
+	if ('learned' in a) return a;
+	if ('learned' in b) return b;
+	if (a.box !== b.box) return a.box > b.box ? a : b;
+	return a.due >= b.due ? a : b;
+}
+
+export function mergeReviewState(a: ReviewState, b: ReviewState): ReviewState {
+	const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+	return Object.fromEntries([...keys].map((key) => [key, furthest(a[key], b[key])]));
+}
+
 export function parseReviewState(text: string): ReviewState {
 	try {
 		const value = JSON.parse(text);

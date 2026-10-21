@@ -1,5 +1,8 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
+	import { onMount } from 'svelte';
+	import { invalidateAll, replaceState } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import backend from '#backend';
 	import Header from '#lib/components/Header.svelte';
 	import { moveLabel } from '#lib/analysis.ts';
@@ -9,6 +12,7 @@
 	import Board from '#lib/components/Board.svelte';
 	import ProgressChart from '#lib/components/ProgressChart.svelte';
 	import type { Group } from '#lib/profile.ts';
+	import { SHARED_CACHE, SHARED_FILE } from '#lib/share.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -54,17 +58,46 @@
 	let libraryMessage = $state('');
 	let fileInput = $state<HTMLInputElement>();
 
+	// Android only offers plain text files to the share sheet, not .json
 	async function exportGames() {
-		const text = await backend.exportPgn!();
+		const file = new File([await backend.exportSync!()], `turning-points-${today()}.txt`, {
+			type: 'text/plain'
+		});
+		if (matchMedia('(pointer: coarse)').matches && navigator.canShare?.({ files: [file] })) {
+			await navigator.share({ files: [file] }).catch(() => {});
+			return;
+		}
 		const link = document.createElement('a');
-		link.href = URL.createObjectURL(new Blob([text], { type: 'application/x-chess-pgn' }));
-		link.download = `turning-points-${today()}.pgn`;
+		link.href = URL.createObjectURL(file);
+		link.download = file.name;
 		link.click();
 		URL.revokeObjectURL(link.href);
 	}
 
+	async function importText(text: string) {
+		try {
+			const count = await backend.importSync!(text);
+			libraryMessage = `${count} ${count === 1 ? 'game' : 'games'} added or updated`;
+			await invalidateAll();
+		} catch (err) {
+			libraryMessage = (err as Error).message;
+		}
+	}
+
+	onMount(async () => {
+		if (!page.url.searchParams.has('shared')) return;
+		replaceState(resolve('/stats'), {});
+		const cache = await caches.open(SHARED_CACHE);
+		const shared = await cache.match(SHARED_FILE);
+		if (!shared) return;
+		await cache.delete(SHARED_FILE);
+		await importText(await shared.text());
+	});
+
 	async function deleteAll() {
-		if (!confirm('Delete all saved games and review progress? Export them first to keep them.'))
+		if (
+			!confirm('Delete all saved games and review progress? Save a sync file first to keep them.')
+		)
 			return;
 		try {
 			await backend.deleteAll!();
@@ -79,15 +112,8 @@
 		const input = event.currentTarget as HTMLInputElement;
 		const file = input.files?.[0];
 		if (!file) return;
-		try {
-			const count = await backend.importPgn!(await file.text());
-			libraryMessage = `Imported ${count} ${count === 1 ? 'game' : 'games'}`;
-			await invalidateAll();
-		} catch (err) {
-			libraryMessage = (err as Error).message;
-		} finally {
-			input.value = '';
-		}
+		await importText(await file.text());
+		input.value = '';
 	}
 </script>
 
@@ -105,17 +131,17 @@
 				? ' and its subfolders'
 				: ''}
 		</p>
-		{#if backend.exportPgn && backend.importPgn}
+		{#if backend.exportSync && backend.importSync}
 			<div class="library">
-				<button onclick={exportGames}>Export all as PGN</button>
-				<button onclick={() => fileInput?.click()}>Import PGN</button>
+				<button onclick={exportGames}>Save sync file</button>
+				<button onclick={() => fileInput?.click()}>Load sync file</button>
 				{#if backend.deleteAll}<button onclick={deleteAll}>Delete all</button>{/if}
 				<input
 					bind:this={fileInput}
 					type="file"
-					accept=".pgn,text/plain"
+					accept=".txt,.json,.pgn,text/plain,application/json"
 					onchange={importGames}
-					aria-label="Import PGN file"
+					aria-label="Load sync or PGN file"
 					hidden
 				/>
 				{#if libraryMessage}<span class="muted small">{libraryMessage}</span>{/if}

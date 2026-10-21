@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	addDays,
 	cardKey,
+	mergeReviewState,
 	nextState,
 	parseReviewState,
 	reviewDeck,
@@ -141,5 +142,31 @@ describe('helpers', () => {
 	it('ignores a malformed state file', () => {
 		expect(parseReviewState('nope')).toEqual({});
 		expect(parseReviewState('[]')).toEqual({});
+	});
+});
+
+describe('mergeReviewState', () => {
+	it('keeps the furthest card for each key', () => {
+		const merged = mergeReviewState(
+			{
+				learned: { learned: true },
+				box: { box: 1, due: '2026-10-20' },
+				due: { box: 2, due: '2026-10-10' },
+				left: { box: 0, due: '2026-10-09' }
+			},
+			{
+				learned: { box: 4, due: '2026-11-01' },
+				box: { box: 3, due: '2026-10-12' },
+				due: { box: 2, due: '2026-10-11' },
+				right: { box: 1, due: '2026-10-09' }
+			}
+		);
+		expect(merged).toEqual({
+			learned: { learned: true },
+			box: { box: 3, due: '2026-10-12' },
+			due: { box: 2, due: '2026-10-11' },
+			left: { box: 0, due: '2026-10-09' },
+			right: { box: 1, due: '2026-10-09' }
+		});
 	});
 });
