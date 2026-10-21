@@ -571,7 +571,6 @@
 		margin: 0;
 		height: 320px;
 		min-height: 80px;
-		max-height: fit-content;
 		resize: vertical;
 		overflow-y: auto;
 		border: 1px solid var(--border);

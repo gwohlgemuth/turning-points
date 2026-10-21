@@ -242,6 +242,9 @@
 		return () => clearInterval(timer);
 	});
 	let unsaved = $derived(notesSignature(notes) !== savedNotes || spotFlags.join(' ') !== savedSpot);
+	let locked = $derived(moves.length > 0 && unsaved);
+	const playerName = (color: 'White' | 'Black') =>
+		(moves.length ? headers[color] : pgnHeader(pgn, color)) ?? color;
 	let hasHidden = $derived(turningPoints.some((tp) => !revealed[tp.ply]));
 	let graphVisible = $derived(
 		spotting
@@ -761,27 +764,25 @@
 
 	<section class="card settings">
 		<h2 class="card-title">Analysis</h2>
-		{#if !moves.length}
-			<div class="controls">
+		<div class="controls" title={locked ? 'Save your notes first' : undefined}>
+			<label>
+				<span>Analyze for</span>
+				<select bind:value={side} onchange={() => (flipped = side === 'b')} disabled={locked}>
+					<option value="w">{playerName('White')} (White)</option>
+					<option value="b">{playerName('Black')} (Black)</option>
+				</select>
+			</label>
+			<div class="pair">
 				<label>
-					<span>Analyze for</span>
-					<select bind:value={side} onchange={() => (flipped = side === 'b')}>
-						<option value="w">{pgnHeader(pgn, 'White') ?? 'White'} (White)</option>
-						<option value="b">{pgnHeader(pgn, 'Black') ?? 'Black'} (Black)</option>
-					</select>
+					<span>Depth</span>
+					<input type="number" min="6" max="30" bind:value={depth} disabled={locked} />
 				</label>
-				<div class="pair">
-					<label>
-						<span>Depth</span>
-						<input type="number" min="6" max="30" bind:value={depth} />
-					</label>
-					<label>
-						<span>Engine lines</span>
-						<input type="number" min="1" max="5" bind:value={lines} />
-					</label>
-				</div>
+				<label>
+					<span>Engine lines</span>
+					<input type="number" min="1" max="5" bind:value={lines} disabled={locked} />
+				</label>
 			</div>
-		{/if}
+		</div>
 		<label
 			class="toggle"
 			title="Before you see the turning points, flag the moves you think decided the game"
@@ -820,46 +821,6 @@
 					</div>
 					<span class="muted small">{winPercents.length}/{positions}</span>
 					<button onclick={stop}>Stop</button>
-				{:else}
-					<div
-						class="quick-settings muted small"
-						title={unsaved ? 'Save your notes first' : undefined}
-					>
-						<label>
-							For
-							<select
-								bind:value={side}
-								onchange={() => (flipped = side === 'b')}
-								disabled={unsaved}
-							>
-								<option value="w">{headers.White ?? 'White'} (White)</option>
-								<option value="b">{headers.Black ?? 'Black'} (Black)</option>
-							</select>
-						</label>
-						<label>
-							Depth
-							<input
-								type="number"
-								min="6"
-								max="30"
-								bind:value={depth}
-								onchange={analyze}
-								disabled={unsaved}
-							/>
-						</label>
-						<label>
-							Lines
-							<input type="number" min="1" max="5" bind:value={lines} disabled={unsaved} />
-						</label>
-						<label title="Start new games with spotting">
-							<input
-								type="checkbox"
-								bind:checked={spotFirst}
-								onchange={() => updatePreferences({ spotFirst })}
-							/>
-							Spotting
-						</label>
-					</div>
 				{/if}
 				<button
 					class="setup-toggle"
@@ -875,13 +836,11 @@
 		{/snippet}
 		<Header />
 		<div class="page-head">
-			<div>
-				<h1>Analysis</h1>
-				<p class="muted small">
-					Find the moments where your game turned, and study them before looking at the engine
-				</p>
-			</div>
+			<h1>Analysis</h1>
 			{#if moves.length}{@render toolbar()}{/if}
+			<p class="muted small">
+				Find the moments where your game turned, and study them before looking at the engine
+			</p>
 		</div>
 		{#if showSetup && moves.length}
 			<button
@@ -1458,6 +1417,7 @@
 		flex-wrap: wrap;
 		align-items: center;
 		gap: 10px;
+		margin-block: -8px;
 	}
 
 	.setup-toggle.open {
@@ -1472,28 +1432,6 @@
 
 	.setup-toggle.open .chevron {
 		transform: rotate(180deg);
-	}
-
-	.quick-settings {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: 10px;
-	}
-
-	.quick-settings label {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-	}
-
-	.quick-settings input[type='number'],
-	.quick-settings select {
-		padding: 4px 6px;
-	}
-
-	.quick-settings input[type='number'] {
-		width: 3.5em;
 	}
 
 	.spot {
@@ -1554,11 +1492,14 @@
 	}
 
 	.page-head {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: flex-end;
-		justify-content: space-between;
-		gap: 12px;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		align-items: center;
+		column-gap: 12px;
+	}
+
+	.page-head p {
+		grid-column: 1 / -1;
 	}
 
 	.head-area {
@@ -1614,6 +1555,19 @@
 	.settings {
 		display: grid;
 		gap: 12px;
+	}
+
+	/* As tall as the My games tab, so switching tabs keeps the box still */
+	.top:not(.overlay) .load {
+		align-content: start;
+		box-sizing: border-box;
+		min-height: 686px;
+	}
+
+	@media (max-width: 900px) {
+		.top:not(.overlay) .load {
+			min-height: 744px;
+		}
 	}
 
 	.load .card-title,

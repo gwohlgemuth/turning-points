@@ -13,6 +13,7 @@
 	import Board, { type BoardMove } from '#lib/components/Board.svelte';
 	import CandidateCheck from '#lib/components/CandidateCheck.svelte';
 	import CountUp from '#lib/components/CountUp.svelte';
+	import EvalBar from '#lib/components/EvalBar.svelte';
 	import { fetchScore } from '#lib/lines.ts';
 	import { addDays, localDay, REVIEW_DEPTH } from '#lib/review.ts';
 	import { playFound, playMissed } from '#lib/sound.svelte.ts';
@@ -192,6 +193,12 @@
 	{:else}
 		<section class="card trainer">
 			<div class="board">
+				<EvalBar
+					score={evals?.before.score ?? null}
+					winPercent={evals?.before.winPercent ?? 50}
+					flipped={card.side === 'b'}
+					hidden={!recorded || !evals}
+				/>
 				<Board
 					fen={arrows.length ? card.fen : (candidate?.fen ?? card.fen)}
 					flipped={card.side === 'b'}
@@ -276,7 +283,15 @@
 
 	.board {
 		display: flex;
-		width: min(520px, 100%);
+		gap: 8px;
+		width: clamp(400px, calc(100svh - 360px), 520px);
+	}
+
+	@media (max-width: 900px) {
+		.board {
+			width: 100%;
+			max-width: 520px;
+		}
 	}
 
 	.info {
