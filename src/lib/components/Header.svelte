@@ -1,9 +1,6 @@
 <script lang="ts">
 	import { asset, resolve } from '$app/paths';
-	import type { Snippet } from 'svelte';
 	import Nav from '#lib/components/Nav.svelte';
-
-	let { children }: { children?: Snippet } = $props();
 </script>
 
 <header>
@@ -23,7 +20,6 @@
 			>
 		</span>
 	</div>
-	{@render children?.()}
 	<Nav />
 </header>
 

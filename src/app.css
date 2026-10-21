@@ -162,6 +162,17 @@ details > summary:hover {
 	scrollbar-color: var(--surface-3) transparent;
 }
 
+.page-head h1 {
+	margin: 0;
+	font-size: 1.4rem;
+	font-weight: 750;
+	letter-spacing: -0.02em;
+}
+
+.page-head p {
+	margin: 2px 0 0;
+}
+
 .sr-only {
 	position: absolute;
 	width: 1px;

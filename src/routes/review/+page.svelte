@@ -267,17 +267,6 @@
 		gap: 22px;
 	}
 
-	.page-head h1 {
-		margin: 0;
-		font-size: 1.4rem;
-		font-weight: 750;
-		letter-spacing: -0.02em;
-	}
-
-	.page-head p {
-		margin: 2px 0 0;
-	}
-
 	.trainer {
 		display: flex;
 		flex-wrap: wrap;

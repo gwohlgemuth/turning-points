@@ -812,69 +812,77 @@
 
 <main class:hidden={!active} class:loaded={moves.length > 0}>
 	<div class="head-area">
-		<Header>
+		{#snippet toolbar()}
 			<div class="toolbar">
-				{#if moves.length}
-					{#if status === 'running'}
-						<div class="progress inline" role="progressbar" aria-valuenow={progress}>
-							<div class="progress-fill" style:width="{progress}%"></div>
-						</div>
-						<span class="muted small">{winPercents.length}/{positions}</span>
-						<button onclick={stop}>Stop</button>
-					{:else}
-						<div
-							class="quick-settings muted small"
-							title={unsaved ? 'Save your notes first' : undefined}
-						>
-							<label>
-								For
-								<select
-									bind:value={side}
-									onchange={() => (flipped = side === 'b')}
-									disabled={unsaved}
-								>
-									<option value="w">{headers.White ?? 'White'} (White)</option>
-									<option value="b">{headers.Black ?? 'Black'} (Black)</option>
-								</select>
-							</label>
-							<label>
-								Depth
-								<input
-									type="number"
-									min="6"
-									max="30"
-									bind:value={depth}
-									onchange={analyze}
-									disabled={unsaved}
-								/>
-							</label>
-							<label>
-								Lines
-								<input type="number" min="1" max="5" bind:value={lines} disabled={unsaved} />
-							</label>
-							<label title="Start new games with spotting">
-								<input
-									type="checkbox"
-									bind:checked={spotFirst}
-									onchange={() => updatePreferences({ spotFirst })}
-								/>
-								Spotting
-							</label>
-						</div>
-					{/if}
-					<button
-						class="setup-toggle"
-						class:open={showSetup}
-						onclick={() => (setupOpen = !showSetup)}
-						disabled={batchRunning}
-						aria-expanded={showSetup}
-						title="{showSetup ? 'Hide' : 'Show'} game loading and analysis settings"
+				{#if status === 'running'}
+					<div class="progress inline" role="progressbar" aria-valuenow={progress}>
+						<div class="progress-fill" style:width="{progress}%"></div>
+					</div>
+					<span class="muted small">{winPercents.length}/{positions}</span>
+					<button onclick={stop}>Stop</button>
+				{:else}
+					<div
+						class="quick-settings muted small"
+						title={unsaved ? 'Save your notes first' : undefined}
 					>
-						⚙ Game & settings <span class="chevron" aria-hidden="true">▾</span>
-					</button>
+						<label>
+							For
+							<select
+								bind:value={side}
+								onchange={() => (flipped = side === 'b')}
+								disabled={unsaved}
+							>
+								<option value="w">{headers.White ?? 'White'} (White)</option>
+								<option value="b">{headers.Black ?? 'Black'} (Black)</option>
+							</select>
+						</label>
+						<label>
+							Depth
+							<input
+								type="number"
+								min="6"
+								max="30"
+								bind:value={depth}
+								onchange={analyze}
+								disabled={unsaved}
+							/>
+						</label>
+						<label>
+							Lines
+							<input type="number" min="1" max="5" bind:value={lines} disabled={unsaved} />
+						</label>
+						<label title="Start new games with spotting">
+							<input
+								type="checkbox"
+								bind:checked={spotFirst}
+								onchange={() => updatePreferences({ spotFirst })}
+							/>
+							Spotting
+						</label>
+					</div>
 				{/if}
+				<button
+					class="setup-toggle"
+					class:open={showSetup}
+					onclick={() => (setupOpen = !showSetup)}
+					disabled={batchRunning}
+					aria-expanded={showSetup}
+					title="{showSetup ? 'Hide' : 'Show'} game loading and analysis settings"
+				>
+					⚙ Game & settings <span class="chevron" aria-hidden="true">▾</span>
+				</button>
 			</div>
-		</Header>
+		{/snippet}
+		<Header />
+		<div class="page-head">
+			<div>
+				<h1>Analysis</h1>
+				<p class="muted small">
+					Find the moments where your game turned, and study them before looking at the engine
+				</p>
+			</div>
+			{#if moves.length}{@render toolbar()}{/if}
+		</div>
 		{#if showSetup && moves.length}
 			<button
 				class="backdrop"
@@ -888,18 +896,6 @@
 			</div>
 		{/if}
 	</div>
-
-	{#if moves.length}
-		<h1 class="sr-only">Analysis</h1>
-	{:else}
-		<section class="welcome">
-			<h1>Find the moments where your game turned</h1>
-			<p class="lead">
-				The moves where the evaluation swung the most. Study those positions first, before looking
-				at the engine.
-			</p>
-		</section>
-	{/if}
 
 	{#if showSetup && !moves.length}
 		<div class="top">{@render setupPanel()}</div>
@@ -1449,6 +1445,7 @@
 		margin: 0 auto;
 		padding: 16px 20px 80px;
 		display: grid;
+		grid-template-columns: minmax(0, 1fr);
 		gap: 22px;
 	}
 
@@ -1460,9 +1457,7 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		justify-content: flex-end;
 		gap: 10px;
-		min-height: 46px;
 	}
 
 	.setup-toggle.open {
@@ -1558,27 +1553,19 @@
 		width: 140px;
 	}
 
-	.welcome {
-		padding: 18px 0 4px;
-	}
-
-	.welcome h1 {
-		margin: 0;
-		font-size: clamp(1.7rem, 3vw, 2.2rem);
-		font-weight: 750;
-		letter-spacing: -0.02em;
-	}
-
-	.lead {
-		color: var(--muted);
-		margin: 6px 0 0;
-		max-width: 70ch;
-		line-height: 1.5;
+	.page-head {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: flex-end;
+		justify-content: space-between;
+		gap: 12px;
 	}
 
 	.head-area {
 		position: relative;
 		z-index: 30;
+		display: grid;
+		gap: 22px;
 	}
 
 	.head-area > :global(header) {
@@ -1887,7 +1874,7 @@
 	@media (max-width: 900px) {
 		.top,
 		.layout {
-			grid-template-columns: 1fr;
+			grid-template-columns: minmax(0, 1fr);
 		}
 
 		.board-row {
@@ -1898,6 +1885,7 @@
 
 	.nav {
 		display: flex;
+		flex-wrap: wrap;
 		gap: 6px;
 		margin-top: 12px;
 	}
