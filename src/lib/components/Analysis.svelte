@@ -84,7 +84,7 @@
 		type CurrentGame,
 		type RecentEntry
 	} from '#lib/recent.ts';
-	import { saving, savePgn } from '#lib/saving.svelte.ts';
+	import { library, saving, savePgn } from '#lib/saving.svelte.ts';
 	import { isFalseAlarm, isSpotted, readSpotFlags, spotScore, writeSpotFlags } from '#lib/spot.ts';
 	import { playFound, playMissed } from '#lib/sound.svelte.ts';
 	import {
@@ -460,6 +460,14 @@
 		status = 'done';
 	}
 
+	$effect(() => {
+		if (!library.resets) return;
+		untrack(() => {
+			discardGame();
+			keepRecent([]);
+		});
+	});
+
 	let pickedTp = $state(0);
 	$effect(() => {
 		const hit = turningPoints.find((tp) => selected === tp.ply - 1 || selected === tp.ply);
@@ -469,6 +477,10 @@
 
 	function closeGame() {
 		if (unsaved && !confirm('Your notes are not saved yet. Discard them?')) return;
+		discardGame();
+	}
+
+	function discardGame() {
 		controller?.abort();
 		pgn = '';
 		handleEvent({ type: 'start', startFen: '', moves: [], headers: {} });

@@ -7,6 +7,9 @@ export const saving = $state({
 	failed: false
 });
 
+// Counts the times all data was deleted, so the open game and Recent can clear themselves
+export const library = $state({ resets: 0 });
+
 export function setSaveFolder(folder: string): void {
 	saving.folder = folder;
 	updatePreferences({ folder });

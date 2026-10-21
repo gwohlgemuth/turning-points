@@ -12,6 +12,7 @@
 	import Board from '#lib/components/Board.svelte';
 	import ProgressChart from '#lib/components/ProgressChart.svelte';
 	import type { Group } from '#lib/profile.ts';
+	import { library } from '#lib/saving.svelte.ts';
 	import { SHARED_CACHE, SHARED_FILE } from '#lib/share.ts';
 	import type { PageProps } from './$types';
 
@@ -59,19 +60,24 @@
 	let fileInput = $state<HTMLInputElement>();
 
 	// Android only offers plain text files to the share sheet, not .json
-	async function exportGames() {
-		const file = new File([await backend.exportSync!()], `turning-points-${today()}.txt`, {
-			type: 'text/plain'
-		});
-		if (matchMedia('(pointer: coarse)').matches && navigator.canShare?.({ files: [file] })) {
-			await navigator.share({ files: [file] }).catch(() => {});
-			return;
-		}
+	const syncFile = async (name: string) =>
+		new File([await backend.exportSync!()], name, { type: 'text/plain' });
+
+	function download(file: File) {
 		const link = document.createElement('a');
 		link.href = URL.createObjectURL(file);
 		link.download = file.name;
 		link.click();
 		URL.revokeObjectURL(link.href);
+	}
+
+	async function exportGames() {
+		const file = await syncFile(`turning-points-${today()}.txt`);
+		if (matchMedia('(pointer: coarse)').matches && navigator.canShare?.({ files: [file] })) {
+			await navigator.share({ files: [file] }).catch(() => {});
+			return;
+		}
+		download(file);
 	}
 
 	async function importText(text: string) {
@@ -95,13 +101,14 @@
 	});
 
 	async function deleteAll() {
-		if (
-			!confirm('Delete all saved games and review progress? Save a sync file first to keep them.')
-		)
-			return;
+		const question =
+			'Delete all games, notes, review progress and recent games? A backup file is downloaded first, so you can load it again later.';
+		if (!confirm(question)) return;
 		try {
+			download(await syncFile(`turning-points-backup-${today()}.txt`));
 			await backend.deleteAll!();
-			libraryMessage = 'Deleted all games';
+			library.resets++;
+			libraryMessage = 'Deleted everything · the backup is in your downloads';
 			await invalidateAll();
 		} catch (err) {
 			libraryMessage = (err as Error).message;
