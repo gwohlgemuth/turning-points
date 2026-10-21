@@ -13,13 +13,11 @@
 		gameKey,
 		gameOutcome,
 		gameRef,
-		gamesToPgn,
 		pgnFilename,
 		playerSide,
 		playersByCount,
 		splitPgn,
 		summaryFromPgn,
-		today,
 		winner,
 		type GameSource,
 		type GameSummary,
@@ -185,10 +183,6 @@
 			games = found.map(summaryFromPgn);
 			showTab('online');
 		} else pgn = text;
-	}
-
-	function save() {
-		savePgn(gamesToPgn(games), `${username.trim() || 'games'}-${today()}.pgn`);
 	}
 
 	let batch = $state<{ done: number; total: number } | null>(null);
@@ -453,7 +447,6 @@
 						>Analyze all ({unworked.length})</button
 					>
 				{/if}
-				<button onclick={save} disabled={!!batch}>Save all</button>
 			</div>
 		{/if}
 	</div>

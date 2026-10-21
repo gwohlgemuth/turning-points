@@ -15,7 +15,8 @@ import {
 	type CardState,
 	type ReviewState
 } from '../review.ts';
-import { candidateNames, sameGame } from '../games.ts';
+import { candidateNames, sameGame, splitPgn } from '../games.ts';
+import { readNotes } from '../notes.ts';
 import { collectStats, summarize, type StatsEntry } from '../stats.ts';
 import type { PgnFile } from './types.ts';
 
@@ -76,12 +77,17 @@ export function parseSync(text: string): SyncData | null {
 	}
 }
 
+export const isGameList = ({ text }: PgnFile) => {
+	const games = splitPgn(text);
+	return games.length > 1 && games.every((game) => !Object.keys(readNotes(game)).length);
+};
+
 const richer = (a: string, b: string) => a.length > b.length || (a.length === b.length && a > b);
 
 export function filesToWrite(existing: PgnFile[], incoming: PgnFile[]): PgnFile[] {
 	const files = [...existing];
 	const changed: PgnFile[] = [];
-	for (const { path, text } of incoming) {
+	for (const { path, text } of incoming.filter((file) => !isGameList(file))) {
 		const index = files.findIndex((file) => file.text === text || sameGame(file.text, text));
 		if (index >= 0) {
 			if (!richer(text, files[index].text)) continue;

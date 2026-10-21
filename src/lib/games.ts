@@ -112,10 +112,6 @@ export function sameGame(a: string, b: string): boolean {
 	return moves !== null && moves === mainline(b);
 }
 
-export function gamesToPgn(games: GameSummary[]): string {
-	return games.map((game) => game.pgn.trim()).join('\n\n') + '\n';
-}
-
 export function splitPgn(text: string): string[] {
 	return text
 		.replace(/\r\n/g, '\n')

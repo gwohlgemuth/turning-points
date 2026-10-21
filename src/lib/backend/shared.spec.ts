@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { filesToWrite, formatSync, parseSync } from './shared.ts';
+import { emptyNotes, writeNotes } from '../notes.ts';
+import { filesToWrite, formatSync, isGameList, parseSync } from './shared.ts';
 
 const game = (site: string, notes = '') =>
 	`[White "A"]\n[Black "B"]\n[Site "https://lichess.org/${site}"]\n\n1. e4 ${notes}e5 *\n`;
@@ -35,9 +36,22 @@ describe('filesToWrite', () => {
 		]);
 	});
 
-	it('skips files it already has, even with several games', () => {
-		const several = game('a') + '\n' + game('b');
-		const existing = [{ path: 'all.pgn', text: several }];
-		expect(filesToWrite(existing, [{ path: 'all (2).pgn', text: several }])).toEqual([]);
+	it('skips files it already has', () => {
+		const existing = [{ path: 'a.pgn', text: game('a') }];
+		expect(filesToWrite(existing, [{ path: 'b.pgn', text: game('a') }])).toEqual([]);
+	});
+
+	it('leaves out game lists', () => {
+		const list = { path: 'list.pgn', text: game('a') + '\n' + game('b') };
+		expect(filesToWrite([], [list])).toEqual([]);
+	});
+});
+
+describe('isGameList', () => {
+	it('is a file of several games without notes', () => {
+		const noted = writeNotes(game('a'), { 1: emptyNotes() });
+		expect(isGameList({ path: 'a.pgn', text: game('a') + '\n' + game('b') })).toBe(true);
+		expect(isGameList({ path: 'a.pgn', text: game('a') })).toBe(false);
+		expect(isGameList({ path: 'a.pgn', text: noted + '\n' + game('b') })).toBe(false);
 	});
 });

@@ -8,6 +8,7 @@ import { fetchLichessGames } from '../sources.ts';
 import { savedGames } from '../stats.ts';
 import {
 	filesToWrite,
+	isGameList,
 	formatReview,
 	formatSync,
 	parseSync,
@@ -79,7 +80,21 @@ async function store(name: 'files' | 'meta', mode: IDBTransactionMode = 'readonl
 	return (await open()).transaction(name, mode).objectStore(name);
 }
 
-const readFiles = async () => request<PgnFile[]>((await store('files')).getAll());
+const allFiles = async () => request<PgnFile[]>((await store('files')).getAll());
+const deleteFile = async (path: string) =>
+	request((await store('files', 'readwrite')).delete(path));
+
+async function removeGameLists() {
+	for (const file of (await allFiles()).filter(isGameList)) await deleteFile(file.path);
+}
+
+let cleanup: Promise<void> | null = null;
+
+async function readFiles() {
+	cleanup ??= removeGameLists();
+	await cleanup;
+	return allFiles();
+}
 const writeFile = async (file: PgnFile) => request((await store('files', 'readwrite')).put(file));
 const readReview = async () =>
 	(await request<string | undefined>((await store('meta')).get('review'))) ?? '{}';
@@ -160,9 +175,7 @@ const backend: Backend = {
 		return changed.length;
 	},
 
-	async deleteGame(file) {
-		await request((await store('files', 'readwrite')).delete(file));
-	},
+	deleteGame: deleteFile,
 
 	async deleteAll() {
 		await request((await store('files', 'readwrite')).clear());

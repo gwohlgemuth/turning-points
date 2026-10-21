@@ -4,7 +4,6 @@ import {
 	filterGames,
 	gameKey,
 	gameOutcome,
-	gamesToPgn,
 	mergeAdjacentComments,
 	parseRating,
 	pgnFilename,
@@ -62,9 +61,9 @@ const first =
 	'[White "A"]\n[Black "B"]\n[Result "1-0"]\n[WhiteElo "1500"]\n[Date "2026.10.03"]\n\n1. e4 e5 1-0';
 const second = '[White "C"]\n[Black "D"]\n[Result "0-1"]\n[BlackElo "?"]\n\n1. d4 d5 0-1';
 
-describe('gamesToPgn and splitPgn', () => {
+describe('splitPgn', () => {
 	it('round-trips several games through one PGN file', () => {
-		const text = gamesToPgn([{ pgn: first }, { pgn: second }] as GameSummary[]);
+		const text = `${first}\n\n${second}\n`;
 		expect(splitPgn(text)).toEqual([first, second]);
 	});
 
