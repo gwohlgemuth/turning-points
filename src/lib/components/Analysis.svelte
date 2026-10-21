@@ -628,6 +628,17 @@
 		show(index);
 	}
 
+	let pauseFlash = $state(0);
+
+	// While the game plays, a click on the board only pauses it, so it never also picks up a piece
+	function pauseFromBoard(event: Event) {
+		if (!autoplay) return;
+		event.preventDefault();
+		event.stopPropagation();
+		autoplay = false;
+		pauseFlash++;
+	}
+
 	function toggleAutoplay() {
 		if (!autoplay && selected >= positions - 1) show(0);
 		autoplay = !autoplay;
@@ -668,6 +679,10 @@
 	function handleKey(event: KeyboardEvent) {
 		if (event.key === 'Escape' && active && moves.length && showSetup) {
 			closeSetup();
+			return;
+		}
+		if (event.key === 'Escape' && active && autoplay) {
+			autoplay = false;
 			return;
 		}
 		const tag = (event.target as HTMLElement).tagName;
@@ -926,7 +941,17 @@
 					<div
 						class="board-row"
 						class:awaiting={!!candidateTp && !notes[candidateTp.ply]?.candidate}
+						onclickcapture={pauseFromBoard}
+						ondragstartcapture={pauseFromBoard}
 					>
+						{#key pauseFlash}
+							{#if pauseFlash}
+								<span class="pause-flash" aria-hidden="true"
+									><svg viewBox="0 0 16 16"><path d="M3.5 2.5h3v11h-3zM9.5 2.5h3v11h-3z" /></svg
+									></span
+								>
+							{/if}
+						{/key}
 						<EvalBar
 							score={barEval?.score ?? null}
 							winPercent={barEval?.winPercent ?? 50}
@@ -1861,6 +1886,7 @@
 
 	.board-row {
 		view-transition-name: board;
+		position: relative;
 		display: flex;
 		gap: 8px;
 		width: clamp(400px, calc(100svh - 360px), 520px);
@@ -2200,6 +2226,40 @@
 	.tp-actions .reveal {
 		border-color: var(--accent);
 		color: var(--accent-2);
+	}
+
+	/* Centred on the board, to the right of the 26px evaluation bar and its 8px gap */
+	.pause-flash {
+		position: absolute;
+		top: 50%;
+		left: calc(50% + 17px);
+		z-index: 3;
+		display: grid;
+		place-items: center;
+		width: 84px;
+		height: 84px;
+		border-radius: 50%;
+		background: rgb(0 0 0 / 0.55);
+		color: #fff;
+		pointer-events: none;
+		animation: pause-flash 500ms ease-out forwards;
+	}
+
+	.pause-flash svg {
+		width: 34px;
+		height: 34px;
+		fill: currentColor;
+	}
+
+	@keyframes pause-flash {
+		from {
+			opacity: 1;
+			transform: translate(-50%, -50%) scale(0.9);
+		}
+		to {
+			opacity: 0;
+			transform: translate(-50%, -50%) scale(1.15);
+		}
 	}
 
 	.training {
