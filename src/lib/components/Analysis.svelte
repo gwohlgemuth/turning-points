@@ -2,7 +2,6 @@
 	import { resolve } from '$app/paths';
 	import { Chess } from 'chess.js';
 	import { untrack } from 'svelte';
-	import { flip } from 'svelte/animate';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { fade, fly, slide } from 'svelte/transition';
 	import backend from '#backend';
@@ -188,6 +187,9 @@
 	let playedAt = $derived(formatWhen(summaryFromPgn(gamePgn, 0).date));
 	let control = $derived(parseTimeControl(headers.TimeControl));
 	let link = $derived(gameUrl(gamePgn));
+	let gameDetails = $derived(
+		[playedAt, control && `${formatTimeControl(control)} ${speedOf(control)}`].filter(Boolean)
+	);
 	let tags = $derived(Object.entries(headers).filter(([, value]) => !/^[?.\s]*$/.test(value)));
 	let book = $derived(
 		moves.length
@@ -457,6 +459,13 @@
 		controller?.abort();
 		status = 'done';
 	}
+
+	let pickedTp = $state(0);
+	$effect(() => {
+		const hit = turningPoints.find((tp) => selected === tp.ply - 1 || selected === tp.ply);
+		if (hit) pickedTp = hit.ply;
+	});
+	let shownTp = $derived(turningPoints.find((tp) => tp.ply === pickedTp) ?? turningPoints[0]);
 
 	function closeGame() {
 		if (unsaved && !confirm('Your notes are not saved yet. Discard them?')) return;
@@ -842,19 +851,55 @@
 					onclick={() => (setupOpen = !showSetup)}
 					disabled={batchRunning}
 					aria-expanded={showSetup}
+					aria-label="Game & settings"
 					title="{showSetup ? 'Hide' : 'Show'} game loading and analysis settings"
 				>
-					⚙ Game & settings <span class="chevron" aria-hidden="true">▾</span>
+					⚙<span class="setup-label"> Game & settings</span>
+					<span class="chevron" aria-hidden="true">▾</span>
 				</button>
+				<button class="close-game" onclick={closeGame} title="Close game" aria-label="Close game"
+					>✕</button
+				>
 			</div>
 		{/snippet}
 		<Header />
 		<div class="page-head">
-			<h1>Analysis</h1>
-			{#if moves.length}{@render toolbar()}{/if}
-			<p class="muted small">
-				Find the moments where your game turned, and study them before looking at the engine
-			</p>
+			{#if moves.length}
+				<h1 class="players">
+					<span class="player white" class:loser={won === 'b'}>
+						{headers.White ?? 'White'}
+						{#if parseRating(headers.WhiteElo)}
+							<span class="rating">{parseRating(headers.WhiteElo)}</span>
+						{/if}
+						{#if won === 'w'}<span class="crown" title="Winner">♚</span>{/if}
+					</span>
+					<span class="versus">–</span>
+					<span class="player black" class:loser={won === 'w'}>
+						{headers.Black ?? 'Black'}
+						{#if parseRating(headers.BlackElo)}
+							<span class="rating">{parseRating(headers.BlackElo)}</span>
+						{/if}
+						{#if won === 'b'}<span class="crown" title="Winner">♚</span>{/if}
+					</span>
+				</h1>
+				{@render toolbar()}
+				<p class="muted small game-line">
+					<span class="result">{won ? RESULT_LABELS[won] : 'No result'}</span>
+					{#if !spotting}
+						{gameDetails.map((part) => ` · ${part}`).join('')}
+						{#if link}
+							· <a href={link} target="_blank" rel="noopener noreferrer"
+								>{link.includes('chess.com') ? 'Chess.com' : 'Lichess'} ↗</a
+							>
+						{/if}
+					{/if}
+				</p>
+			{:else}
+				<h1>Analysis</h1>
+				<p class="muted small">
+					Find the moments where your game turned, and study them before looking at the engine
+				</p>
+			{/if}
 		</div>
 		{#if showSetup && moves.length}
 			<button
@@ -948,6 +993,29 @@
 						>
 					</div>
 					<div class="panel-body">
+						<div class="timeline">
+							<EvalGraph
+								{winPercents}
+								{positions}
+								{moves}
+								{evals}
+								turningPoints={spotting ? [] : turningPoints}
+								{selected}
+								visible={graphVisible}
+								onselect={select}
+							/>
+							{#if hasTimes}
+								<TimeChart {moves} turningPlies={shownTurningPlies} {selected} onselect={select} />
+							{/if}
+							{#if book !== null && !spotting}
+								<p class="book muted small">
+									{headers.Opening ? `${headers.Opening} · ` : ''}{#if book < moves.length}Out of
+										book with <button class="link" onclick={() => select(book! + 1)}
+											>{moveLabel(book + 1, moves[book].san)}</button
+										>{:else}In book for the whole game{/if}
+								</p>
+							{/if}
+						</div>
 						{#if exploration}
 							<div class="exploration" transition:slide={{ duration: ms(200) }}>
 								<div class="exploration-head">
@@ -1031,46 +1099,6 @@
 								</details>
 							{/if}
 						{/if}
-					</div>
-				</section>
-
-				<div class="side">
-					<section class="card graphs">
-						<button
-							class="close-game"
-							onclick={closeGame}
-							title="Close game"
-							aria-label="Close game">✕</button
-						>
-						<div class="players">
-							<span class="player white" class:winner={won === 'w'} class:loser={won === 'b'}>
-								{headers.White ?? 'White'}
-								{#if parseRating(headers.WhiteElo)}
-									<span class="rating">{parseRating(headers.WhiteElo)}</span>
-								{/if}
-								{#if won === 'w'}<span class="crown" title="Winner">♚</span>{/if}
-							</span>
-							<span class="result {won ?? ''}">{won ? RESULT_LABELS[won] : 'No result'}</span>
-							<span class="player black" class:winner={won === 'b'} class:loser={won === 'w'}>
-								{headers.Black ?? 'Black'}
-								{#if parseRating(headers.BlackElo)}
-									<span class="rating">{parseRating(headers.BlackElo)}</span>
-								{/if}
-								{#if won === 'b'}<span class="crown" title="Winner">♚</span>{/if}
-							</span>
-						</div>
-						{#if !spotting && (playedAt || control || link)}
-							<p class="game-info muted small">
-								{[playedAt, control && `${formatTimeControl(control)} ${speedOf(control)}`]
-									.filter(Boolean)
-									.join(' · ')}{#if link}{playedAt || control ? ' · ' : ''}<a
-										href={link}
-										target="_blank"
-										rel="noopener noreferrer"
-										>{link.includes('chess.com') ? 'Chess.com' : 'Lichess'} ↗</a
-									>{/if}
-							</p>
-						{/if}
 						{#if !spotting && tags.length}
 							<details class="tags">
 								<summary>All PGN tags</summary>
@@ -1083,28 +1111,10 @@
 								</table>
 							</details>
 						{/if}
-						{#if book !== null && !spotting}
-							<p class="book muted small">
-								{headers.Opening ? `${headers.Opening} · ` : ''}{#if book < moves.length}Out of book
-									with <button class="link" onclick={() => select(book! + 1)}
-										>{moveLabel(book + 1, moves[book].san)}</button
-									>{:else}In book for the whole game{/if}
-							</p>
-						{/if}
-						<EvalGraph
-							{winPercents}
-							{positions}
-							{moves}
-							{evals}
-							turningPoints={spotting ? [] : turningPoints}
-							{selected}
-							visible={graphVisible}
-							onselect={select}
-						/>
-						{#if hasTimes}
-							<TimeChart {moves} turningPlies={shownTurningPlies} {selected} onselect={select} />
-						{/if}
-					</section>
+					</div>
+				</section>
+
+				<div class="side">
 					<section class="card points">
 						<h2 class="card-title">Turning points</h2>
 						{#if spotting}
@@ -1174,8 +1184,25 @@
 										: `No turning points: none of your moves changed your winning chances by ${MIN_SWING}% or more.${nothingToTrain ? ' Save & next game marks the game as done.' : ''}`}
 								</p>
 							{/if}
+							{#if turningPoints.length > 1}
+								<div class="tp-tabs" role="tablist" aria-label="Turning points">
+									{#each turningPoints as tp, i (tp.ply)}
+										<button
+											role="tab"
+											aria-selected={tp.ply === shownTp?.ply}
+											class:on={tp.ply === shownTp?.ply}
+											onclick={() => select(tp.ply - 1)}
+											><span class="tp-number">{i + 1}</span>
+											{moveLabel(tp.ply, moves[tp.ply - 1].san)}{#if notes[tp.ply]?.verdict}<span
+													class="tp-done"
+													title="Checked">✓</span
+												>{/if}</button
+										>
+									{/each}
+								</div>
+							{/if}
 							<ol>
-								{#each turningPoints as tp, i (tp.ply)}
+								{#each turningPoints.filter((tp) => tp.ply === shownTp?.ply) as tp (tp.ply)}
 									{@const move = moves[tp.ply - 1]}
 									{@const before = evals[tp.ply - 1]}
 									{@const after = evals[tp.ply]}
@@ -1184,8 +1211,7 @@
 									<li
 										class="tp {judgement?.name ?? ''}"
 										class:active={selected === tp.ply - 1 || selected === tp.ply}
-										animate:flip={{ duration: ms(250) }}
-										in:fly={{ y: 16, duration: ms(300), delay: ms(i * 70) }}
+										in:fade={{ duration: ms(150) }}
 									>
 										<div class="tp-row">
 											<button class="link" onclick={() => select(tp.ply - 1)}>
@@ -1670,17 +1696,8 @@
 		gap: 22px;
 	}
 
-	.graphs {
-		position: relative;
-		display: grid;
-		gap: 12px;
-	}
-
 	.close-game {
-		position: absolute;
-		top: 10px;
-		right: 10px;
-		padding: 4px 9px;
+		padding: 6px 11px;
 		border-color: transparent;
 		background: transparent;
 		color: var(--muted);
@@ -1692,11 +1709,43 @@
 
 	.players {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
-		justify-content: center;
-		gap: 14px;
-		font-weight: 650;
-		font-size: 1.05rem;
+		column-gap: 10px;
+		min-width: 0;
+	}
+
+	.players .player {
+		min-width: 0;
+		white-space: nowrap;
+	}
+
+	@media (max-width: 600px) {
+		.players {
+			font-size: 1.05rem;
+		}
+
+		.players .rating,
+		.setup-label {
+			display: none;
+		}
+	}
+
+	.versus {
+		color: var(--muted);
+		font-weight: 400;
+	}
+
+	/* A fixed line height, so the fallback font of ↗ doesn't make the line taller than on other pages */
+	.game-line {
+		line-height: 1.18;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.game-line .result {
+		color: var(--text);
 	}
 
 	.player {
@@ -1742,10 +1791,22 @@
 		line-height: 1;
 	}
 
-	.book,
-	.game-info {
-		margin: 0 0 8px;
-		text-align: center;
+	.book {
+		margin: 0;
+	}
+
+	.timeline {
+		display: grid;
+		gap: 6px;
+		margin-bottom: 12px;
+	}
+
+	.board-panel .timeline :global(.graph svg) {
+		height: 72px;
+	}
+
+	.board-panel .timeline > :global(svg) {
+		height: 28px;
 	}
 
 	.tags {
@@ -1783,23 +1844,6 @@
 	.book .link {
 		font-size: inherit;
 		font-weight: 650;
-	}
-
-	.result {
-		padding: 3px 10px;
-		border-radius: 999px;
-		background: var(--surface-3);
-		border: 1px solid var(--border-strong);
-		font-variant-numeric: tabular-nums;
-		color: var(--muted);
-		font-size: 0.9rem;
-	}
-
-	.result.w,
-	.result.b {
-		color: var(--accent-2);
-		border-color: rgb(227 179 65 / 0.4);
-		background: rgb(227 179 65 / 0.1);
 	}
 
 	.layout {
@@ -1852,7 +1896,7 @@
 		.side {
 			height: 0;
 			min-height: 100%;
-			grid-template-rows: auto minmax(0, 1fr);
+			grid-template-rows: minmax(0, 1fr);
 		}
 
 		.points {
@@ -1974,6 +2018,42 @@
 
 	.exploration .nav {
 		margin-top: 0;
+	}
+
+	.tp-tabs {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+	}
+
+	.tp-tabs button {
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
+		padding: 5px 11px 5px 6px;
+		border-radius: 999px;
+		color: var(--muted);
+	}
+
+	.tp-tabs button.on {
+		color: var(--text);
+		border-color: var(--accent);
+	}
+
+	.tp-number {
+		display: inline-grid;
+		place-items: center;
+		width: 20px;
+		height: 20px;
+		border-radius: 50%;
+		background: var(--danger);
+		color: #fff;
+		font-size: 0.75rem;
+		font-weight: 700;
+	}
+
+	.tp-done {
+		color: var(--good);
 	}
 
 	ol {
