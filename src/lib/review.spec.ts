@@ -32,7 +32,8 @@ const entry = (ply: number, verdict: StatsEntry['verdict'], fen = `fen-${ply}`):
 	opening: '',
 	book: null,
 	speed: null,
-	spotted: null
+	spotted: null,
+	lastMove: null
 });
 
 describe('nextState', () => {

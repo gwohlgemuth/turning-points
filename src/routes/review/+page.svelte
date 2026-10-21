@@ -3,6 +3,7 @@
 	import { Chess } from 'chess.js';
 	import backend from '#backend';
 	import {
+		moveLabel,
 		moveSquares,
 		winPercent,
 		type Arrow,
@@ -77,6 +78,11 @@
 				if (err.name !== 'AbortError') message = err.message;
 			});
 		return () => controller.abort();
+	});
+
+	let highlight = $derived.by(() => {
+		if (candidate) return arrows.length ? [] : [candidate.from, candidate.to];
+		return card?.lastMove ? [card.lastMove.from, card.lastMove.to] : [];
 	});
 
 	function handleMove(boardMove: BoardMove) {
@@ -189,7 +195,7 @@
 				<Board
 					fen={arrows.length ? card.fen : (candidate?.fen ?? card.fen)}
 					flipped={card.side === 'b'}
-					highlight={candidate && !arrows.length ? [candidate.from, candidate.to] : []}
+					{highlight}
 					{arrows}
 					onmove={candidate ? undefined : handleMove}
 				/>
@@ -208,6 +214,7 @@
 					<span class="muted small">{formatDate(card.date)}</span>
 				</p>
 				<p class="muted">
+					{#if card.lastMove}After {moveLabel(card.ply - 1, card.lastMove.san)},{/if}
 					{card.side === 'w' ? 'White' : 'Black'} to move (move {Math.ceil(card.ply / 2)}).
 					{card.verdict === 'found'
 						? 'You found this turning point before, but were not sure.'

@@ -39,6 +39,7 @@ const entry = (patch: Partial<StatsEntry>): StatsEntry => ({
 	book: null,
 	speed: null,
 	spotted: null,
+	lastMove: null,
 	...patch
 });
 

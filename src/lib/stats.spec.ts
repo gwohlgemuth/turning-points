@@ -43,7 +43,8 @@ describe('entriesFromPgn', () => {
 				opening: '',
 				book: 4,
 				speed: null,
-				spotted: null
+				spotted: null,
+				lastMove: { from: 'e7', to: 'e5', san: 'e5' }
 			}
 		]);
 	});

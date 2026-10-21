@@ -62,6 +62,7 @@ export type StatsEntry = {
 	book: number | null;
 	speed: Speed | null;
 	spotted: boolean | null;
+	lastMove: { from: string; to: string; san: string } | null;
 };
 
 export type StatsSummary = {
@@ -112,6 +113,7 @@ export function entriesFromPgn(file: string, pgn: string): StatsEntry[] {
 	return plies.map((ply) => {
 		const fen = moves[ply - 1]?.before ?? '';
 		const tactical = lostMaterial(moves, ply);
+		const last = moves[ply - 2];
 		return {
 			file,
 			date,
@@ -134,7 +136,8 @@ export function entriesFromPgn(file: string, pgn: string): StatsEntry[] {
 			opening,
 			book,
 			speed: speedOf(control),
-			spotted: flags.length ? isSpotted(ply, flags) : null
+			spotted: flags.length ? isSpotted(ply, flags) : null,
+			lastMove: last ? { from: last.from, to: last.to, san: last.san } : null
 		};
 	});
 }
