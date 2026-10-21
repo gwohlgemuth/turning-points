@@ -34,4 +34,10 @@ describe('filesToWrite', () => {
 			{ path: 'a (2).pgn', text: game('c') }
 		]);
 	});
+
+	it('skips files it already has, even with several games', () => {
+		const several = game('a') + '\n' + game('b');
+		const existing = [{ path: 'all.pgn', text: several }];
+		expect(filesToWrite(existing, [{ path: 'all (2).pgn', text: several }])).toEqual([]);
+	});
 });

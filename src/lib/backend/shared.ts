@@ -82,7 +82,7 @@ export function filesToWrite(existing: PgnFile[], incoming: PgnFile[]): PgnFile[
 	const files = [...existing];
 	const changed: PgnFile[] = [];
 	for (const { path, text } of incoming) {
-		const index = files.findIndex((file) => sameGame(file.text, text));
+		const index = files.findIndex((file) => file.text === text || sameGame(file.text, text));
 		if (index >= 0) {
 			if (!richer(text, files[index].text)) continue;
 			files[index] = { path: files[index].path, text };

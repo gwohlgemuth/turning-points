@@ -154,9 +154,9 @@ const backend: Backend = {
 		}
 		const changed = filesToWrite(await readFiles(), sync.files);
 		for (const file of changed) await writeFile(file);
-		const state = mergeReviewState(parseReviewState(await readReview()), sync.review);
-		for (const file of changed) scheduleMissed(state, file);
-		await writeReview(formatReview(state));
+		await writeReview(
+			formatReview(mergeReviewState(parseReviewState(await readReview()), sync.review))
+		);
 		return changed.length;
 	},
 
