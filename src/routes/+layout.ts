@@ -8,6 +8,6 @@ export const prerender = import.meta.env.STATIC;
 let seeded: Promise<void> | null = null;
 
 export const load: LayoutLoad = async () => {
-	if (demo.entering) await (seeded ??= import('#lib/demo/seed.ts').then((m) => m.seedDemo()));
+	if (demo.active) await (seeded ??= import('#lib/demo/seed.ts').then((m) => m.seedDemo()));
 	return { preferences: readPreferences() };
 };

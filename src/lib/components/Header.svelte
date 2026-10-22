@@ -1,23 +1,23 @@
 <script lang="ts">
 	import { asset, resolve } from '$app/paths';
 	import Nav from '#lib/components/Nav.svelte';
-	import { demo, exitDemo } from '#lib/demo/mode.ts';
+	import { demo, withDemo } from '#lib/demo/mode.ts';
 </script>
 
 {#if demo.active}
 	<p class="demo">
 		<span>Demo with famous games</span>
-		<button type="button" onclick={() => exitDemo(resolve('/'))}>Analyze your own games →</button>
+		<a href={resolve('/')} data-sveltekit-reload>Analyze your own games →</a>
 	</p>
 {/if}
 
 <header>
 	<div class="brand">
-		<a href={resolve('/')} tabindex="-1" aria-hidden="true"
+		<a href={withDemo(resolve('/'))} tabindex="-1" aria-hidden="true"
 			><img class="logo" src={asset('logo.svg')} alt="" /></a
 		>
 		<span class="name">
-			<a class="wordmark" href={resolve('/')} aria-label="Turning Points – Analysis"
+			<a class="wordmark" href={withDemo(resolve('/'))} aria-label="Turning Points – Analysis"
 				>Turning Points</a
 			>
 			<a
@@ -46,13 +46,9 @@
 		text-align: center;
 	}
 
-	.demo button {
-		padding: 0;
-		border: 0;
-		background: none;
-		font: inherit;
+	.demo a {
 		color: var(--accent);
-		cursor: pointer;
+		text-decoration: none;
 	}
 
 	header {

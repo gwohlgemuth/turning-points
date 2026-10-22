@@ -6,6 +6,7 @@
 	import backend from '#backend';
 	import Header from '#lib/components/Header.svelte';
 	import { moveLabel } from '#lib/analysis.ts';
+	import { withDemo } from '#lib/demo/mode.ts';
 	import { statsView } from '#lib/backend/shared.ts';
 	import type { Speed } from '#lib/clock.ts';
 	import { today } from '#lib/games.ts';
@@ -92,7 +93,7 @@
 
 	onMount(async () => {
 		if (!page.url.searchParams.has('shared')) return;
-		replaceState(resolve('/stats'), {});
+		replaceState(withDemo(resolve('/stats')), {});
 		const cache = await caches.open(SHARED_CACHE);
 		const shared = await cache.match(SHARED_FILE);
 		if (!shared) return;

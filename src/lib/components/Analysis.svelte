@@ -5,6 +5,7 @@
 	import { SvelteSet } from 'svelte/reactivity';
 	import { fade, fly, slide } from 'svelte/transition';
 	import backend from '#backend';
+	import { withDemo } from '#lib/demo/mode.ts';
 	import { ms } from '#lib/motion.ts';
 	import Board, { type BoardMove } from '#lib/components/Board.svelte';
 	import EvalBar from '#lib/components/EvalBar.svelte';
@@ -790,7 +791,7 @@
 		<h2 class="card-title">Load a game</h2>
 		{#if !moves.length}
 			<p class="muted small">
-				New here? <a class="guide-link" href={resolve('/guide')}>Read the guide →</a>
+				New here? <a class="guide-link" href={withDemo(resolve('/guide'))}>Read the guide →</a>
 			</p>
 		{/if}
 		<GameLoader

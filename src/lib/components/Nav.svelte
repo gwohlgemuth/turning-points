@@ -2,6 +2,7 @@
 	import { browser } from '$app/env';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import { withDemo } from '#lib/demo/mode.ts';
 	import { updatePreferences } from '#lib/preferences.ts';
 	import { sound } from '#lib/sound.svelte.ts';
 
@@ -23,7 +24,10 @@
 <nav aria-label="Main">
 	{#each LINKS as link (link.route)}
 		{@const current = page.route.id === link.route}
-		<a href={resolve(link.route)} class:current aria-current={current ? 'page' : undefined}
+		<a
+			href={withDemo(resolve(link.route))}
+			class:current
+			aria-current={current ? 'page' : undefined}
 			>{link.label}{#if current}<span class="indicator"></span>{/if}</a
 		>
 	{/each}

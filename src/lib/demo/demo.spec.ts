@@ -4,7 +4,7 @@ import { gameKey } from '../games.ts';
 import { readNotes } from '../notes.ts';
 import { DEMO_GAMES } from './games.ts';
 import data from './demo.json';
-import { demo, demoKey } from './mode.ts';
+import { demo, demoKey, withDemo } from './mode.ts';
 
 describe('demoKey', () => {
 	it('keeps the key outside the demo', () => {
@@ -18,7 +18,11 @@ describe('demoKey', () => {
 
 describe('demo mode', () => {
 	it('is off outside the browser build', () => {
-		expect(demo).toEqual({ active: false, entering: false });
+		expect(demo).toEqual({ active: false });
+	});
+
+	it('leaves links alone outside the demo', () => {
+		expect(withDemo('/stats')).toBe('/stats');
 	});
 });
 
