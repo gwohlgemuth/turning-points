@@ -1,7 +1,15 @@
 <script lang="ts">
 	import { asset, resolve } from '$app/paths';
 	import Nav from '#lib/components/Nav.svelte';
+	import { demo, exitDemo } from '#lib/demo/mode.ts';
 </script>
+
+{#if demo.active}
+	<p class="demo">
+		<span>Demo with famous games</span>
+		<button type="button" onclick={() => exitDemo(resolve('/'))}>Analyze your own games →</button>
+	</p>
+{/if}
 
 <header>
 	<div class="brand">
@@ -24,6 +32,29 @@
 </header>
 
 <style>
+	.demo {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: center;
+		gap: 4px 12px;
+		margin: 0 0 12px;
+		padding: 6px 12px;
+		border: 1px solid rgb(227 179 65 / 0.35);
+		border-radius: 10px;
+		font-size: 0.85rem;
+		text-align: center;
+	}
+
+	.demo button {
+		padding: 0;
+		border: 0;
+		background: none;
+		font: inherit;
+		color: var(--accent);
+		cursor: pointer;
+	}
+
 	header {
 		display: flex;
 		flex-wrap: wrap;

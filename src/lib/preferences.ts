@@ -1,8 +1,9 @@
 import { resolve } from '$app/paths';
+import { demo, demoKey } from './demo/mode.ts';
 import { GAME_COUNTS, type GameSource } from './games.ts';
 
 export const DEFAULT_SAVE_FOLDER = 'Documents/Turning Points';
-export const PREFERENCES_COOKIE = 'turning-points';
+export const PREFERENCES_COOKIE = demoKey('turning-points', demo.active);
 
 export const LOADER_TABS = ['online', 'saved', 'recent', 'pgn'] as const;
 export type LoaderTab = (typeof LOADER_TABS)[number];

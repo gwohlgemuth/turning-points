@@ -1,6 +1,7 @@
 import engineScript from 'stockfish/bin/stockfish-19-lite-single.js?url';
 import engineWasm from 'stockfish/bin/stockfish-19-lite-single.wasm?url';
 import { parseGame } from '../analysis.ts';
+import { demo, demoKey } from '../demo/mode.ts';
 import { analyzeGame, clampDepth, Engine, engineLines, engineMove } from '../engine.ts';
 import { candidateNames, pgnFilename, sameGame, splitPgn } from '../games.ts';
 import { mergeReviewState, parseReviewState } from '../review.ts';
@@ -65,7 +66,7 @@ let database: Promise<IDBDatabase> | null = null;
 
 function open(): Promise<IDBDatabase> {
 	database ??= new Promise((resolve, reject) => {
-		const req = indexedDB.open('turning-points', 1);
+		const req = indexedDB.open(demoKey('turning-points', demo.active), 1);
 		req.onupgradeneeded = () => {
 			req.result.createObjectStore('files', { keyPath: 'path' });
 			req.result.createObjectStore('meta');

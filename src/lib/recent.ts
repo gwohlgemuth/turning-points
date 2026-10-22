@@ -1,9 +1,10 @@
 import type { Move, PositionEval, Side } from './analysis.ts';
+import { demo, demoKey } from './demo/mode.ts';
 import type { Notes } from './notes.ts';
 
 export const MAX_RECENT = 20;
-const STORAGE_KEY = 'turning-points-recent';
-const CURRENT_KEY = 'turning-points-current';
+const STORAGE_KEY = demoKey('turning-points-recent', demo.active);
+const CURRENT_KEY = demoKey('turning-points-current', demo.active);
 
 export type RecentEntry = {
 	key: string;

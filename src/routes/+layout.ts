@@ -1,7 +1,13 @@
+import { demo } from '#lib/demo/mode.ts';
 import { readPreferences } from '#lib/preferences.ts';
 import type { LayoutLoad } from './$types';
 
 export const ssr = false;
 export const prerender = import.meta.env.STATIC;
 
-export const load: LayoutLoad = () => ({ preferences: readPreferences() });
+let seeded: Promise<void> | null = null;
+
+export const load: LayoutLoad = async () => {
+	if (demo.entering) await (seeded ??= import('#lib/demo/seed.ts').then((m) => m.seedDemo()));
+	return { preferences: readPreferences() };
+};
