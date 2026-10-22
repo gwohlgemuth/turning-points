@@ -14,6 +14,13 @@
 
 	if (browser) sound.enabled = untrack(() => data.preferences.sound);
 
+	// The service worker serves the cached version first; reload once a new one takes over
+	if (browser && import.meta.env.STATIC && navigator.serviceWorker?.controller) {
+		navigator.serviceWorker.addEventListener('controllerchange', () => location.reload(), {
+			once: true
+		});
+	}
+
 	onNavigate((navigation) => {
 		const from = navigation.from?.route.id;
 		const to = navigation.to?.route.id;
