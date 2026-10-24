@@ -1,12 +1,13 @@
 <script lang="ts">
 	import '../app.css';
 	import { browser } from '$app/env';
-	import { asset } from '$app/paths';
+	import { asset, resolve } from '$app/paths';
 	import { onNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import { untrack } from 'svelte';
 	import { prefersReducedMotion } from 'svelte/motion';
 	import Analysis from '#lib/components/Analysis.svelte';
+	import { withDemo } from '#lib/demo/mode.ts';
 	import { sound } from '#lib/sound.svelte.ts';
 	import type { LayoutProps } from './$types';
 
@@ -50,3 +51,29 @@
 
 <Analysis preferences={data.preferences} active={page.route.id === '/'} />
 {@render children()}
+
+{#if import.meta.env.STATIC}
+	<footer>
+		<a href="https://gwohl.de/impressum">Legal notice</a>
+		<a href={withDemo(resolve('/privacy'))}>Privacy</a>
+	</footer>
+{/if}
+
+<style>
+	footer {
+		display: flex;
+		justify-content: center;
+		gap: 18px;
+		padding: 0 20px 24px;
+		font-size: 0.8rem;
+	}
+
+	footer a {
+		color: var(--muted);
+		text-decoration: none;
+	}
+
+	footer a:hover {
+		color: var(--text);
+	}
+</style>
