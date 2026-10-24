@@ -79,4 +79,4 @@ Built with the help of [Claude Code](https://claude.com/claude-code) (Anthropic)
 
 ## License
 
-MIT, see `LICENSE`. The chess pieces, the Inter font and Stockfish.js keep their own licenses (see Credits).
+MIT, see `LICENSE`. The chess pieces, the Inter font and Stockfish.js keep their own licenses (see Credits). The browser version ships all third-party notices in `static/LICENSES.txt`, linked from its footer.

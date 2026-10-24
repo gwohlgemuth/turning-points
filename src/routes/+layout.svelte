@@ -56,6 +56,7 @@
 	<footer>
 		<a href="https://gwohl.de/impressum">Legal notice</a>
 		<a href={withDemo(resolve('/privacy'))}>Privacy</a>
+		<a href={asset('LICENSES.txt')}>Licenses</a>
 	</footer>
 {/if}
 
