@@ -9,7 +9,6 @@
 		"dev:static": "BUILD_TARGET=static vite dev",
 		"build": "vite build",
 		"build:static": "BUILD_TARGET=static vite build",
-		"update:homepage": "sh scripts/update-homepage.sh",
 		"update:book": "node scripts/build-book.ts",
 		"update:demo": "node --env-file-if-exists=.env scripts/build-demo.ts",
 		"preview": "vite preview",

@@ -15,7 +15,6 @@ export default defineConfig({
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
 			adapter: isStatic ? staticAdapter({ strict: false }) : nodeAdapter(),
-			paths: isStatic ? { base: '/turning-points', relative: false } : {},
 			serviceWorker: isStatic ? { register: true } : { register: false },
 			version: isStatic ? { name: execSync('git rev-parse --short HEAD').toString().trim() } : {}
 		})

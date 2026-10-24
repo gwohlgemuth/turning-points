@@ -1,0 +1,6 @@
+{
+	"name": "turning-points",
+	"compatibility_date": "2026-10-01",
+	"assets": { "directory": "./build" },
+	"routes": [{ "pattern": "turning-points.gwohl.de", "custom_domain": true }]
+}
